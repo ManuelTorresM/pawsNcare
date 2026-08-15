@@ -1,0 +1,22 @@
+{
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "paws-n-care",
+                    "appId": "1:506029706494:android:508c34b2f09e703bdbe9af",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "paws-n-care",
+                    "configurations": {
+                        "android": "1:506029706494:android:508c34b2f09e703bdbe9af",
+                        "ios": "1:506029706494:ios:fb138149a425fc0bdbe9af"
+                    }
+                }
+            }
+        }
+    }
+}

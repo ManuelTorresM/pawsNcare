@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "506029706494",
+    "project_id": "paws-n-care",
+    "storage_bucket": "paws-n-care.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:506029706494:android:508c34b2f09e703bdbe9af",
+        "android_client_info": {
+          "package_name": "com.pawsncare.app.pawsncare"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJQUBfudxUSpncnmMCzV1BokEMDa7XHaU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
