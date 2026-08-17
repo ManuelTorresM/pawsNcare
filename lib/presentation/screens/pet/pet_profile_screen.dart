@@ -7,6 +7,8 @@ import '../../../data/models/weight_log.dart';
 import '../../../data/models/medication.dart';
 import '../../../data/models/diary_entry.dart';
 import '../../theme/app_theme.dart';
+import 'pet_details_screen.dart';
+import 'meds_vaccines_screen.dart';
 
 class PetProfileScreen extends StatefulWidget {
   final Pet pet;
@@ -113,13 +115,25 @@ class _PetProfileScreenState extends State<PetProfileScreen>
   void _toggleMedication(Medication med) {
     final updatedMeds = _pet.medications.map((m) {
       if (m.id == med.id) {
-        return Medication(
-          id: m.id,
-          name: m.name,
-          nextDoseDate: m.nextDoseDate.add(const Duration(days: 30)),
+        DateTime calculatedNext = m.nextDoseDate;
+        if (m.frequency == 'Every 8h') {
+          calculatedNext = DateTime.now().add(const Duration(hours: 8));
+        } else if (m.frequency == 'Every 12h') {
+          calculatedNext = DateTime.now().add(const Duration(hours: 12));
+        } else if (m.frequency == 'Every 24h') {
+          calculatedNext = DateTime.now().add(const Duration(days: 1));
+        } else if (m.frequency == 'Weekly') {
+          calculatedNext = DateTime.now().add(const Duration(days: 7));
+        } else if (m.frequency == 'Monthly') {
+          calculatedNext = DateTime.now().add(const Duration(days: 30));
+        } else {
+          calculatedNext = m.nextDoseDate.add(const Duration(days: 30));
+        }
+
+        return m.copyWith(
+          nextDoseDate: calculatedNext,
           administeredDate: DateTime.now(),
           isCompleted: true,
-          type: m.type,
         );
       }
       return m;
@@ -180,24 +194,23 @@ class _PetProfileScreenState extends State<PetProfileScreen>
           IconButton(
             icon: const Icon(Icons.delete_outline, color: AppTheme.error),
             onPressed: () {
-              // Confirm deletion dialog
               showDialog(
                 context: context,
-                builder: (context) => AlertDialog(
+                builder: (dialogContext) => AlertDialog(
                   title: const Text('Delete Pet Profile?'),
                   content: Text(
                     'Are you sure you want to delete ${_pet.name}? This will clear all health and diary histories.',
                   ),
                   actions: [
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => Navigator.pop(dialogContext),
                       child: const Text('Cancel'),
                     ),
                     ElevatedButton(
                       onPressed: () {
                         context.read<PetBloc>().add(DeletePet(_pet.id));
-                        Navigator.pop(context);
-                        Navigator.pop(context); // Go back to dashboard
+                        Navigator.pop(dialogContext);
+                        Navigator.of(context).pop(); // Go back to HomeTab
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.error,
@@ -229,7 +242,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -238,7 +251,19 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(24),
                       child: _pet.avatarUrl.startsWith('http')
-                          ? Image.network(_pet.avatarUrl, fit: BoxFit.cover)
+                          ? Image.network(
+                              _pet.avatarUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                    color: AppTheme.primaryContainer,
+                                    child: const Icon(
+                                      Icons.pets,
+                                      size: 64,
+                                      color: AppTheme.secondary,
+                                    ),
+                                  ),
+                            )
                           : Container(
                               color: AppTheme.primaryContainer,
                               child: const Icon(Icons.pets, size: 64),
@@ -261,7 +286,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.transparent,
-                            Colors.black.withOpacity(0.8),
+                            Colors.black.withValues(alpha: 0.8),
                           ],
                         ),
                       ),
@@ -283,7 +308,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: AppTheme.primary.withOpacity(0.8),
+                              color: AppTheme.primary.withValues(alpha: 0.8),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -309,18 +334,40 @@ class _PetProfileScreenState extends State<PetProfileScreen>
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Row(
                 children: [
-                  _buildStatCard('Age', _pet.ageString, Icons.cake),
-                  const SizedBox(width: 12),
                   _buildStatCard(
-                    'Weight',
-                    '${_pet.weight} kg',
-                    Icons.monitor_weight,
+                    label: 'Age',
+                    value: _pet.ageString,
+                    icon: Icons.cake,
+                    iconColor: const Color(0xFF9E5A44),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   _buildStatCard(
-                    'Status',
-                    _pet.status,
-                    Icons.health_and_safety,
+                    label: 'Weight',
+                    value: '${_pet.weight.toStringAsFixed(0)}kg',
+                    icon: Icons.scale_outlined,
+                    iconColor: const Color(0xFF1F6156),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildStatCard(
+                    label: 'Vaccine',
+                    value: _getNextVaccineDate(),
+                    icon: Icons.vaccines,
+                    iconColor: const Color(0xFFE67E22),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildStatCard(
+                    label: 'Details',
+                    value: 'Info',
+                    icon: Icons.assignment_outlined,
+                    iconColor: Colors.white,
+                    isHighlighted: true,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => PetDetailsScreen(pet: _pet),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -329,7 +376,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
 
             // Recent Photos Gallery
             const Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              padding: EdgeInsets.symmetric(horizontal: 20.0),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -360,6 +407,13 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                       child: Image.network(
                         _pet.photos[index],
                         fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: AppTheme.surfaceContainer,
+                          child: const Icon(
+                            Icons.broken_image,
+                            color: AppTheme.secondary,
+                          ),
+                        ),
                       ),
                     ),
                   );
@@ -387,7 +441,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       blurRadius: 4,
                       offset: const Offset(0, 1),
                     ),
@@ -440,35 +494,90 @@ class _PetProfileScreenState extends State<PetProfileScreen>
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: AppTheme.primaryFixed.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(16),
+  Widget _buildStatCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color iconColor,
+    bool isHighlighted = false,
+    VoidCallback? onTap,
+  }) {
+    final cardBody = Container(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        color: isHighlighted ? AppTheme.primary : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isHighlighted
+              ? AppTheme.primary
+              : AppTheme.surfaceContainerLow,
+          width: 1,
         ),
-        child: Column(
-          children: [
-            Icon(icon, color: AppTheme.primary),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppTheme.secondary,
-                fontWeight: FontWeight.w500,
-              ),
+        boxShadow: isHighlighted
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: isHighlighted ? Colors.white : iconColor, size: 24),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: isHighlighted
+                  ? Colors.white.withValues(alpha: 0.8)
+                  : AppTheme.onSurfaceVariant.withValues(alpha: 0.7),
+              fontWeight: FontWeight.w500,
             ),
-            const SizedBox(height: 2),
-            Text(
-              value,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: isHighlighted ? Colors.white : AppTheme.onSurface,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+
+    return Expanded(
+      child: onTap != null
+          ? GestureDetector(onTap: onTap, child: cardBody)
+          : cardBody,
+    );
+  }
+
+  String _getNextVaccineDate() {
+    if (_pet.medications.isEmpty) return 'Oct 12';
+    final meds = List<Medication>.from(_pet.medications)
+      ..sort((a, b) => a.nextDoseDate.compareTo(b.nextDoseDate));
+    final next = meds.first.nextDoseDate;
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${months[next.month - 1]} ${next.day}';
   }
 
   Widget _buildDiaryTab() {
@@ -520,8 +629,18 @@ class _PetProfileScreenState extends State<PetProfileScreen>
 
   String _getMonthName(int month) {
     const monthNames = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return monthNames[month - 1];
   }
@@ -537,9 +656,9 @@ class _PetProfileScreenState extends State<PetProfileScreen>
 
     // Group logs by month and average them
     final averages = last6Months.map((m) {
-      final logs = history.where((log) =>
-        log.date.year == m.year && log.date.month == m.month
-      ).toList();
+      final logs = history
+          .where((log) => log.date.year == m.year && log.date.month == m.month)
+          .toList();
       if (logs.isEmpty) {
         return null;
       }
@@ -617,7 +736,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
               border: Border.all(color: AppTheme.surfaceContainerLow),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.01),
+                  color: Colors.black.withValues(alpha: 0.01),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -670,9 +789,9 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                           if (showTrend)
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
                                 color: trendDiff >= 0
                                     ? const Color(0xFFE2F5E9)
@@ -701,17 +820,23 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                             // Horizontal grid lines
                             Column(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: List.generate(4, (index) => Container(
-                                height: 1,
-                                color: AppTheme.surfaceContainerLow,
-                              )),
+                              children: List.generate(
+                                4,
+                                (index) => Container(
+                                  height: 1,
+                                  color: AppTheme.surfaceContainerLow,
+                                ),
+                              ),
                             ),
                             // Bars and labels
                             Positioned.fill(
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4.0,
+                                ),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: List.generate(6, (idx) {
                                     final m = last6Months[idx];
@@ -723,17 +848,29 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                                     Widget weightTextWidget;
 
                                     if (avg != null) {
-                                      final factor = (chartMinW == chartMaxW) ? 0.5 : (avg - chartMinW) / (chartMaxW - chartMinW);
-                                      final clampedFactor = factor.clamp(0.0, 1.0);
+                                      final factor = (chartMinW == chartMaxW)
+                                          ? 0.5
+                                          : (avg - chartMinW) /
+                                                (chartMaxW - chartMinW);
+                                      final clampedFactor = factor.clamp(
+                                        0.0,
+                                        1.0,
+                                      );
                                       const double plotHeight = 90.0;
-                                      final double barHeight = plotHeight * (0.15 + 0.7 * clampedFactor);
+                                      final double barHeight =
+                                          plotHeight *
+                                          (0.15 + 0.7 * clampedFactor);
 
                                       weightTextWidget = Text(
                                         avg.toStringAsFixed(1),
                                         style: TextStyle(
                                           fontSize: 11,
-                                          fontWeight: isLatestMonth ? FontWeight.bold : FontWeight.w500,
-                                          color: isLatestMonth ? AppTheme.primary : AppTheme.secondary,
+                                          fontWeight: isLatestMonth
+                                              ? FontWeight.bold
+                                              : FontWeight.w500,
+                                          color: isLatestMonth
+                                              ? AppTheme.primary
+                                              : AppTheme.secondary,
                                         ),
                                       );
 
@@ -750,8 +887,12 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                                               decoration: BoxDecoration(
                                                 color: isLatestMonth
                                                     ? AppTheme.primary
-                                                    : AppTheme.primary.withOpacity(0.4),
-                                                borderRadius: BorderRadius.circular(3),
+                                                    : AppTheme.primary
+                                                          .withValues(
+                                                            alpha: 0.4,
+                                                          ),
+                                                borderRadius:
+                                                    BorderRadius.circular(3),
                                               ),
                                             ),
                                             // Circular dot marker
@@ -763,13 +904,21 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                                                 decoration: BoxDecoration(
                                                   color: isLatestMonth
                                                       ? AppTheme.primary
-                                                      : AppTheme.primary.withOpacity(0.8),
+                                                      : AppTheme.primary
+                                                            .withValues(
+                                                              alpha: 0.8,
+                                                            ),
                                                   shape: BoxShape.circle,
                                                   border: isLatestMonth
                                                       ? Border.all(
-                                                          color: AppTheme.primary.withOpacity(0.2),
+                                                          color: AppTheme
+                                                              .primary
+                                                              .withValues(
+                                                                alpha: 0.2,
+                                                              ),
                                                           width: 3,
-                                                          strokeAlign: BorderSide.strokeAlignOutside,
+                                                          strokeAlign: BorderSide
+                                                              .strokeAlignOutside,
                                                         )
                                                       : null,
                                                 ),
@@ -787,14 +936,13 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                                           color: AppTheme.secondary,
                                         ),
                                       );
-                                      barWidget = const SizedBox(
-                                        height: 98,
-                                      );
+                                      barWidget = const SizedBox(height: 98);
                                     }
 
                                     return Expanded(
                                       child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
                                         children: [
                                           weightTextWidget,
                                           const SizedBox(height: 6),
@@ -804,8 +952,12 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                                             monthLabel,
                                             style: TextStyle(
                                               fontSize: 11,
-                                              fontWeight: isLatestMonth ? FontWeight.bold : FontWeight.w500,
-                                              color: isLatestMonth ? AppTheme.onSurface : AppTheme.secondary,
+                                              fontWeight: isLatestMonth
+                                                  ? FontWeight.bold
+                                                  : FontWeight.w500,
+                                              color: isLatestMonth
+                                                  ? AppTheme.onSurface
+                                                  : AppTheme.secondary,
                                             ),
                                           ),
                                         ],
@@ -888,43 +1040,92 @@ class _PetProfileScreenState extends State<PetProfileScreen>
   }
 
   Widget _buildMedsTab() {
-    final meds = _pet.medications;
-    if (meds.isEmpty) {
-      return const Center(
-        child: Text('No medications or vaccine logs set up.'),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: meds.length,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemBuilder: (context, index) {
-        final med = meds[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: AppTheme.secondaryContainer,
-              child: Icon(
-                med.type == 'vaccine' ? Icons.vaccines : Icons.bug_report,
-                color: AppTheme.secondary,
+    final meds = _pet.medications.where((m) => m.type != 'vaccine').toList();
+    
+    return Column(
+      children: [
+        Expanded(
+          child: meds.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No medications set up.',
+                    style: TextStyle(fontStyle: FontStyle.italic, color: AppTheme.secondary),
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: meds.length,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemBuilder: (context, index) {
+                    final med = meds[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        leading: const CircleAvatar(
+                          backgroundColor: AppTheme.secondaryContainer,
+                          child: Icon(
+                            Icons.healing,
+                            color: AppTheme.secondary,
+                          ),
+                        ),
+                        title: Text(
+                          med.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Dose: ${med.dose.isNotEmpty ? med.dose : '1 Tablet'}${med.route.isNotEmpty ? ' (${med.route})' : ''}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            Text(
+                              'Frequency: ${med.frequency.isNotEmpty ? med.frequency : 'Daily'}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            Text(
+                              'Next due: ${med.nextDoseDate.day}/${med.nextDoseDate.month}/${med.nextDoseDate.year}',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                        trailing: TextButton(
+                          onPressed: () => _toggleMedication(med),
+                          style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
+                          child: const Text('Administer'),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => MedsVaccinesScreen(pet: _pet),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.edit_calendar_outlined, color: Colors.white),
+              label: const Text(
+                'Update Meds',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
             ),
-            title: Text(
-              med.name,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(
-              'Next due: ${med.nextDoseDate.day}/${med.nextDoseDate.month}/${med.nextDoseDate.year}',
-            ),
-            trailing: TextButton(
-              onPressed: () => _toggleMedication(med),
-              style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
-              child: const Text('Administer'),
-            ),
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 
@@ -962,7 +1163,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
   void _showAddPhotoDialog(BuildContext context) {
     final urlController = TextEditingController(
       text:
-          'https://lh3.googleusercontent.com/aida/AP1WRLtrgME_RmIjbhaKotM3yFpCT7DU6U1PWGClNijvL1udZ-MwwSE4sRJXIkOpdXG_cQrlHdzVHWgOScO25q_9O5XS5IYrq9YpSPzMMCfFUgQin2wChhfacReYAlFZmlABvz70D9BrOoYsd_UfBK1v2te37yMvk_LKQM0nfhOK_Smz_StRBkZ7xC7Mw-AfJwUe6IrQBGllmI1NtCd5O0NUnlXVtaS0dVA9d1RpHUon7HaYl-S_cZT-vjk0XIE',
+          'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=400',
     );
     showDialog(
       context: context,

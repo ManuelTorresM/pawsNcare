@@ -42,6 +42,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
   bool _isDietEnabled = true;
   String _selectedFoodType = 'Dry Kibble';
   final _feedingNotesController = TextEditingController();
+  final _weightController = TextEditingController(text: '10.0');
   final List<String> _selectedBehaviorTags = [];
 
   @override
@@ -49,13 +50,14 @@ class _AddPetWizardState extends State<AddPetWizard> {
     _nameController.dispose();
     _breedController.dispose();
     _feedingNotesController.dispose();
+    _weightController.dispose();
     super.dispose();
   }
 
   void _showDiscardModal() {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           content: Column(
@@ -66,7 +68,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
               const SizedBox(height: 16),
               Text(
                 'Discard progress?',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                style: Theme.of(dialogContext).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
@@ -78,7 +80,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => Navigator.of(dialogContext).pop(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.white,
@@ -90,7 +92,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).pop(); // Dismiss modal
+                  Navigator.of(dialogContext).pop(); // Dismiss modal
                   Navigator.of(context).pop(); // Go back from wizard
                 },
                 style: TextButton.styleFrom(
@@ -204,6 +206,16 @@ class _AddPetWizardState extends State<AddPetWizard> {
   void _submitWizard() {
     final petId = DateTime.now().millisecondsSinceEpoch.toString();
     
+    // Parse and validate weight
+    final weightText = _weightController.text.trim();
+    final weightVal = double.tryParse(weightText);
+    if (weightVal == null || weightVal < 0.1 || weightVal > 150.0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid weight between 0.1 and 150.0 kg.')),
+      );
+      return;
+    }
+
     // Calculate age string
     final birth = _birthDate ?? DateTime.now().subtract(const Duration(days: 365));
     final difference = DateTime.now().difference(birth).inDays;
@@ -239,17 +251,26 @@ class _AddPetWizardState extends State<AddPetWizard> {
       birthDate: birth,
       avatarUrl: _selectedAvatar,
       status: years == 0 ? 'Puppy' : 'Healthy',
-      weight: 10.0,
+      weight: weightVal,
       weightHistory: [
         WeightLog(
           id: 'w_$petId',
-          weight: 10.0,
+          weight: weightVal,
           date: DateTime.now(),
           note: 'Initial Weight',
         ),
       ],
       medications: meds,
       photos: const [],
+      species: _selectedSpecies ?? 'Dog',
+      gender: _selectedGender ?? 'Female',
+      neutered: _selectedNeutered ?? 'Yes',
+      allergies: _selectedAllergies,
+      activityLevel: _selectedActivityLevel,
+      dietEnabled: _isDietEnabled,
+      foodType: _selectedFoodType,
+      feedingNotes: _feedingNotesController.text.trim(),
+      behaviorTags: _selectedBehaviorTags,
     );
 
     context.read<PetBloc>().add(AddPet(newPet));
@@ -260,7 +281,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           content: Column(
@@ -275,7 +296,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
               const SizedBox(height: 24),
               Text(
                 'Success!',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                style: Theme.of(dialogContext).textTheme.headlineMedium?.copyWith(
                       color: AppTheme.primary,
                       fontWeight: FontWeight.bold,
                     ),
@@ -285,8 +306,8 @@ class _AddPetWizardState extends State<AddPetWizard> {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).pop(); // dismiss dialog
-                  Navigator.of(context).pop(); // dismiss wizard
+                  Navigator.of(dialogContext).pop(); // dismiss dialog
+                  Navigator.of(context).pop(); // dismiss wizard and return to home_tab
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
@@ -379,7 +400,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
                   decoration: BoxDecoration(
                     color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.surfaceContainer.withOpacity(0.3)),
+                    border: Border.all(color: AppTheme.surfaceContainer.withValues(alpha: 0.3)),
                   ),
                   padding: const EdgeInsets.all(20),
                   child: _buildStepContent(),
@@ -542,6 +563,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
               }
             });
           },
+          weightController: _weightController,
         );
       default:
         return const SizedBox.shrink();

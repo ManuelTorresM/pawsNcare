@@ -6,7 +6,7 @@ class MedicalHistoryStep2 extends StatefulWidget {
   final ValueChanged<int> onVaccineRemoved;
   final Function(int, DateTime) onVaccineDateChanged;
   final ValueChanged<String> onAddCustomVaccine;
-  
+
   final List<String> selectedConditions;
   final ValueChanged<String> onConditionToggled;
   final ValueChanged<String> onAddCustomCondition;
@@ -45,7 +45,16 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
   // Allergies Autocomplete State
   final _allergySearchController = TextEditingController();
   final List<String> _allergyLibrary = const [
-    'Beef', 'Pollen', 'Grain-Free', 'Chicken', 'Dairy', 'Flea Saliva', 'Penicillin', 'Soy', 'Wheat', 'Dust Mites'
+    'Beef',
+    'Pollen',
+    'Grain-Free',
+    'Chicken',
+    'Dairy',
+    'Flea Saliva',
+    'Penicillin',
+    'Soy',
+    'Wheat',
+    'Dust Mites',
   ];
   List<String> _filteredAllergies = [];
   bool _isAllergyDropdownVisible = false;
@@ -68,7 +77,11 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
     }
 
     final filtered = _allergyLibrary
-        .where((allergy) => allergy.toLowerCase().contains(query.toLowerCase()) && !widget.selectedAllergies.contains(allergy))
+        .where(
+          (allergy) =>
+              allergy.toLowerCase().contains(query.toLowerCase()) &&
+              !widget.selectedAllergies.contains(allergy),
+        )
         .toList();
 
     setState(() {
@@ -169,14 +182,19 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
                     }
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: AppTheme.surfaceContainerLowest,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AppTheme.surfaceContainer),
                     ),
                     child: Text(
-                      date == null ? 'Select Date' : '${date.day}/${date.month}/${date.year}',
+                      date == null
+                          ? 'Select Date'
+                          : '${date.day}/${date.month}/${date.year}',
                       style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 13,
@@ -187,14 +205,17 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, color: AppTheme.secondary, size: 20),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: AppTheme.secondary,
+                    size: 20,
+                  ),
                   onPressed: () => widget.onVaccineRemoved(index),
                 ),
               ],
             ),
           );
-        }).toList(),
-
+        }), //.toList(),
         // Add Custom Vaccine button or input
         if (!_isCustomVaccineVisible)
           OutlinedButton.icon(
@@ -203,9 +224,14 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
             label: const Text('Add Custom Vaccination'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppTheme.primary,
-              side: const BorderSide(color: AppTheme.primary, style: BorderStyle.solid),
+              side: const BorderSide(
+                color: AppTheme.primary,
+                style: BorderStyle.solid,
+              ),
               minimumSize: const Size.fromHeight(48),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
             ),
           )
         else
@@ -224,7 +250,9 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
               ElevatedButton(
                 onPressed: () {
                   if (_customVaccineController.text.trim().isNotEmpty) {
-                    widget.onAddCustomVaccine(_customVaccineController.text.trim());
+                    widget.onAddCustomVaccine(
+                      _customVaccineController.text.trim(),
+                    );
                     _customVaccineController.clear();
                     setState(() => _isCustomVaccineVisible = false);
                   }
@@ -237,7 +265,8 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
               ),
               IconButton(
                 icon: const Icon(Icons.close),
-                onPressed: () => setState(() => _isCustomVaccineVisible = false),
+                onPressed: () =>
+                    setState(() => _isCustomVaccineVisible = false),
               ),
             ],
           ),
@@ -263,15 +292,30 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            ...['Diabetes', 'Arthritis', 'Heart Murmur', 'Epilepsy', 'None'].map((condition) {
-              final isSelected = widget.selectedConditions.contains(condition.toLowerCase());
+            ...[
+              'Diabetes',
+              'Arthritis',
+              'Heart Murmur',
+              'Epilepsy',
+              'None',
+            ].map((condition) {
+              final isSelected = widget.selectedConditions.contains(
+                condition.toLowerCase(),
+              );
               return _buildConditionChip(condition, isSelected);
-            }).toList(),
+            }), //.toList(),
             ...widget.selectedConditions
-                .where((c) => c != 'diabetes' && c != 'arthritis' && c != 'heart murmur' && c != 'epilepsy' && c != 'none')
+                .where(
+                  (c) =>
+                      c != 'diabetes' &&
+                      c != 'arthritis' &&
+                      c != 'heart murmur' &&
+                      c != 'epilepsy' &&
+                      c != 'none',
+                )
                 .map((condition) {
-              return _buildConditionChip(condition, true, isCustom: true);
-            }).toList(),
+                  return _buildConditionChip(condition, true, isCustom: true);
+                }), //.toList(),
           ],
         ),
         const SizedBox(height: 12),
@@ -284,9 +328,14 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
             label: const Text('Add Custom Condition'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppTheme.primary,
-              side: const BorderSide(color: AppTheme.primary, style: BorderStyle.solid),
+              side: const BorderSide(
+                color: AppTheme.primary,
+                style: BorderStyle.solid,
+              ),
               minimumSize: const Size.fromHeight(48),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
             ),
           )
         else
@@ -305,7 +354,9 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
               ElevatedButton(
                 onPressed: () {
                   if (_customConditionController.text.trim().isNotEmpty) {
-                    widget.onAddCustomCondition(_customConditionController.text.trim());
+                    widget.onAddCustomCondition(
+                      _customConditionController.text.trim(),
+                    );
                     _customConditionController.clear();
                     setState(() => _isCustomConditionVisible = false);
                   }
@@ -318,7 +369,8 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
               ),
               IconButton(
                 icon: const Icon(Icons.close),
-                onPressed: () => setState(() => _isCustomConditionVisible = false),
+                onPressed: () =>
+                    setState(() => _isCustomConditionVisible = false),
               ),
             ],
           ),
@@ -362,7 +414,7 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -407,7 +459,7 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.primaryFixedDim.withOpacity(0.15),
+            color: AppTheme.primaryFixedDim.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -432,7 +484,11 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
     );
   }
 
-  Widget _buildConditionChip(String label, bool isSelected, {bool isCustom = false}) {
+  Widget _buildConditionChip(
+    String label,
+    bool isSelected, {
+    bool isCustom = false,
+  }) {
     return FilterChip(
       label: Text(label),
       selected: isSelected,

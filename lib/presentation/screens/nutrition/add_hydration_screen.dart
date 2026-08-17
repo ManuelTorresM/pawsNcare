@@ -142,7 +142,7 @@ class _AddHydrationScreenState extends State<AddHydrationScreen> {
                       height: 180,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryFixed.withOpacity(0.3),
+                        color: AppTheme.primaryFixed.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       padding: const EdgeInsets.all(20),
@@ -273,7 +273,7 @@ class _AddHydrationScreenState extends State<AddHydrationScreen> {
                                         CrossAxisAlignment.start,
                                     children: const [
                                       Text(
-                                        'Active during night',
+                                        'Inactive during night',
                                         style: TextStyle(
                                           fontFamily: 'Inter',
                                           fontWeight: FontWeight.bold,
@@ -281,7 +281,7 @@ class _AddHydrationScreenState extends State<AddHydrationScreen> {
                                         ),
                                       ),
                                       Text(
-                                        'Send reminders while you sleep',
+                                        'Stop reminders while you sleep',
                                         style: TextStyle(
                                           fontFamily: 'Inter',
                                           fontSize: 11,
@@ -294,7 +294,7 @@ class _AddHydrationScreenState extends State<AddHydrationScreen> {
                               ),
                               Switch(
                                 value: _isNightActive,
-                                activeColor: AppTheme.primary,
+                                activeThumbColor: AppTheme.primary,
                                 onChanged: (val) =>
                                     setState(() => _isNightActive = val),
                               ),
@@ -438,7 +438,7 @@ class _AddHydrationScreenState extends State<AddHydrationScreen> {
               decoration: BoxDecoration(
                 color: Theme.of(
                   context,
-                ).scaffoldBackgroundColor.withOpacity(0.9),
+                ).scaffoldBackgroundColor.withValues(alpha: 0.9),
               ),
               child: Row(
                 children: [
@@ -524,7 +524,7 @@ class _AddHydrationScreenState extends State<AddHydrationScreen> {
       child: Container(
         decoration: BoxDecoration(
           color: isSelected
-              ? AppTheme.primaryFixedDim.withOpacity(0.2)
+              ? AppTheme.primaryFixedDim.withValues(alpha: 0.2)
               : AppTheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
@@ -566,7 +566,7 @@ class _AddHydrationScreenState extends State<AddHydrationScreen> {
       child: Container(
         decoration: BoxDecoration(
           color: isSelected
-              ? AppTheme.primaryFixedDim.withOpacity(0.2)
+              ? AppTheme.primaryFixedDim.withValues(alpha: 0.2)
               : AppTheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(

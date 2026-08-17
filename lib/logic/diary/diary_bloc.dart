@@ -24,6 +24,14 @@ class AddDiaryEntryEvent extends DiaryEvent {
   List<Object?> get props => [entry];
 }
 
+class DeleteDiaryEntryEvent extends DiaryEvent {
+  final String entryId;
+  final String? currentPetId;
+  const DeleteDiaryEntryEvent(this.entryId, {this.currentPetId});
+  @override
+  List<Object?> get props => [entryId, currentPetId];
+}
+
 // States
 abstract class DiaryState extends Equatable {
   const DiaryState();
@@ -56,6 +64,7 @@ class DiaryBloc extends Bloc<DiaryEvent, DiaryState> {
   DiaryBloc({required this.repositorySelector}) : super(DiaryInitial()) {
     on<LoadDiary>(_onLoadDiary);
     on<AddDiaryEntryEvent>(_onAddDiaryEntry);
+    on<DeleteDiaryEntryEvent>(_onDeleteDiaryEntry);
   }
 
   Future<void> _onLoadDiary(LoadDiary event, Emitter<DiaryState> emit) async {
@@ -84,6 +93,23 @@ class DiaryBloc extends Bloc<DiaryEvent, DiaryState> {
         entries = await repo.getAllDiaryEntries();
       } else {
         entries = await repo.getDiaryEntries(event.entry.petId);
+      }
+      emit(DiaryLoaded(entries));
+    } catch (e) {
+      emit(DiaryError(e.toString()));
+    }
+  }
+
+  Future<void> _onDeleteDiaryEntry(DeleteDiaryEntryEvent event, Emitter<DiaryState> emit) async {
+    try {
+      final repo = await repositorySelector.getActiveRepository();
+      await repo.deleteDiaryEntry(event.entryId);
+      // Reload based on current view/filter
+      List<DiaryEntry> entries;
+      if (event.currentPetId == null) {
+        entries = await repo.getAllDiaryEntries();
+      } else {
+        entries = await repo.getDiaryEntries(event.currentPetId!);
       }
       emit(DiaryLoaded(entries));
     } catch (e) {

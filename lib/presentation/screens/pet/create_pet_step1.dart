@@ -89,7 +89,7 @@ class CreatePetStep1 extends StatelessWidget {
           style: const TextStyle(fontFamily: 'Inter'),
           decoration: InputDecoration(
             hintText: 'e.g. Luna',
-            hintStyle: TextStyle(color: AppTheme.secondary.withOpacity(0.5)),
+            hintStyle: TextStyle(color: AppTheme.secondary.withValues(alpha: 0.5)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             filled: true,
             fillColor: AppTheme.surfaceContainerLow,
@@ -144,7 +144,7 @@ class CreatePetStep1 extends StatelessWidget {
           style: const TextStyle(fontFamily: 'Inter'),
           decoration: InputDecoration(
             hintText: 'Search breeds...',
-            hintStyle: TextStyle(color: AppTheme.secondary.withOpacity(0.5)),
+            hintStyle: TextStyle(color: AppTheme.secondary.withValues(alpha: 0.5)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             filled: true,
             fillColor: AppTheme.surfaceContainerLow,
@@ -160,9 +160,9 @@ class CreatePetStep1 extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.primaryFixedDim.withOpacity(0.15),
+            color: AppTheme.primaryFixedDim.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.primaryFixedDim.withOpacity(0.3)),
+            border: Border.all(color: AppTheme.primaryFixedDim.withValues(alpha: 0.3)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,6 +174,12 @@ class CreatePetStep1 extends StatelessWidget {
                   width: 64,
                   height: 64,
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    width: 64,
+                    height: 64,
+                    color: AppTheme.surfaceContainer,
+                    child: const Icon(Icons.help_outline, color: AppTheme.secondary),
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -285,7 +291,7 @@ class CreatePetStep1 extends StatelessWidget {
                       : '${birthDate!.day}/${birthDate!.month}/${birthDate!.year}',
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    color: birthDate == null ? AppTheme.secondary.withOpacity(0.5) : AppTheme.onSurface,
+                    color: birthDate == null ? AppTheme.secondary.withValues(alpha: 0.5) : AppTheme.onSurface,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

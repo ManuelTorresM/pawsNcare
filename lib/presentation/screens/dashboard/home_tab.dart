@@ -119,7 +119,7 @@ class _HomeTabState extends State<HomeTab> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryFixed.withOpacity(0.3),
+                      color: AppTheme.primaryFixed.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(16),
                       border: const Border(
                         left: BorderSide(color: AppTheme.primary, width: 4),
@@ -133,7 +133,7 @@ class _HomeTabState extends State<HomeTab> {
                           child: Icon(
                             Icons.shield,
                             size: 80,
-                            color: AppTheme.primary.withOpacity(0.08),
+                            color: AppTheme.primary.withValues(alpha: 0.08),
                           ),
                         ),
                         Column(
@@ -193,7 +193,7 @@ class _HomeTabState extends State<HomeTab> {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.02),
+                                  color: Colors.black.withValues(alpha: 0.02),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -250,7 +250,7 @@ class _HomeTabState extends State<HomeTab> {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.02),
+                                  color: Colors.black.withValues(alpha: 0.02),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -326,7 +326,7 @@ class _HomeTabState extends State<HomeTab> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.02),
+                        color: Colors.black.withValues(alpha: 0.02),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -454,15 +454,15 @@ class _HomeTabState extends State<HomeTab> {
                             final pet = pets[index];
                             Color statusColor = AppTheme.primary;
                             Color statusBgColor = AppTheme.primaryFixed
-                                .withOpacity(0.3);
+                                .withValues(alpha: 0.3);
                             if (pet.status == 'Check Diary') {
                               statusColor = AppTheme.tertiary;
                               statusBgColor = AppTheme.tertiaryFixed
-                                  .withOpacity(0.4);
+                                  .withValues(alpha: 0.4);
                             } else if (pet.status == 'Puppy') {
                               statusColor = AppTheme.secondary;
                               statusBgColor = AppTheme.secondaryContainer
-                                  .withOpacity(0.6);
+                                  .withValues(alpha: 0.6);
                             }
 
                             return GestureDetector(
@@ -485,7 +485,7 @@ class _HomeTabState extends State<HomeTab> {
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.02),
+                                      color: Colors.black.withValues(alpha: 0.02),
                                       blurRadius: 10,
                                       offset: const Offset(0, 4),
                                     ),
@@ -601,7 +601,7 @@ class _HomeTabState extends State<HomeTab> {
                           },
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
-                              color: theme.colorScheme.outline.withOpacity(0.5),
+                              color: theme.colorScheme.outline.withValues(alpha: 0.5),
                               width: 1.5,
                               style: BorderStyle.solid,
                             ),
@@ -716,7 +716,7 @@ class _HomeTabState extends State<HomeTab> {
                       child: Icon(
                         Icons.ac_unit,
                         size: 100,
-                        color: Colors.white.withOpacity(0.08),
+                        color: Colors.white.withValues(alpha: 0.08),
                       ),
                     ),
                     Column(
@@ -735,7 +735,7 @@ class _HomeTabState extends State<HomeTab> {
                           'Learn how to protect your pets\' paws from salt and ice this season with our professional tips.',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                           ),
                         ),
                         const SizedBox(height: 18),
@@ -770,7 +770,7 @@ class _HomeTabState extends State<HomeTab> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 6,
             offset: const Offset(0, 3),
           ),

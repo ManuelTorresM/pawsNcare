@@ -175,7 +175,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
                             bulletColor,
                             registeredPets,
                           );
-                        }).toList(),
+                        }), //.toList(),
                       ],
                     ),
                     const SizedBox(height: 28),
@@ -191,7 +191,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
                         decoration: InputDecoration(
                           hintText: 'e.g. Breakfast',
                           hintStyle: TextStyle(
-                            color: AppTheme.secondary.withOpacity(0.4),
+                            color: AppTheme.secondary.withValues(alpha: 0.4),
                           ),
                           suffixIcon: const Icon(
                             Icons.edit,
@@ -257,8 +257,8 @@ class _AddMealScreenState extends State<AddMealScreen> {
                                   decoration: InputDecoration(
                                     hintText: 'e.g. 1.5',
                                     hintStyle: TextStyle(
-                                      color: AppTheme.secondary.withOpacity(
-                                        0.4,
+                                      color: AppTheme.secondary.withValues(
+                                        alpha: 0.4,
                                       ),
                                     ),
                                     border: InputBorder.none,
@@ -321,7 +321,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
                         decoration: InputDecoration(
                           hintText: 'Mix with supplement or warm water...',
                           hintStyle: TextStyle(
-                            color: AppTheme.secondary.withOpacity(0.4),
+                            color: AppTheme.secondary.withValues(alpha: 0.4),
                           ),
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
@@ -340,7 +340,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
               decoration: BoxDecoration(
                 color: Theme.of(
                   context,
-                ).scaffoldBackgroundColor.withOpacity(0.9),
+                ).scaffoldBackgroundColor.withValues(alpha: 0.9),
               ),
               child: Row(
                 children: [

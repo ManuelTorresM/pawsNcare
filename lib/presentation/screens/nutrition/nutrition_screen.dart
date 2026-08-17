@@ -286,7 +286,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black.withOpacity(0.7),
+                        Colors.black.withValues(alpha: 0.7),
                       ],
                     ),
                   ),
@@ -364,7 +364,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppTheme.primaryFixed.withOpacity(0.3),
+                                color: AppTheme.primaryFixed.withValues(
+                                  alpha: 0.3,
+                                ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
@@ -386,7 +388,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                         ),
                         Switch(
                           value: isEnabled,
-                          activeColor: AppTheme.primary,
+                          activeThumbColor: AppTheme.primary,
                           onChanged: onToggleChanged,
                         ),
                       ],
@@ -404,8 +406,8 @@ class _NutritionScreenState extends State<NutritionScreen> {
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppTheme.primary,
-                          backgroundColor: AppTheme.primaryFixed.withOpacity(
-                            0.1,
+                          backgroundColor: AppTheme.primaryFixed.withValues(
+                            alpha: 0.1,
                           ),
                           side: BorderSide.none,
                           shape: RoundedRectangleBorder(
@@ -564,7 +566,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 ),
                 Switch(
                   value: _specialDietAlertsEnabled,
-                  activeColor: AppTheme.primary,
+                  activeThumbColor: AppTheme.primary,
                   onChanged: (val) =>
                       setState(() => _specialDietAlertsEnabled = val),
                 ),
@@ -666,7 +668,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
               ),
               Switch(
                 value: _soundNotificationsEnabled,
-                activeColor: AppTheme.primary,
+                activeThumbColor: AppTheme.primary,
                 onChanged: (val) =>
                     setState(() => _soundNotificationsEnabled = val),
               ),
@@ -691,7 +693,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
               ),
               Switch(
                 value: _vibrationEnabled,
-                activeColor: AppTheme.primary,
+                activeThumbColor: AppTheme.primary,
                 onChanged: (val) => setState(() => _vibrationEnabled = val),
               ),
             ],
@@ -720,7 +722,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButtonFormField<String>(
-                value: _selectedAlertTone,
+                initialValue: _selectedAlertTone,
                 icon: const Icon(Icons.music_note, color: AppTheme.primary),
                 decoration: const InputDecoration(border: InputBorder.none),
                 items: const [

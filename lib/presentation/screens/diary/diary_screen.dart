@@ -129,6 +129,7 @@ class _DiaryTabState extends State<DiaryTab> {
     final noteController = TextEditingController();
     String petId = petState.pets.first.id;
     String category = 'walk';
+    String severity = 'MILD';
 
     showDialog(
       context: context,
@@ -162,7 +163,7 @@ class _DiaryTabState extends State<DiaryTab> {
                     ),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<String>(
-                      value: petId,
+                      initialValue: petId,
                       items: petState.pets.map((p) {
                         return DropdownMenuItem(
                           value: p.id,
@@ -212,11 +213,59 @@ class _DiaryTabState extends State<DiaryTab> {
                       ],
                       onChanged: (val) {
                         if (val != null) {
-                          setDialogState(() => category = val);
+                          setDialogState(() {
+                            category = val;
+                            // Set recommended default severity based on category
+                            if (val == 'vet') {
+                              severity = 'SEVERE';
+                            } else if (val == 'food' || val == 'med') {
+                              severity = 'MODERATE';
+                            } else {
+                              severity = 'MILD';
+                            }
+                          });
                         }
                       },
                     ),
                     const SizedBox(height: 12),
+
+                    // Severity selection
+                    const Text(
+                      'Severity Level',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _buildSeverityOption(
+                          label: 'MILD',
+                          isSelected: severity == 'MILD',
+                          color: const Color(0xFF5D9CEC),
+                          bgColor: const Color(0xFFEBF5FB),
+                          onTap: () => setDialogState(() => severity = 'MILD'),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildSeverityOption(
+                          label: 'MODERATE',
+                          isSelected: severity == 'MODERATE',
+                          color: const Color(0xFFF39C12),
+                          bgColor: const Color(0xFFFEF9E7),
+                          onTap: () => setDialogState(() => severity = 'MODERATE'),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildSeverityOption(
+                          label: 'SEVERE',
+                          isSelected: severity == 'SEVERE',
+                          color: const Color(0xFFE74C3C),
+                          bgColor: const Color(0xFFFDEDEC),
+                          onTap: () => setDialogState(() => severity = 'SEVERE'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
 
                     // Title
                     const Text(
@@ -271,6 +320,7 @@ class _DiaryTabState extends State<DiaryTab> {
                         category: category,
                         note: note,
                         timestamp: DateTime.now(),
+                        severity: severity,
                       );
                       context.read<DiaryBloc>().add(AddDiaryEntryEvent(entry));
                       Navigator.of(context).pop();
@@ -309,7 +359,7 @@ class _DiaryTabState extends State<DiaryTab> {
 
     // Resolve name of selected pet
     String recordsTitle = 'All Records';
-    if (_selectedPetId != null) {
+    if (_selectedPetId != null && pets.isNotEmpty) {
       final selectedPet = pets.firstWhere(
         (p) => p.id == _selectedPetId,
         orElse: () => pets.first,
@@ -517,13 +567,17 @@ class _DiaryTabState extends State<DiaryTab> {
                     if (filter == 'all') {
                       isSelected = _selectedPetId == null;
                     } else {
-                      final match = pets.firstWhere(
-                        (p) => p.name.toLowerCase() == filter,
-                        orElse: () => pets.first,
-                      );
-                      isSelected =
-                          match.name.toLowerCase() == filter &&
-                          match.id == _selectedPetId;
+                      if (pets.isEmpty) {
+                        isSelected = false;
+                      } else {
+                        final match = pets.firstWhere(
+                          (p) => p.name.toLowerCase() == filter,
+                          orElse: () => pets.first,
+                        );
+                        isSelected =
+                            match.name.toLowerCase() == filter &&
+                            match.id == _selectedPetId;
+                      }
                     }
 
                     return _buildPetFilterButton(filter, isSelected, pets);
@@ -561,11 +615,15 @@ class _DiaryTabState extends State<DiaryTab> {
                                 final entry = entries[index];
 
                                 // Retrieve matching pet name
-                                final matchedPet = pets.firstWhere(
-                                  (p) => p.id == entry.petId,
-                                  orElse: () => pets.first,
-                                );
-                                final petName = matchedPet.id == entry.petId
+                                final matchedPet = pets.isNotEmpty
+                                    ? pets.firstWhere(
+                                        (p) => p.id == entry.petId,
+                                        orElse: () => pets.first,
+                                      )
+                                    : null;
+                                final petName =
+                                    (matchedPet != null &&
+                                        matchedPet.id == entry.petId)
                                     ? matchedPet.name
                                     : 'Luna';
 
@@ -587,7 +645,7 @@ class _DiaryTabState extends State<DiaryTab> {
 
     // Resolve dynamic pet avatar if present in BLoC list
     String? resolvedAvatarUrl;
-    if (filter != 'all') {
+    if (filter != 'all' && pets.isNotEmpty) {
       final match = pets.firstWhere(
         (p) => p.name.toLowerCase() == filter,
         orElse: () => pets.first,
@@ -602,7 +660,7 @@ class _DiaryTabState extends State<DiaryTab> {
       child: GestureDetector(
         onTap: () {
           String? nextId;
-          if (filter != 'all') {
+          if (filter != 'all' && pets.isNotEmpty) {
             final match = pets.firstWhere(
               (p) => p.name.toLowerCase() == filter,
               orElse: () => pets.first,
@@ -672,27 +730,42 @@ class _DiaryTabState extends State<DiaryTab> {
     final accentColor = styles['color'] as Color;
     final label = styles['label'] as String;
     final icon = styles['icon'] as IconData;
-    final severity = styles['severity'] as String;
-    final badgeColor = styles['badgeColor'] as Color;
-    final badgeText = styles['badgeText'] as Color;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.surfaceContainer),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 4,
-              color: accentColor,
-            ),
-            Expanded(
+    final severity = entry.severity;
+    Color badgeColor;
+    Color badgeText;
+    switch (severity.toUpperCase()) {
+      case 'SEVERE':
+        badgeColor = const Color(0xFFFDEDEC);
+        badgeText = const Color(0xFFE74C3C);
+        break;
+      case 'MODERATE':
+        badgeColor = const Color(0xFFFEF9E7);
+        badgeText = const Color(0xFFF39C12);
+        break;
+      case 'MILD':
+      default:
+        badgeColor = const Color(0xFFEBF5FB);
+        badgeText = const Color(0xFF5D9CEC);
+        break;
+    }
+
+    return GestureDetector(
+      onTap: () => _showFocusedEntryDialog(context, entry, petName),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppTheme.surfaceContainer),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 4, color: accentColor),
+              Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -779,7 +852,10 @@ class _DiaryTabState extends State<DiaryTab> {
 
                     // Bottom Category tag
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: AppTheme.primaryFixed,
                         borderRadius: BorderRadius.circular(20),
@@ -787,7 +863,11 @@ class _DiaryTabState extends State<DiaryTab> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(icon, size: 14, color: AppTheme.onPrimaryFixedVariant),
+                          Icon(
+                            icon,
+                            size: 14,
+                            color: AppTheme.onPrimaryFixedVariant,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             label,
@@ -805,6 +885,236 @@ class _DiaryTabState extends State<DiaryTab> {
               ),
             ),
           ],
+        ),
+      ),
+    ),
+  );
+}
+
+void _showFocusedEntryDialog(
+    BuildContext context, DiaryEntry entry, String petName) {
+  final styles = _getCategoryStyles(entry.category);
+  final accentColor = styles['color'] as Color;
+  final label = styles['label'] as String;
+
+  final severity = entry.severity;
+  Color badgeColor;
+  Color badgeText;
+  switch (severity.toUpperCase()) {
+    case 'SEVERE':
+      badgeColor = const Color(0xFFFDEDEC);
+      badgeText = const Color(0xFFE74C3C);
+      break;
+    case 'MODERATE':
+      badgeColor = const Color(0xFFFEF9E7);
+      badgeText = const Color(0xFFF39C12);
+      break;
+    case 'MILD':
+    default:
+      badgeColor = const Color(0xFFEBF5FB);
+      badgeText = const Color(0xFF5D9CEC);
+      break;
+  }
+
+  showDialog(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        titlePadding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Montserrat',
+                fontWeight: FontWeight.bold,
+                color: accentColor,
+                fontSize: 16,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Pet & Date info row
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      severity,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: badgeText,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _formatDateTime(entry.timestamp),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.secondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Pet Name section
+              Row(
+                children: [
+                  const Icon(Icons.pets, size: 16, color: AppTheme.primary),
+                  const SizedBox(width: 6),
+                  Text(
+                    petName,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Title
+              Text(
+                entry.title,
+                style: const TextStyle(
+                  fontFamily: 'Montserrat',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: AppTheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Note / Details
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.surfaceContainer),
+                ),
+                child: Text(
+                  entry.note,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    color: AppTheme.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              // Confirm delete dialog
+              showDialog(
+                context: dialogContext,
+                builder: (confirmContext) {
+                  return AlertDialog(
+                    title: const Text('Delete Log?'),
+                    content: const Text(
+                      'Are you sure you want to delete this diary entry? This action cannot be undone.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(confirmContext).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          // Dispatch delete event on current BLoC using the outer context
+                          context.read<DiaryBloc>().add(
+                                DeleteDiaryEntryEvent(
+                                  entry.id,
+                                  currentPetId: _selectedPetId,
+                                ),
+                              );
+                          Navigator.of(confirmContext).pop(); // pop confirm
+                          Navigator.of(dialogContext).pop(); // pop details
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.error,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Delete'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+            icon: const Icon(Icons.delete_outline, color: AppTheme.error),
+            label: const Text(
+              'Delete Log',
+              style: TextStyle(
+                color: AppTheme.error,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+  Widget _buildSeverityOption({
+    required String label,
+    required bool isSelected,
+    required Color color,
+    required Color bgColor,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? bgColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? color : AppTheme.outlineVariant.withValues(alpha: 0.5),
+              width: 1.5,
+            ),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: isSelected ? color : AppTheme.onSurfaceVariant.withValues(alpha: 0.6),
+            ),
+          ),
         ),
       ),
     );

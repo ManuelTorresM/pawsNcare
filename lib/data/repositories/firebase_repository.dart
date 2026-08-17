@@ -159,4 +159,11 @@ class FirebaseRepository implements BaseRepository {
     data.remove('id'); // Firestore generates the ID
     await ref.add(data);
   }
+
+  @override
+  Future<void> deleteDiaryEntry(String entryId) async {
+    final ref = _diaryRef;
+    if (ref == null) throw Exception("User not authenticated");
+    await ref.doc(entryId).delete();
+  }
 }

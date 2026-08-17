@@ -7,6 +7,7 @@ class DiaryEntry extends Equatable {
   final String category; // 'food', 'walk', 'med', 'vet', 'hydration'
   final String note;
   final DateTime timestamp;
+  final String severity; // 'MILD', 'MODERATE', 'SEVERE'
 
   const DiaryEntry({
     required this.id,
@@ -15,6 +16,7 @@ class DiaryEntry extends Equatable {
     required this.category,
     required this.note,
     required this.timestamp,
+    this.severity = 'MILD',
   });
 
   Map<String, dynamic> toMap() {
@@ -25,6 +27,7 @@ class DiaryEntry extends Equatable {
       'category': category,
       'note': note,
       'timestamp': timestamp.toIso8601String(),
+      'severity': severity,
     };
   }
 
@@ -36,9 +39,10 @@ class DiaryEntry extends Equatable {
       category: map['category'] ?? '',
       note: map['note'] ?? '',
       timestamp: DateTime.parse(map['timestamp']),
+      severity: map['severity'] ?? 'MILD',
     );
   }
 
   @override
-  List<Object?> get props => [id, petId, title, category, note, timestamp];
+  List<Object?> get props => [id, petId, title, category, note, timestamp, severity];
 }

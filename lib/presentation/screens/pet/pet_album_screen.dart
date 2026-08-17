@@ -43,8 +43,18 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
 
   String _formatMonthYear(DateTime date) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return '${months[date.month - 1]} ${date.year}';
   }
@@ -52,12 +62,13 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
   void _showUploadModal(List<Pet> pets) {
     final captionController = TextEditingController();
     final urlController = TextEditingController(
-      text: 'https://lh3.googleusercontent.com/aida/AP1WRLtrgME_RmIjbhaKotM3yFpCT7DU6U1PWGClNijvL1udZ-MwwSE4sRJXIkOpdXG_cQrlHdzVHWgOScO25q_9O5XS5IYrq9YpSPzMMCfFUgQin2wChhfacReYAlFZmlABvz70D9BrOoYsd_UfBK1v2te37yMvk_LKQM0nfhOK_Smz_StRBkZ7xC7Mw-AfJwUe6IrQBGllmI1NtCd5O0NUnlXVtaS0dVA9d1RpHUon7HaYl-S_cZT-vjk0XIE',
+      text:
+          'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=400',
     );
 
     // Dynamic dropdown values
-    final List<String> petOptions = pets.isNotEmpty 
-        ? pets.map((p) => p.name.toLowerCase()).toList() 
+    final List<String> petOptions = pets.isNotEmpty
+        ? pets.map((p) => p.name.toLowerCase()).toList()
         : ['luna', 'oliver', 'bella'];
     String uploadPetTarget = petOptions[0];
 
@@ -67,10 +78,16 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               title: const Text(
                 'Upload Photo',
-                style: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold, color: AppTheme.primary),
+                style: TextStyle(
+                  fontFamily: 'Montserrat',
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primary,
+                ),
               ),
               content: SingleChildScrollView(
                 child: Column(
@@ -89,33 +106,65 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
-                          Icon(Icons.cloud_upload_outlined, color: AppTheme.primary, size: 30),
+                          Icon(
+                            Icons.cloud_upload_outlined,
+                            color: AppTheme.primary,
+                            size: 30,
+                          ),
                           SizedBox(height: 4),
-                          Text('Photo Selected', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                          Text('Browse files to change', style: TextStyle(fontSize: 10, color: AppTheme.onSurfaceVariant)),
+                          Text(
+                            'Photo Selected',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          Text(
+                            'Browse files to change',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: AppTheme.onSurfaceVariant,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 12),
 
                     // URL Field for mock upload source
-                    const Text('Photo URL (Mock Source)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                    const Text(
+                      'Photo URL (Mock Source)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     TextField(
                       controller: urlController,
-                      decoration: const InputDecoration(hintText: 'Image network address'),
+                      decoration: const InputDecoration(
+                        hintText: 'Image network address',
+                      ),
                     ),
                     const SizedBox(height: 12),
 
                     // Target Pet Selection
-                    const Text('Assign to Pet', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                    const Text(
+                      'Assign to Pet',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<String>(
-                      value: uploadPetTarget,
+                      initialValue: uploadPetTarget,
                       items: petOptions.map((name) {
                         return DropdownMenuItem(
                           value: name,
-                          child: Text(name[0].toUpperCase() + name.substring(1)),
+                          child: Text(
+                            name[0].toUpperCase() + name.substring(1),
+                          ),
                         );
                       }).toList(),
                       onChanged: (val) {
@@ -127,11 +176,19 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                     const SizedBox(height: 12),
 
                     // Caption Input
-                    const Text('Caption (Optional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                    const Text(
+                      'Caption (Optional)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     TextField(
                       controller: captionController,
-                      decoration: const InputDecoration(hintText: 'Write a memory...'),
+                      decoration: const InputDecoration(
+                        hintText: 'Write a memory...',
+                      ),
                     ),
                   ],
                 ),
@@ -170,8 +227,12 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                           orElse: () => pets.first,
                         );
                         if (matchedPet.name.toLowerCase() == uploadPetTarget) {
-                          final updatedPhotos = List<String>.from(matchedPet.photos)..add(targetUrl);
-                          final updatedPet = matchedPet.copyWith(photos: updatedPhotos);
+                          final updatedPhotos = List<String>.from(
+                            matchedPet.photos,
+                          )..add(targetUrl);
+                          final updatedPet = matchedPet.copyWith(
+                            photos: updatedPhotos,
+                          );
                           context.read<PetBloc>().add(UpdatePet(updatedPet));
                         }
                       }
@@ -179,7 +240,10 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                       Navigator.of(context).pop();
                     }
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                  ),
                   child: const Text('Post Photo'),
                 ),
               ],
@@ -193,13 +257,16 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
   void _openLightbox(MemoryItem memory) {
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.95),
+      barrierColor: Colors.black.withValues(alpha: 0.95),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setLightboxState) {
             return Dialog(
               backgroundColor: Colors.transparent,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 24,
+              ),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -218,9 +285,25 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                               return Container(
                                 height: 300,
                                 color: AppTheme.surfaceContainerLow,
-                                child: const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    color: AppTheme.primary,
+                                  ),
+                                ),
                               );
                             },
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                                  height: 300,
+                                  color: AppTheme.surfaceContainerLow,
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.broken_image,
+                                      size: 48,
+                                      color: AppTheme.secondary,
+                                    ),
+                                  ),
+                                ),
                           ),
                         ),
                       ),
@@ -247,14 +330,25 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                             onPressed: () {
                               Navigator.of(context).pop();
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Memory shared successfully!')),
+                                const SnackBar(
+                                  content: Text('Memory shared successfully!'),
+                                ),
                               );
                             },
-                            icon: const Icon(Icons.share, color: Colors.white, size: 18),
-                            label: const Text('Share', style: TextStyle(color: Colors.white)),
+                            icon: const Icon(
+                              Icons.share,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            label: const Text(
+                              'Share',
+                              style: TextStyle(color: Colors.white),
+                            ),
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Colors.white30),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -266,15 +360,23 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                               setState(() {});
                             },
                             icon: Icon(
-                              memory.isFavorite ? Icons.favorite : Icons.favorite_border,
+                              memory.isFavorite
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
                               color: Colors.white,
                               size: 18,
                             ),
-                            label: Text(memory.isFavorite ? 'Favorited' : 'Favorite'),
+                            label: Text(
+                              memory.isFavorite ? 'Favorited' : 'Favorite',
+                            ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: memory.isFavorite ? AppTheme.primary : Colors.white24,
+                              backgroundColor: memory.isFavorite
+                                  ? AppTheme.primary
+                                  : Colors.white24,
                               foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                           ),
                         ],
@@ -287,7 +389,11 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                     top: 0,
                     right: 0,
                     child: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 28,
+                      ),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ),
@@ -450,7 +556,10 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
 
             // Gallery Header (Title, Sub-tabs & Upload Button)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 8.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -469,12 +578,23 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                       ElevatedButton.icon(
                         onPressed: () => _showUploadModal(pets),
                         icon: const Icon(Icons.add_a_photo, size: 16),
-                        label: const Text('Upload New', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        label: const Text(
+                          'Upload New',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primary,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ],
@@ -504,7 +624,11 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                   ? const Center(
                       child: Text(
                         'No memories found for this filter.',
-                        style: TextStyle(fontFamily: 'Inter', fontStyle: FontStyle.italic, color: AppTheme.secondary),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontStyle: FontStyle.italic,
+                          color: AppTheme.secondary,
+                        ),
                       ),
                     )
                   : ListView(
@@ -522,11 +646,13 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
   }
 
   Widget _buildPetFilterButton(String filter, bool isSelected, List<Pet> pets) {
-    final displayName = filter == 'all' ? 'All' : filter[0].toUpperCase() + filter.substring(1);
-    
+    final displayName = filter == 'all'
+        ? 'All'
+        : filter[0].toUpperCase() + filter.substring(1);
+
     // Resolve dynamic pet avatar if present in BLoC list
     String? resolvedAvatarUrl = _fallbackAvatars[filter];
-    if (filter != 'all') {
+    if (filter != 'all' && pets.isNotEmpty) {
       final match = pets.firstWhere(
         (p) => p.name.toLowerCase() == filter,
         orElse: () => pets.first,
@@ -555,19 +681,25 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
               padding: const EdgeInsets.all(2),
               child: CircleAvatar(
                 backgroundColor: AppTheme.surfaceContainerHigh,
-                backgroundImage: resolvedAvatarUrl != null ? NetworkImage(resolvedAvatarUrl) : null,
+                backgroundImage: resolvedAvatarUrl != null
+                    ? NetworkImage(resolvedAvatarUrl)
+                    : null,
                 child: resolvedAvatarUrl == null
                     ? (filter == 'all'
-                        ? const Icon(Icons.group, color: AppTheme.primary, size: 30)
-                        : Text(
-                            displayName[0],
-                            style: const TextStyle(
-                              fontFamily: 'Montserrat',
-                              fontWeight: FontWeight.bold,
+                          ? const Icon(
+                              Icons.group,
                               color: AppTheme.primary,
-                              fontSize: 24,
-                            ),
-                          ))
+                              size: 30,
+                            )
+                          : Text(
+                              displayName[0],
+                              style: const TextStyle(
+                                fontFamily: 'Montserrat',
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primary,
+                                fontSize: 24,
+                              ),
+                            ))
                     : null,
               ),
             ),
@@ -594,7 +726,9 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryContainer : AppTheme.surfaceContainerHigh,
+          color: isSelected
+              ? AppTheme.primaryContainer
+              : AppTheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
@@ -603,7 +737,9 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
             fontFamily: 'Inter',
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color: isSelected ? AppTheme.onPrimaryContainer : AppTheme.onSurfaceVariant,
+            color: isSelected
+                ? AppTheme.onPrimaryContainer
+                : AppTheme.onSurfaceVariant,
           ),
         ),
       ),
@@ -626,11 +762,16 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            Expanded(child: Container(height: 1, color: AppTheme.outlineVariant)),
+            Expanded(
+              child: Container(height: 1, color: AppTheme.outlineVariant),
+            ),
             const SizedBox(width: 12),
             TextButton(
               onPressed: () {},
-              child: const Text('Select', style: TextStyle(fontFamily: 'Inter', color: AppTheme.primary)),
+              child: const Text(
+                'Select',
+                style: TextStyle(fontFamily: 'Inter', color: AppTheme.primary),
+              ),
             ),
           ],
         ),
@@ -661,7 +802,11 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                 ),
                 child: item.isVideo
                     ? const Center(
-                        child: Icon(Icons.play_circle_fill, color: Colors.white, size: 36),
+                        child: Icon(
+                          Icons.play_circle_fill,
+                          color: Colors.white,
+                          size: 36,
+                        ),
                       )
                     : null,
               ),

@@ -85,6 +85,15 @@ class MockRepository implements BaseRepository {
           'https://lh3.googleusercontent.com/aida-public/AB6AXuDud1dBMCEUUnS8K3QpiIJN5zyzK6QNXJHb9CTg5iZjYfeN62Drez_cUi63k0F1v0zuQFz3nSdSjlVztVPWHw03FTgM7Wxd9fmApweagP0Ec3sILeqiuparq7xX2EW_3xY83Y4Y_tl727B4VJB3QEC9XIa2cRvKY7jDfuegGj-jiCx25aOloIZE3_kc7kuZX-V09dvFFpADHI5NMUfsrCYDMebDNdBzZpz5NDAvSEJRU0LfDaMg_c5L',
           'https://lh3.googleusercontent.com/aida-public/AB6AXuDDw84DnYLoEJSpFWlKDWSCNGtehkk_-Rkw1bRnIkjwAuOdzzqFh1LTwZdLPa9rD7iPsmAeMXIkN_iJQLb8PiLJnXIOfFRyC5DOEHkv5ZAy9wPNPkOsgHORtRlXvdTkzYA9HxAZJ0O3X9LubybYLSCDGBJxReMv5WmHcZZk4C86lIcpQgMlpKpG3z5ggne_6dKyxUprFLBP_lq8FXNJUyaoMCBf3CIfdzitQIcpyTyKdlYQxeiXkkmh',
         ],
+        species: 'Dog',
+        gender: 'Female',
+        neutered: 'Yes',
+        allergies: const ['Chicken', 'Grain'],
+        activityLevel: 'Moderate',
+        dietEnabled: true,
+        foodType: 'Dry Kibble',
+        feedingNotes: '2 cups/day',
+        behaviorTags: const ['Social', 'Playful', 'Vocal'],
       ),
       Pet(
         id: 'oliver',
@@ -100,6 +109,15 @@ class MockRepository implements BaseRepository {
         ],
         medications: const [],
         photos: const [],
+        species: 'Cat',
+        gender: 'Male',
+        neutered: 'Yes',
+        allergies: const ['Dairy'],
+        activityLevel: 'Mild',
+        dietEnabled: true,
+        foodType: 'Wet Food',
+        feedingNotes: '1 can/day',
+        behaviorTags: const ['Curious', 'Independent'],
       ),
       Pet(
         id: 'bella',
@@ -115,6 +133,15 @@ class MockRepository implements BaseRepository {
         ],
         medications: const [],
         photos: const [],
+        species: 'Dog',
+        gender: 'Female',
+        neutered: 'Yes',
+        allergies: const [],
+        activityLevel: 'High',
+        dietEnabled: true,
+        foodType: 'Puppy Kibble',
+        feedingNotes: '3 times/day',
+        behaviorTags: const ['Playful', 'Energetic', 'Social'],
       ),
     ];
     _savePets();
@@ -273,6 +300,13 @@ class MockRepository implements BaseRepository {
   Future<void> addDiaryEntry(DiaryEntry entry) async {
     await _ensureInitialized();
     _diaryEntries.add(entry);
+    await _saveDiary();
+  }
+
+  @override
+  Future<void> deleteDiaryEntry(String entryId) async {
+    await _ensureInitialized();
+    _diaryEntries.removeWhere((d) => d.id == entryId);
     await _saveDiary();
   }
 }

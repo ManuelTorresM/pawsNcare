@@ -20,4 +20,5 @@ abstract class BaseRepository {
   Future<List<DiaryEntry>> getDiaryEntries(String petId);
   Future<List<DiaryEntry>> getAllDiaryEntries();
   Future<void> addDiaryEntry(DiaryEntry entry);
+  Future<void> deleteDiaryEntry(String entryId);
 }

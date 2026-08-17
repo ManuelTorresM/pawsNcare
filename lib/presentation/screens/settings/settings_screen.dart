@@ -117,12 +117,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           Text(
                             name,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             email,
-                            style: const TextStyle(fontSize: 13, color: AppTheme.secondary),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.secondary,
+                            ),
                           ),
                         ],
                       ),
@@ -143,26 +149,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: AppTheme.surfaceContainerLow,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Column(
-              children: [
-                RadioListTile<String>(
-                  title: const Text('Mock Database (Local Persistence)'),
-                  subtitle: const Text('Runs instantly without credentials.', style: TextStyle(fontSize: 12)),
-                  value: 'mock',
-                  groupValue: _activeDb,
-                  activeColor: AppTheme.primary,
-                  onChanged: _toggleDbSource,
-                ),
-                const Divider(height: 1, color: AppTheme.surfaceContainer),
-                RadioListTile<String>(
-                  title: const Text('Firebase Firestore Database'),
-                  subtitle: const Text('Connects to real cloud services.', style: TextStyle(fontSize: 12)),
-                  value: 'firebase',
-                  groupValue: _activeDb,
-                  activeColor: AppTheme.primary,
-                  onChanged: _toggleDbSource,
-                ),
-              ],
+            child: RadioGroup<String>(
+              groupValue: _activeDb,
+              onChanged: _toggleDbSource,
+              child: Column(
+                children: [
+                  RadioListTile<String>(
+                    title: const Text('Mock Database (Local Persistence)'),
+                    subtitle: const Text(
+                      'Runs instantly without credentials.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    value: 'mock',
+                    activeColor: AppTheme.primary,
+                  ),
+                  const Divider(height: 1, color: AppTheme.surfaceContainer),
+                  RadioListTile<String>(
+                    title: const Text('Firebase Firestore Database'),
+                    subtitle: const Text(
+                      'Connects to real cloud services.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    value: 'firebase',
+                    activeColor: AppTheme.primary,
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -245,11 +257,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Theme', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      const Text(
+                        'Theme',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       Text(
-                        isDark ? 'Currently in Dark Mode' : 'Currently in Light Mode',
-                        style: const TextStyle(fontSize: 12, color: AppTheme.secondary),
+                        isDark
+                            ? 'Currently in Dark Mode'
+                            : 'Currently in Light Mode',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.secondary,
+                        ),
                       ),
                     ],
                   ),
@@ -261,11 +284,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primary,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   ),
-                  child: const Text('Switch Mode', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Switch Mode',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             ),
@@ -285,7 +316,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildInfoTile(
                   icon: Icons.help_outline,
                   title: 'Help Center',
-                  trailing: const Icon(Icons.open_in_new, size: 18, color: AppTheme.secondary),
+                  trailing: const Icon(
+                    Icons.open_in_new,
+                    size: 18,
+                    color: AppTheme.secondary,
+                  ),
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Opening Help Center...')),
@@ -296,10 +331,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildInfoTile(
                   icon: Icons.verified_user_outlined,
                   title: 'Privacy Policy',
-                  trailing: const Icon(Icons.chevron_right, color: AppTheme.secondary),
+                  trailing: const Icon(
+                    Icons.chevron_right,
+                    color: AppTheme.secondary,
+                  ),
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Opening Privacy Policy...')),
+                      const SnackBar(
+                        content: Text('Opening Privacy Policy...'),
+                      ),
                     );
                   },
                 ),
@@ -318,13 +358,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: const Icon(Icons.logout, color: Colors.white),
               label: const Text(
                 'Logout',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.white,
+                ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.tertiaryContainer,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
           ),
@@ -362,9 +408,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return SwitchListTile(
       value: value,
       onChanged: onChanged,
-      activeColor: AppTheme.primary,
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: AppTheme.secondary)),
+      activeThumbColor: AppTheme.primary,
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(fontSize: 12, color: AppTheme.secondary),
+      ),
       secondary: Container(
         width: 40,
         height: 40,
@@ -385,7 +437,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }) {
     return ListTile(
       leading: Icon(icon, color: AppTheme.onSurfaceVariant),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+      ),
       trailing: trailing,
       onTap: onTap,
     );

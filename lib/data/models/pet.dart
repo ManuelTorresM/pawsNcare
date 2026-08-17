@@ -15,6 +15,17 @@ class Pet extends Equatable {
   final List<Medication> medications;
   final List<String> photos;
 
+  // New fields from creation wizard
+  final String species;
+  final String gender;
+  final String neutered;
+  final List<String> allergies;
+  final String activityLevel;
+  final bool dietEnabled;
+  final String foodType;
+  final String feedingNotes;
+  final List<String> behaviorTags;
+
   const Pet({
     required this.id,
     required this.name,
@@ -27,6 +38,15 @@ class Pet extends Equatable {
     this.weightHistory = const [],
     this.medications = const [],
     this.photos = const [],
+    this.species = 'Dog',
+    this.gender = 'Female',
+    this.neutered = 'Yes',
+    this.allergies = const [],
+    this.activityLevel = 'Moderate',
+    this.dietEnabled = true,
+    this.foodType = 'Dry Kibble',
+    this.feedingNotes = '',
+    this.behaviorTags = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -42,6 +62,15 @@ class Pet extends Equatable {
       'weightHistory': weightHistory.map((w) => w.toMap()).toList(),
       'medications': medications.map((m) => m.toMap()).toList(),
       'photos': photos,
+      'species': species,
+      'gender': gender,
+      'neutered': neutered,
+      'allergies': allergies,
+      'activityLevel': activityLevel,
+      'dietEnabled': dietEnabled,
+      'foodType': foodType,
+      'feedingNotes': feedingNotes,
+      'behaviorTags': behaviorTags,
     };
   }
 
@@ -64,6 +93,19 @@ class Pet extends Equatable {
               (map['medications'] as List).map((x) => Medication.fromMap(x)))
           : const [],
       photos: map['photos'] != null ? List<String>.from(map['photos']) : const [],
+      species: map['species'] ?? 'Dog',
+      gender: map['gender'] ?? 'Female',
+      neutered: map['neutered'] ?? 'Yes',
+      allergies: map['allergies'] != null
+          ? List<String>.from(map['allergies'])
+          : const [],
+      activityLevel: map['activityLevel'] ?? 'Moderate',
+      dietEnabled: map['dietEnabled'] ?? true,
+      foodType: map['foodType'] ?? 'Dry Kibble',
+      feedingNotes: map['feedingNotes'] ?? '',
+      behaviorTags: map['behaviorTags'] != null
+          ? List<String>.from(map['behaviorTags'])
+          : const [],
     );
   }
 
@@ -79,6 +121,15 @@ class Pet extends Equatable {
     List<WeightLog>? weightHistory,
     List<Medication>? medications,
     List<String>? photos,
+    String? species,
+    String? gender,
+    String? neutered,
+    List<String>? allergies,
+    String? activityLevel,
+    bool? dietEnabled,
+    String? foodType,
+    String? feedingNotes,
+    List<String>? behaviorTags,
   }) {
     return Pet(
       id: id ?? this.id,
@@ -92,6 +143,15 @@ class Pet extends Equatable {
       weightHistory: weightHistory ?? this.weightHistory,
       medications: medications ?? this.medications,
       photos: photos ?? this.photos,
+      species: species ?? this.species,
+      gender: gender ?? this.gender,
+      neutered: neutered ?? this.neutered,
+      allergies: allergies ?? this.allergies,
+      activityLevel: activityLevel ?? this.activityLevel,
+      dietEnabled: dietEnabled ?? this.dietEnabled,
+      foodType: foodType ?? this.foodType,
+      feedingNotes: feedingNotes ?? this.feedingNotes,
+      behaviorTags: behaviorTags ?? this.behaviorTags,
     );
   }
 
@@ -107,6 +167,15 @@ class Pet extends Equatable {
         weight,
         weightHistory,
         medications,
-        photos
+        photos,
+        species,
+        gender,
+        neutered,
+        allergies,
+        activityLevel,
+        dietEnabled,
+        foodType,
+        feedingNotes,
+        behaviorTags,
       ];
 }

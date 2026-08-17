@@ -10,6 +10,7 @@ class LifestyleRoutineStep3 extends StatelessWidget {
   final String selectedFoodType;
   final ValueChanged<String> onFoodTypeChanged;
   final TextEditingController feedingNotesController;
+  final TextEditingController weightController;
 
   final List<String> selectedBehaviorTags;
   final ValueChanged<String> onBehaviorTagToggled;
@@ -23,6 +24,7 @@ class LifestyleRoutineStep3 extends StatelessWidget {
     required this.selectedFoodType,
     required this.onFoodTypeChanged,
     required this.feedingNotesController,
+    required this.weightController,
     required this.selectedBehaviorTags,
     required this.onBehaviorTagToggled,
   });
@@ -50,7 +52,33 @@ class LifestyleRoutineStep3 extends StatelessWidget {
             color: AppTheme.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 24),
+
+        // Weight Input Section
+        const Text(
+          'Pet Weight',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: AppTheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: weightController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          style: const TextStyle(fontFamily: 'Inter'),
+          decoration: InputDecoration(
+            hintText: 'e.g. 10.5',
+            suffixText: 'kg',
+            helperText: 'Standard weight range: 0.1 kg - 150.0 kg',
+            helperStyle: TextStyle(
+              color: AppTheme.secondary.withValues(alpha: 0.6),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
 
         // Section 1: Activity Level
         const Text(
@@ -103,7 +131,7 @@ class LifestyleRoutineStep3 extends StatelessWidget {
                   ),
                   Switch(
                     value: isDietEnabled,
-                    activeColor: AppTheme.primary,
+                    activeThumbColor: AppTheme.primary,
                     onChanged: onDietEnabledChanged,
                   ),
                 ],
@@ -120,16 +148,31 @@ class LifestyleRoutineStep3 extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: selectedFoodType,
+                  initialValue: selectedFoodType,
                   decoration: const InputDecoration(
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'Dry Kibble', child: Text('Dry Kibble')),
-                    DropdownMenuItem(value: 'Wet Food', child: Text('Wet Food')),
-                    DropdownMenuItem(value: 'Raw Diet', child: Text('Raw Diet')),
+                    DropdownMenuItem(
+                      value: 'Dry Kibble',
+                      child: Text('Dry Kibble'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Wet Food',
+                      child: Text('Wet Food'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Raw Diet',
+                      child: Text('Raw Diet'),
+                    ),
                     DropdownMenuItem(value: 'Mixed', child: Text('Mixed')),
-                    DropdownMenuItem(value: 'Home-cooked', child: Text('Home-cooked')),
+                    DropdownMenuItem(
+                      value: 'Home-cooked',
+                      child: Text('Home-cooked'),
+                    ),
                     DropdownMenuItem(value: 'Other', child: Text('Other')),
                   ],
                   onChanged: (val) {
@@ -154,7 +197,9 @@ class LifestyleRoutineStep3 extends StatelessWidget {
                   style: const TextStyle(fontFamily: 'Inter'),
                   decoration: InputDecoration(
                     hintText: 'e.g. 1/2 cup twice a day, morning and evening.',
-                    hintStyle: TextStyle(color: AppTheme.secondary.withOpacity(0.5)),
+                    hintStyle: TextStyle(
+                      color: AppTheme.secondary.withValues(alpha: 0.5),
+                    ),
                   ),
                 ),
               ],
@@ -177,21 +222,29 @@ class LifestyleRoutineStep3 extends StatelessWidget {
         Wrap(
           spacing: 10,
           runSpacing: 10,
-          children: ['Social', 'Anxious', 'Quiet', 'Playful', 'Vocal', 'Independent'].map((tag) {
-            final isSelected = selectedBehaviorTags.contains(tag);
-            return FilterChip(
-              label: Text(tag),
-              selected: isSelected,
-              onSelected: (val) => onBehaviorTagToggled(tag),
-              selectedColor: AppTheme.secondaryContainer,
-              checkmarkColor: AppTheme.secondary,
-              labelStyle: TextStyle(
-                fontFamily: 'Inter',
-                color: isSelected ? AppTheme.onSurface : AppTheme.secondary,
-                fontWeight: FontWeight.bold,
-              ),
-            );
-          }).toList(),
+          children:
+              [
+                'Social',
+                'Anxious',
+                'Quiet',
+                'Playful',
+                'Vocal',
+                'Independent',
+              ].map((tag) {
+                final isSelected = selectedBehaviorTags.contains(tag);
+                return FilterChip(
+                  label: Text(tag),
+                  selected: isSelected,
+                  onSelected: (val) => onBehaviorTagToggled(tag),
+                  selectedColor: AppTheme.secondaryContainer,
+                  checkmarkColor: AppTheme.secondary,
+                  labelStyle: TextStyle(
+                    fontFamily: 'Inter',
+                    color: isSelected ? AppTheme.onSurface : AppTheme.secondary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                );
+              }).toList(),
         ),
       ],
     );
@@ -203,7 +256,9 @@ class LifestyleRoutineStep3 extends StatelessWidget {
       onTap: () => onActivityLevelChanged(value),
       child: Container(
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryFixedDim.withOpacity(0.2) : Colors.transparent,
+          color: isSelected
+              ? AppTheme.primaryFixedDim.withValues(alpha: 0.2)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppTheme.primary : AppTheme.surfaceContainer,
@@ -213,11 +268,7 @@ class LifestyleRoutineStep3 extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: AppTheme.primary,
-              size: 28,
-            ),
+            Icon(icon, color: AppTheme.primary, size: 28),
             const SizedBox(height: 8),
             Text(
               label,
