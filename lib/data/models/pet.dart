@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'weight_log.dart';
 import 'medication.dart';
+import 'pet_role.dart';
+import 'shared_member.dart';
 
 class Pet extends Equatable {
   final String id;
@@ -19,12 +21,17 @@ class Pet extends Equatable {
   final String species;
   final String gender;
   final String neutered;
+  final List<String> medicalConditions;
   final List<String> allergies;
   final String activityLevel;
   final bool dietEnabled;
   final String foodType;
   final String feedingNotes;
   final List<String> behaviorTags;
+
+  // Sharing & Role Access fields
+  final String ownerId;
+  final List<SharedMember> members;
 
   const Pet({
     required this.id,
@@ -41,13 +48,56 @@ class Pet extends Equatable {
     this.species = 'Dog',
     this.gender = 'Female',
     this.neutered = 'Yes',
+    this.medicalConditions = const [],
     this.allergies = const [],
     this.activityLevel = 'Moderate',
     this.dietEnabled = true,
     this.foodType = 'Dry Kibble',
     this.feedingNotes = '',
     this.behaviorTags = const [],
+    this.ownerId = '',
+    this.members = const [],
   });
+
+  // Helper getters for member categories
+  List<SharedMember> get coOwners =>
+      members.where((m) => m.role == PetRole.coOwner).toList();
+
+  List<SharedMember> get caregivers =>
+      members.where((m) => m.role == PetRole.caregiver).toList();
+
+  List<SharedMember> get veterinarians =>
+      members.where((m) => m.role == PetRole.veterinary).toList();
+
+  /// Returns a sanitized minimal replica of Pet for pending invitations
+  /// to protect private medical history, photos, and records until accepted.
+  Pet toPendingReplica() {
+    return Pet(
+      id: id,
+      name: name,
+      breed: breed,
+      ageString: ageString,
+      birthDate: birthDate,
+      avatarUrl: avatarUrl,
+      status: status,
+      weight: weight,
+      weightHistory: const [],
+      medications: const [],
+      photos: const [],
+      species: species,
+      gender: gender,
+      neutered: neutered,
+      medicalConditions: const [],
+      allergies: const [],
+      activityLevel: activityLevel,
+      dietEnabled: dietEnabled,
+      foodType: foodType,
+      feedingNotes: '',
+      behaviorTags: const [],
+      ownerId: ownerId,
+      members: members,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -65,12 +115,15 @@ class Pet extends Equatable {
       'species': species,
       'gender': gender,
       'neutered': neutered,
+      'medicalConditions': medicalConditions,
       'allergies': allergies,
       'activityLevel': activityLevel,
       'dietEnabled': dietEnabled,
       'foodType': foodType,
       'feedingNotes': feedingNotes,
       'behaviorTags': behaviorTags,
+      'ownerId': ownerId,
+      'members': members.map((m) => m.toMap()).toList(),
     };
   }
 
@@ -96,6 +149,9 @@ class Pet extends Equatable {
       species: map['species'] ?? 'Dog',
       gender: map['gender'] ?? 'Female',
       neutered: map['neutered'] ?? 'Yes',
+      medicalConditions: map['medicalConditions'] != null
+          ? List<String>.from(map['medicalConditions'])
+          : const [],
       allergies: map['allergies'] != null
           ? List<String>.from(map['allergies'])
           : const [],
@@ -105,6 +161,11 @@ class Pet extends Equatable {
       feedingNotes: map['feedingNotes'] ?? '',
       behaviorTags: map['behaviorTags'] != null
           ? List<String>.from(map['behaviorTags'])
+          : const [],
+      ownerId: map['ownerId'] ?? '',
+      members: map['members'] != null
+          ? List<SharedMember>.from(
+              (map['members'] as List).map((x) => SharedMember.fromMap(x)))
           : const [],
     );
   }
@@ -124,12 +185,15 @@ class Pet extends Equatable {
     String? species,
     String? gender,
     String? neutered,
+    List<String>? medicalConditions,
     List<String>? allergies,
     String? activityLevel,
     bool? dietEnabled,
     String? foodType,
     String? feedingNotes,
     List<String>? behaviorTags,
+    String? ownerId,
+    List<SharedMember>? members,
   }) {
     return Pet(
       id: id ?? this.id,
@@ -146,12 +210,15 @@ class Pet extends Equatable {
       species: species ?? this.species,
       gender: gender ?? this.gender,
       neutered: neutered ?? this.neutered,
+      medicalConditions: medicalConditions ?? this.medicalConditions,
       allergies: allergies ?? this.allergies,
       activityLevel: activityLevel ?? this.activityLevel,
       dietEnabled: dietEnabled ?? this.dietEnabled,
       foodType: foodType ?? this.foodType,
       feedingNotes: feedingNotes ?? this.feedingNotes,
       behaviorTags: behaviorTags ?? this.behaviorTags,
+      ownerId: ownerId ?? this.ownerId,
+      members: members ?? this.members,
     );
   }
 
@@ -171,11 +238,14 @@ class Pet extends Equatable {
         species,
         gender,
         neutered,
+        medicalConditions,
         allergies,
         activityLevel,
         dietEnabled,
         foodType,
         feedingNotes,
         behaviorTags,
+        ownerId,
+        members,
       ];
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../../data/models/pet.dart';
@@ -47,7 +48,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
   // Step 3 State
   String _selectedActivityLevel = 'Moderate';
   bool _isDietEnabled = true;
-  String _selectedFoodType = 'Dry Kibble';
+  String _selectedFoodType = 'Mixed';
   final _feedingNotesController = TextEditingController();
   final _weightController = TextEditingController(text: '0.0');
   final List<String> _selectedBehaviorTags = [];
@@ -302,8 +303,13 @@ class _AddPetWizardState extends State<AddPetWizard> {
       }
     }
 
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentOwnerId =
+        currentUser?.uid ?? currentUser?.email ?? 'current_owner';
+
     final newPet = Pet(
       id: petId,
+      ownerId: currentOwnerId,
       name: _nameController.text.isNotEmpty
           ? _nameController.text
           : 'New Companion',
@@ -345,8 +351,6 @@ class _AddPetWizardState extends State<AddPetWizard> {
       ),
     );
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -428,7 +432,9 @@ class _AddPetWizardState extends State<AddPetWizard> {
                         color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: AppTheme.surfaceContainer.withValues(alpha: 0.3),
+                          color: AppTheme.surfaceContainer.withValues(
+                            alpha: 0.3,
+                          ),
                         ),
                       ),
                       padding: const EdgeInsets.all(20),
@@ -463,31 +469,42 @@ class _AddPetWizardState extends State<AddPetWizard> {
                                 if (_nameController.text.trim().isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text("Please enter the pet's name."),
+                                      content: Text(
+                                        "Please enter the pet's name.",
+                                      ),
                                     ),
                                   );
                                   return;
                                 }
-                                if (_selectedSpecies == null || _selectedSpecies!.isEmpty) {
+                                if (_selectedSpecies == null ||
+                                    _selectedSpecies!.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text("Please select the pet's species."),
+                                      content: Text(
+                                        "Please select the pet's species.",
+                                      ),
                                     ),
                                   );
                                   return;
                                 }
-                                if (_selectedGender == null || _selectedGender!.isEmpty) {
+                                if (_selectedGender == null ||
+                                    _selectedGender!.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text("Please select the pet's gender."),
+                                      content: Text(
+                                        "Please select the pet's gender.",
+                                      ),
                                     ),
                                   );
                                   return;
                                 }
-                                if (_selectedNeutered == null || _selectedNeutered!.isEmpty) {
+                                if (_selectedNeutered == null ||
+                                    _selectedNeutered!.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text("Please select whether the pet is neutered or spayed."),
+                                      content: Text(
+                                        "Please select whether the pet is neutered or spayed.",
+                                      ),
                                     ),
                                   );
                                   return;
@@ -495,7 +512,9 @@ class _AddPetWizardState extends State<AddPetWizard> {
                                 if (_birthDate == null) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text("Please select the pet's date of birth."),
+                                      content: Text(
+                                        "Please select the pet's date of birth.",
+                                      ),
                                     ),
                                   );
                                   return;
@@ -520,7 +539,9 @@ class _AddPetWizardState extends State<AddPetWizard> {
                           child: Row(
                             children: [
                               Text(
-                                _currentStep == 2 ? 'Complete Profile' : 'Continue',
+                                _currentStep == 2
+                                    ? 'Complete Profile'
+                                    : 'Continue',
                               ),
                               const SizedBox(width: 8),
                               const Icon(Icons.arrow_forward, size: 16),

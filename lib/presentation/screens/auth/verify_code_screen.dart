@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../data/repositories/repository_selector.dart';
 import '../../../logic/theme/theme_cubit.dart';
 import '../../theme/app_theme.dart';
-import 'reset_password_screen.dart';
+import 'login_screen.dart';
 
 class VerifyCodeScreen extends StatefulWidget {
   final String email;
@@ -13,55 +15,70 @@ class VerifyCodeScreen extends StatefulWidget {
 }
 
 class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
-  final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
-  final List<TextEditingController> _controllers =
-      List.generate(4, (_) => TextEditingController());
-  bool _isLoading = false;
-  String _errorText = '';
+  bool _isResending = false;
+  int _resendCountdown = 30;
+  Timer? _timer;
 
   @override
-  void dispose() {
-    for (var controller in _controllers) {
-      controller.dispose();
-    }
-    for (var node in _focusNodes) {
-      node.dispose();
-    }
-    super.dispose();
+  void initState() {
+    super.initState();
+    _startTimer();
   }
 
-  void _verifyCode() {
-    final code = _controllers.map((c) => c.text).join();
-    if (code.length < 4) {
-      setState(() {
-        _errorText = 'Please enter the complete 4-digit code.';
-      });
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _errorText = '';
-    });
-
-    Future.delayed(const Duration(milliseconds: 1000), () {
+  void _startTimer() {
+    _resendCountdown = 30;
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
-
-      if (code == "1234" || code.length == 4) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => ResetPasswordScreen(email: widget.email),
-          ),
-        );
+      if (_resendCountdown == 0) {
+        timer.cancel();
       } else {
         setState(() {
-          _errorText = "Invalid code. Try '1234'.";
+          _resendCountdown--;
         });
       }
     });
+  }
+
+  Future<void> _resendPasswordResetEmail() async {
+    if (_resendCountdown > 0 || _isResending) return;
+
+    setState(() {
+      _isResending = true;
+    });
+
+    String message =
+        'A new password reset link has been sent to ${widget.email}.';
+    Color bgColor = AppTheme.primary;
+
+    try {
+      final repo = await RepositorySelector().getActiveRepository();
+      await repo.sendPasswordResetEmail(widget.email);
+    } catch (e) {
+      message = 'Error: ${e.toString()}';
+      bgColor = AppTheme.error;
+    }
+
+    _startTimer();
+
+    if (!mounted) return;
+    setState(() {
+      _isResending = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: bgColor,
+        duration: const Duration(seconds: 5),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -71,9 +88,6 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
     final textSecondary = isDark
         ? AppTheme.darkOnSurfaceVariant
         : AppTheme.secondary;
-    final cardBg = isDark
-        ? AppTheme.darkSurface
-        : AppTheme.surfaceContainerLowest;
     final primaryColor = isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
 
     return Scaffold(
@@ -89,48 +103,53 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+          padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               Center(
                 child: Container(
-                  padding: const EdgeInsets.all(20),
+                  width: 88,
+                  height: 88,
                   decoration: BoxDecoration(
                     color: primaryColor.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    Icons.mark_email_read_rounded,
-                    size: 56,
+                    Icons.lock_reset_rounded,
+                    size: 46,
                     color: primaryColor,
                   ),
                 ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 32),
+
               Text(
-                'Verify Code',
+                'Password Reset Email Sent',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Montserrat',
-                  fontSize: 26,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: textPrimary,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
+
               RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 14,
+                    fontSize: 15,
                     color: textSecondary,
-                    height: 1.4,
+                    height: 1.5,
                   ),
                   children: [
-                    const TextSpan(text: 'We sent a 4-digit code to '),
+                    const TextSpan(
+                      text: 'We\'ve sent a password reset link to\n',
+                    ),
                     TextSpan(
                       text: widget.email,
                       style: TextStyle(
@@ -138,122 +157,116 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
                         color: textPrimary,
                       ),
                     ),
+                    const TextSpan(
+                      text:
+                          '.\nPlease open your email inbox and click the reset link to choose a new password.',
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 36),
 
-              // 4 PIN Digit Inputs
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(4, (index) {
-                  return SizedBox(
-                    width: 60,
-                    height: 60,
-                    child: TextFormField(
-                      controller: _controllers[index],
-                      focusNode: _focusNodes[index],
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      maxLength: 1,
-                      style: TextStyle(
-                        fontFamily: 'Montserrat',
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: textPrimary,
-                      ),
-                      decoration: InputDecoration(
-                        counterText: '',
-                        filled: true,
-                        fillColor: cardBg,
-                        contentPadding: EdgeInsets.zero,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(
-                            color: isDark
-                                ? const Color(0xFF383634)
-                                : AppTheme.outlineVariant,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(
-                            color: primaryColor,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      onChanged: (value) {
-                        if (value.isNotEmpty) {
-                          if (index < 3) {
-                            _focusNodes[index + 1].requestFocus();
-                          } else {
-                            _focusNodes[index].unfocus();
-                            _verifyCode();
-                          }
-                        } else {
-                          if (index > 0) {
-                            _focusNodes[index - 1].requestFocus();
-                          }
-                        }
-                      },
-                    ),
-                  );
-                }),
-              ),
-              const SizedBox(height: 20),
-
-              if (_errorText.isNotEmpty)
-                Text(
-                  _errorText,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    color: AppTheme.error,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
+              // Email Checklist Card
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppTheme.darkSurface
+                      : AppTheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF383634)
+                        : AppTheme.surfaceContainerHighest,
                   ),
                 ),
-              const SizedBox(height: 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.mark_email_unread_outlined,
+                          size: 16,
+                          color: primaryColor,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'HAVEN\'T RECEIVED THE EMAIL?',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.8,
+                            color: primaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      '1. Check your Spam or Junk folder.',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        color: textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '2. Tap "Resend Email" below to receive a new link.',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        color: textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 48),
 
-              // Verify Button
-              ElevatedButton(
-                onPressed: _isLoading ? null : _verifyCode,
+              // Back to Login CTA Button
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (route) => false,
+                  );
+                },
+                icon: const Icon(
+                  Icons.login_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                label: const Text(
+                  'Back to Login',
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
                   elevation: 0,
                 ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 22,
-                        width: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          valueColor: AlwaysStoppedAnimation(Colors.white),
-                        ),
-                      )
-                    : const Text(
-                        'Verify Code',
-                        style: TextStyle(
-                          fontFamily: 'Montserrat',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
 
-              // Resend Code
+              // Resend Timer Row
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Didn\'t receive code? ',
+                    'Didn\'t receive the email? ',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 13,
@@ -261,23 +274,20 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text(
-                            'A new code was sent to your email! (Default: 1234)',
-                          ),
-                          backgroundColor: primaryColor,
-                        ),
-                      );
-                    },
+                    onTap: _resendCountdown == 0
+                        ? _resendPasswordResetEmail
+                        : null,
                     child: Text(
-                      'Resend Code',
+                      _resendCountdown > 0
+                          ? 'Resend in ${_resendCountdown}s'
+                          : 'Resend Email',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: primaryColor,
+                        color: _resendCountdown == 0
+                            ? primaryColor
+                            : textSecondary,
                       ),
                     ),
                   ),

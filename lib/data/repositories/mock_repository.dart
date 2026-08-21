@@ -210,6 +210,18 @@ class MockRepository implements BaseRepository {
   }
 
   @override
+  Future<bool> loginWithGoogle() async {
+    await _ensureInitialized();
+    await Future.delayed(const Duration(milliseconds: 800));
+    _currentUser = {
+      'email': 'google.user@example.com',
+      'name': 'Google User',
+    };
+    await _prefs.setString(_userKey, json.encode(_currentUser));
+    return true;
+  }
+
+  @override
   Future<bool> register(String email, String password, String name) async {
     await _ensureInitialized();
     await Future.delayed(const Duration(milliseconds: 800));
@@ -244,6 +256,25 @@ class MockRepository implements BaseRepository {
   Future<String?> getCurrentUserName() async {
     await _ensureInitialized();
     return _currentUser?['name'] ?? 'Guest';
+  }
+
+  @override
+  Future<void> updateUserName(String newName) async {
+    await _ensureInitialized();
+    if (_currentUser != null) {
+      _currentUser!['name'] = newName;
+      await _prefs.setString(_userKey, json.encode(_currentUser));
+    }
+  }
+
+  @override
+  Future<void> sendEmailVerification() async {
+    // Mock simulation
+  }
+
+  @override
+  Future<void> sendPasswordResetEmail(String email) async {
+    // Mock simulation
   }
 
   // --- Pets Repository Implementation ---

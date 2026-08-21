@@ -7,6 +7,8 @@ import '../../../logic/theme/theme_cubit.dart';
 import '../../../data/repositories/repository_selector.dart';
 import '../../theme/app_theme.dart';
 
+import '../profile/profile_details_screen.dart';
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -92,12 +94,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 name = state.name;
                 email = state.email;
               }
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: cardBg,
-                  borderRadius: BorderRadius.circular(16),
-                ),
+              return InkWell(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ProfileDetailsScreen(
+                        name: name,
+                        email: email,
+                      ),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 child: Row(
                   children: [
                     Stack(
@@ -153,7 +167,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Icon(Icons.chevron_right, color: textSecondary),
                   ],
                 ),
-              );
+              ),
+            );
             },
           ),
           const SizedBox(height: 24),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../data/repositories/repository_selector.dart';
 import '../../../logic/auth/auth_bloc.dart';
 import '../../theme/app_theme.dart';
+import 'verify_account_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,10 +18,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  
+
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _agreedToTerms = false;
+  bool _isSubmitting = false;
 
   // Real-time validations
   bool _hasLength = false;
@@ -43,6 +46,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  Future<void> _handleCreateAccount() async {
+    if (!_isFormValid || _isSubmitting) return;
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      final repo = await RepositorySelector().getActiveRepository();
+      await repo.register(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+        _nameController.text.trim(),
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+      });
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => VerifyAccountScreen(
+            name: _nameController.text.trim(),
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Registration Error: ${e.toString()}'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
+    }
+  }
+
   void _validatePassword() {
     final pass = _passwordController.text;
     final confirm = _confirmPasswordController.text;
@@ -56,7 +103,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   bool get _isFormValid {
-    return _hasLength && _hasUppercase && _hasNumber && _passwordsMatch && _agreedToTerms && _nameController.text.isNotEmpty && _emailController.text.isNotEmpty;
+    return _hasLength &&
+        _hasUppercase &&
+        _hasNumber &&
+        _passwordsMatch &&
+        _agreedToTerms &&
+        _nameController.text.isNotEmpty &&
+        _emailController.text.isNotEmpty;
   }
 
   void _showTermsDialog() {
@@ -84,7 +137,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 });
                 Navigator.of(context).pop();
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+              ),
               child: const Text('Agree', style: TextStyle(color: Colors.white)),
             ),
           ],
@@ -122,7 +177,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         },
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 8.0,
+            ),
             child: Form(
               key: _formKey,
               child: Column(
@@ -172,7 +230,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
                       hintText: 'name@example.com',
-                      prefixIcon: Icon(Icons.alternate_email, color: AppTheme.secondary),
+                      prefixIcon: Icon(
+                        Icons.alternate_email,
+                        color: AppTheme.secondary,
+                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -191,10 +252,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       hintText: '••••••••',
-                      prefixIcon: const Icon(Icons.lock, color: AppTheme.secondary),
+                      prefixIcon: const Icon(
+                        Icons.lock,
+                        color: AppTheme.secondary,
+                      ),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                          _obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                           color: AppTheme.secondary,
                         ),
                         onPressed: () {
@@ -214,10 +280,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     obscureText: _obscureConfirmPassword,
                     decoration: InputDecoration(
                       hintText: '••••••••',
-                      prefixIcon: const Icon(Icons.verified_user, color: AppTheme.secondary),
+                      prefixIcon: const Icon(
+                        Icons.verified_user,
+                        color: AppTheme.secondary,
+                      ),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                          _obscureConfirmPassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                           color: AppTheme.secondary,
                         ),
                         onPressed: () {
@@ -236,7 +307,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     decoration: BoxDecoration(
                       color: AppTheme.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.surfaceContainerHighest),
+                      border: Border.all(
+                        color: AppTheme.surfaceContainerHighest,
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,7 +324,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 8),
                         _buildRequirementItem('8+ characters', _hasLength),
                         const SizedBox(height: 4),
-                        _buildRequirementItem('One uppercase letter', _hasUppercase),
+                        _buildRequirementItem(
+                          'One uppercase letter',
+                          _hasUppercase,
+                        ),
                         const SizedBox(height: 4),
                         _buildRequirementItem('One number', _hasNumber),
                       ],
@@ -264,10 +340,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Padding(
                       padding: const EdgeInsets.only(left: 4.0),
                       child: Text(
-                        _passwordsMatch ? 'Passwords match' : 'Passwords do not match',
+                        _passwordsMatch
+                            ? 'Passwords match'
+                            : 'Passwords do not match',
                         style: TextStyle(
                           fontSize: 12,
-                          color: _passwordsMatch ? AppTheme.primary : AppTheme.error,
+                          color: _passwordsMatch
+                              ? AppTheme.primary
+                              : AppTheme.error,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -297,7 +377,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           onTap: _showTermsDialog,
                           child: RichText(
                             text: TextSpan(
-                              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontSize: 14,
+                              ),
                               children: const [
                                 TextSpan(text: 'I agree to the '),
                                 TextSpan(
@@ -319,51 +401,101 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 24),
 
                   // Submit CTA
-                  BlocBuilder<AuthBloc, AuthState>(
-                    builder: (context, state) {
-                      final isLoading = state is AuthLoading;
-                      return ElevatedButton(
-                        onPressed: (_isFormValid && !isLoading)
-                            ? () {
-                                context.read<AuthBloc>().add(
-                                      RegisterSubmitted(
-                                        email: _emailController.text,
-                                        password: _passwordController.text,
-                                        name: _nameController.text,
-                                      ),
-                                    );
-                              }
-                            : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: AppTheme.primary.withValues(alpha: 0.4),
-                          disabledForegroundColor: Colors.white.withValues(alpha: 0.8),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation(Colors.white),
-                                ),
-                              )
-                            : const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text('Create Account', style: TextStyle(fontWeight: FontWeight.bold)),
-                                  SizedBox(width: 8),
-                                  Icon(Icons.arrow_forward, size: 18),
-                                ],
+                  ElevatedButton(
+                    onPressed: (_isFormValid && !_isSubmitting)
+                        ? _handleCreateAccount
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: AppTheme.primary.withValues(
+                        alpha: 0.4,
+                      ),
+                      disabledForegroundColor: Colors.white.withValues(
+                        alpha: 0.8,
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(Colors.white),
+                            ),
+                          )
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Create Account',
+                                style: TextStyle(fontWeight: FontWeight.bold),
                               ),
-                      );
+                              SizedBox(width: 8),
+                              Icon(Icons.arrow_forward, size: 18),
+                            ],
+                          ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Divider
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Divider(color: AppTheme.outlineVariant),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text(
+                          'OR',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: AppTheme.secondary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const Expanded(
+                        child: Divider(color: AppTheme.outlineVariant),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Sign up with Google Button
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      context.read<AuthBloc>().add(GoogleLoginSubmitted());
                     },
+                    icon: Image.network(
+                      'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg.png',
+                      height: 20,
+                      width: 20,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.g_mobiledata,
+                        color: AppTheme.primary,
+                        size: 24,
+                      ),
+                    ),
+                    label: const Text(
+                      'Sign up with Google',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: AppTheme.onSurface,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: const BorderSide(color: AppTheme.outlineVariant),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
                 ],

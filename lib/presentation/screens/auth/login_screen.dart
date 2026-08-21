@@ -202,6 +202,39 @@ class _LoginScreenState extends State<LoginScreen> {
                         );
                       },
                     ),
+                    const SizedBox(height: 12),
+
+                    // Google Sign-In Button
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        context.read<AuthBloc>().add(GoogleLoginSubmitted());
+                      },
+                      icon: Image.network(
+                        'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg.png',
+                        height: 20,
+                        width: 20,
+                        errorBuilder: (context, error, stackTrace) => const Icon(
+                          Icons.g_mobiledata,
+                          color: AppTheme.primary,
+                          size: 24,
+                        ),
+                      ),
+                      label: const Text(
+                        'Sign In with Google',
+                        style: TextStyle(
+                          fontFamily: 'Montserrat',
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.onSurface,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: AppTheme.outlineVariant),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 24),
 
                     // Divider

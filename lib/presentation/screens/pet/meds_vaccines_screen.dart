@@ -102,17 +102,27 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
         text: selectedVaccine == 'Other' ? item.name : '',
       );
 
-      // Parse lot info
+      // Parse lot info (extracts Manufacturer and Batch # separately)
       String initMfr = '';
       String initBatch = '';
-      if (item.lotNumber.contains('(Batch #')) {
-        final parts = item.lotNumber.split('(Batch #');
-        initMfr = parts[0].trim();
-        initBatch = parts[1].replaceAll(')', '').trim();
-      } else if (item.lotNumber.startsWith('Batch #')) {
-        initBatch = item.lotNumber.replaceAll('Batch #', '').trim();
+      final rawLot = item.lotNumber.trim();
+      if (rawLot.contains('(')) {
+        final idx = rawLot.indexOf('(');
+        initMfr = rawLot.substring(0, idx).trim();
+        final inside = rawLot.substring(idx + 1).replaceAll(')', '').trim();
+        initBatch = inside
+            .replaceAll('Batch #', '')
+            .replaceAll('Batch', '')
+            .replaceAll('#', '')
+            .trim();
+      } else if (rawLot.startsWith('Batch #') || rawLot.startsWith('#')) {
+        initBatch = rawLot
+            .replaceAll('Batch #', '')
+            .replaceAll('Batch', '')
+            .replaceAll('#', '')
+            .trim();
       } else {
-        initMfr = item.lotNumber.trim();
+        initMfr = rawLot;
       }
 
       final manufacturerController = TextEditingController(text: initMfr);
@@ -1666,18 +1676,33 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                     itemBuilder: (context, index) {
                       final med = activeMeds[index];
                       final isAsNeeded = med.type == 'as_needed';
+                      final isCompletedToday =
+                          med.dosesToday >= med.maxDosesToday;
                       final accentColor = isAsNeeded
                           ? AppTheme.tertiary
                           : AppTheme.primary;
-                      final detailIcon = isAsNeeded
-                          ? Icons.health_and_safety
-                          : Icons.medication;
-                      final badgeBg = isAsNeeded
-                          ? AppTheme.tertiaryFixed
-                          : AppTheme.primaryFixed;
-                      final badgeText = isAsNeeded
-                          ? AppTheme.onTertiaryFixedVariant
-                          : AppTheme.onPrimaryFixedVariant;
+
+                      final String statusLabel;
+                      final Color badgeBg;
+                      final Color badgeText;
+                      final IconData detailIcon;
+
+                      if (isCompletedToday) {
+                        statusLabel = 'Done Today';
+                        badgeBg = AppTheme.primaryFixed;
+                        badgeText = AppTheme.onPrimaryFixedVariant;
+                        detailIcon = Icons.check_circle;
+                      } else if (isAsNeeded) {
+                        statusLabel = 'PRN';
+                        badgeBg = AppTheme.tertiaryFixed;
+                        badgeText = AppTheme.onTertiaryFixedVariant;
+                        detailIcon = Icons.health_and_safety;
+                      } else {
+                        statusLabel = 'Active';
+                        badgeBg = const Color(0xFFFEF08A);
+                        badgeText = const Color(0xFF854D0E);
+                        detailIcon = Icons.medication;
+                      }
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
@@ -1709,15 +1734,32 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                                     ),
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.all(6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: badgeBg,
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: Icon(
-                                      detailIcon,
-                                      color: badgeText,
-                                      size: 18,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          detailIcon,
+                                          size: 12,
+                                          color: badgeText,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          statusLabel,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: badgeText,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -1957,7 +1999,19 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                         statusText = AppTheme.onPrimaryFixedVariant;
                         statusIcon = Icons.check_circle;
                       } else if (isExpired) {
-                        statusLabel = 'Overdue';
+                        final today = DateTime.now();
+                        final daysOverdue =
+                            DateTime(today.year, today.month, today.day)
+                                .difference(
+                                  DateTime(
+                                    v.nextDoseDate.year,
+                                    v.nextDoseDate.month,
+                                    v.nextDoseDate.day,
+                                  ),
+                                )
+                                .inDays;
+                        statusLabel =
+                            'Overdue${daysOverdue > 0 ? ' ${daysOverdue}d' : ''}';
                         statusColor = const Color(0xFFFFDAD6);
                         statusText = const Color(0xFF410002);
                         statusIcon = Icons.error_outline;

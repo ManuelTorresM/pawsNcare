@@ -1,12 +1,18 @@
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../data/models/pet.dart';
+import '../../../data/models/pet_invitation.dart';
+import '../../../data/models/shared_member.dart';
+import '../../../data/repositories/firebase_repository.dart';
 import '../../../logic/theme/theme_cubit.dart';
 import '../../../logic/auth/auth_bloc.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../theme/app_theme.dart';
 import '../pet/pet_profile_screen.dart';
 import '../pet/add_pet_wizard.dart';
+import '../pet/invitation_received_screen.dart';
 import '../nutrition/nutrition_screen.dart';
 import '../pet/pet_album_screen.dart';
 
@@ -70,9 +76,13 @@ class _HomeTabState extends State<HomeTab> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeCubit>().state;
-    final textSecondary = isDark ? AppTheme.darkOnSurfaceVariant : AppTheme.secondary;
+    final textSecondary = isDark
+        ? AppTheme.darkOnSurfaceVariant
+        : AppTheme.secondary;
     final textPrimary = isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
-    final cardBg = isDark ? AppTheme.darkSurface : AppTheme.surfaceContainerLowest;
+    final cardBg = isDark
+        ? AppTheme.darkSurface
+        : AppTheme.surfaceContainerLowest;
     final headerColor = isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
     final theme = Theme.of(context);
 
@@ -202,7 +212,9 @@ class _HomeTabState extends State<HomeTab> {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+                                  color: Colors.black.withValues(
+                                    alpha: isDark ? 0.2 : 0.02,
+                                  ),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -233,9 +245,9 @@ class _HomeTabState extends State<HomeTab> {
                                         '2 appts',
                                         style: theme.textTheme.labelLarge
                                             ?.copyWith(
-                                          fontSize: 14,
-                                          color: textPrimary,
-                                        ),
+                                              fontSize: 14,
+                                              color: textPrimary,
+                                            ),
                                       ),
                                       Text(
                                         'Fri 10 AM',
@@ -264,7 +276,9 @@ class _HomeTabState extends State<HomeTab> {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+                                  color: Colors.black.withValues(
+                                    alpha: isDark ? 0.2 : 0.02,
+                                  ),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -297,9 +311,9 @@ class _HomeTabState extends State<HomeTab> {
                                         '1 task pending',
                                         style: theme.textTheme.labelLarge
                                             ?.copyWith(
-                                          fontSize: 14,
-                                          color: textPrimary,
-                                        ),
+                                              fontSize: 14,
+                                              color: textPrimary,
+                                            ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       Text(
@@ -347,7 +361,9 @@ class _HomeTabState extends State<HomeTab> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.2 : 0.02,
+                        ),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -394,10 +410,7 @@ class _HomeTabState extends State<HomeTab> {
                           ],
                         ),
                       ),
-                      Icon(
-                        Icons.chevron_right,
-                        color: textSecondary,
-                      ),
+                      Icon(Icons.chevron_right, color: textSecondary),
                     ],
                   ),
                 ),
@@ -431,22 +444,23 @@ class _HomeTabState extends State<HomeTab> {
                 decoration: InputDecoration(
                   hintText: 'Search by name...',
                   hintStyle: TextStyle(color: textSecondary),
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: textSecondary,
-                  ),
+                  prefixIcon: Icon(Icons.search, color: textSecondary),
                   fillColor: cardBg,
                   filled: true,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
-                      color: isDark ? const Color(0xFF383634) : AppTheme.surfaceContainer,
+                      color: isDark
+                          ? const Color(0xFF383634)
+                          : AppTheme.surfaceContainer,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
-                      color: isDark ? const Color(0xFF383634) : AppTheme.surfaceContainer,
+                      color: isDark
+                          ? const Color(0xFF383634)
+                          : AppTheme.surfaceContainer,
                     ),
                   ),
                 ),
@@ -464,7 +478,26 @@ class _HomeTabState extends State<HomeTab> {
                       child: CircularProgressIndicator(color: headerColor),
                     );
                   } else if (state is PetLoaded) {
-                    final pets = state.filteredPets;
+                    final currentUser = FirebaseAuth.instance.currentUser;
+                    final currentUid = currentUser?.uid ?? '';
+                    final currentEmail = currentUser?.email ?? '';
+
+                    final pets = state.filteredPets.where((pet) {
+                      final isPendingInviteForUser = pet.members.any(
+                        (m) =>
+                            m.status == 'Pending' &&
+                            ((currentUid.isNotEmpty && m.id == currentUid) ||
+                                (currentEmail.isNotEmpty &&
+                                    m.email.toLowerCase() ==
+                                        currentEmail.toLowerCase())),
+                      );
+
+                      // Hide only if this pet is a pending invitation for current user
+                      if (isPendingInviteForUser) return false;
+
+                      // Otherwise show all owned pets and accepted shared pets
+                      return true;
+                    }).toList();
 
                     return Column(
                       children: [
@@ -491,12 +524,16 @@ class _HomeTabState extends State<HomeTab> {
                                   : AppTheme.tertiary;
                               statusBgColor = isDark
                                   ? const Color(0xFF5C2B1D)
-                                  : AppTheme.tertiaryFixed.withValues(alpha: 0.4);
+                                  : AppTheme.tertiaryFixed.withValues(
+                                      alpha: 0.4,
+                                    );
                             } else if (pet.status == 'Puppy') {
                               statusColor = textSecondary;
                               statusBgColor = isDark
                                   ? const Color(0xFF383634)
-                                  : AppTheme.secondaryContainer.withValues(alpha: 0.6);
+                                  : AppTheme.secondaryContainer.withValues(
+                                      alpha: 0.6,
+                                    );
                             }
 
                             return GestureDetector(
@@ -519,7 +556,9 @@ class _HomeTabState extends State<HomeTab> {
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+                                      color: Colors.black.withValues(
+                                        alpha: isDark ? 0.2 : 0.02,
+                                      ),
                                       blurRadius: 10,
                                       offset: const Offset(0, 4),
                                     ),
@@ -537,15 +576,23 @@ class _HomeTabState extends State<HomeTab> {
                                             8,
                                           ),
                                           child:
-                                              pet.avatarUrl.startsWith('http') || pet.avatarUrl.startsWith('https')
+                                              pet.avatarUrl.startsWith(
+                                                    'http',
+                                                  ) ||
+                                                  pet.avatarUrl.startsWith(
+                                                    'https',
+                                                  )
                                               ? Image.network(
                                                   pet.avatarUrl,
                                                   fit: BoxFit.cover,
                                                   errorBuilder: (_, _, _) =>
                                                       Container(
                                                         color: isDark
-                                                            ? const Color(0xFF383634)
-                                                            : AppTheme.surfaceContainer,
+                                                            ? const Color(
+                                                                0xFF383634,
+                                                              )
+                                                            : AppTheme
+                                                                  .surfaceContainer,
                                                         child: Icon(
                                                           Icons.pets,
                                                           color: textSecondary,
@@ -553,29 +600,40 @@ class _HomeTabState extends State<HomeTab> {
                                                       ),
                                                 )
                                               : (pet.avatarUrl.isNotEmpty
-                                                  ? Image.file(
-                                                      File(pet.avatarUrl),
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder: (_, _, _) =>
-                                                          Container(
-                                                            color: isDark
-                                                                ? const Color(0xFF383634)
-                                                                : AppTheme.surfaceContainer,
-                                                            child: Icon(
-                                                              Icons.pets,
-                                                              color: textSecondary,
+                                                    ? Image.file(
+                                                        File(pet.avatarUrl),
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder:
+                                                            (
+                                                              _,
+                                                              _,
+                                                              _,
+                                                            ) => Container(
+                                                              color: isDark
+                                                                  ? const Color(
+                                                                      0xFF383634,
+                                                                    )
+                                                                  : AppTheme
+                                                                        .surfaceContainer,
+                                                              child: Icon(
+                                                                Icons.pets,
+                                                                color:
+                                                                    textSecondary,
+                                                              ),
                                                             ),
-                                                          ),
-                                                    )
-                                                  : Container(
-                                                      color: isDark
-                                                          ? const Color(0xFF383634)
-                                                          : AppTheme.surfaceContainer,
-                                                      child: Icon(
-                                                        Icons.pets,
-                                                        color: textSecondary,
-                                                      ),
-                                                    )),
+                                                      )
+                                                    : Container(
+                                                        color: isDark
+                                                            ? const Color(
+                                                                0xFF383634,
+                                                              )
+                                                            : AppTheme
+                                                                  .surfaceContainer,
+                                                        child: Icon(
+                                                          Icons.pets,
+                                                          color: textSecondary,
+                                                        ),
+                                                      )),
                                         ),
                                       ),
                                       const SizedBox(height: 12),
@@ -592,7 +650,8 @@ class _HomeTabState extends State<HomeTab> {
                                                   pet.name,
                                                   style: theme
                                                       .textTheme
-                                                      .labelLarge?.copyWith(
+                                                      .labelLarge
+                                                      ?.copyWith(
                                                         color: textPrimary,
                                                       ),
                                                   overflow:
@@ -652,7 +711,11 @@ class _HomeTabState extends State<HomeTab> {
                           },
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
-                              color: isDark ? const Color(0xFF383634) : theme.colorScheme.outline.withValues(alpha: 0.5),
+                              color: isDark
+                                  ? const Color(0xFF383634)
+                                  : theme.colorScheme.outline.withValues(
+                                      alpha: 0.5,
+                                    ),
                               width: 1.5,
                               style: BorderStyle.solid,
                             ),
@@ -687,6 +750,16 @@ class _HomeTabState extends State<HomeTab> {
                             ],
                           ),
                         ),
+
+                        // Invitation Received Card (Appears ONLY if an invitation was made)
+                        _buildInvitationReceivedCard(
+                          context,
+                          state.pets,
+                          isDark,
+                          textPrimary,
+                          textSecondary,
+                          cardBg,
+                        ),
                       ],
                     );
                   } else if (state is PetError) {
@@ -706,7 +779,11 @@ class _HomeTabState extends State<HomeTab> {
                 children: [
                   Text(
                     'Recent Memories',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textPrimary),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: textPrimary,
+                    ),
                   ),
                   TextButton(
                     onPressed: () {
@@ -738,7 +815,7 @@ class _HomeTabState extends State<HomeTab> {
                     allPhotos.addAll(pet.photos);
                   }
                 }
-                
+
                 final recentPhotos = allPhotos.reversed.toList();
 
                 if (recentPhotos.isEmpty) {
@@ -766,7 +843,8 @@ class _HomeTabState extends State<HomeTab> {
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     itemCount: recentPhotos.length,
-                    separatorBuilder: (context, index) => const SizedBox(width: 12),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(width: 12),
                     itemBuilder: (context, index) {
                       return _buildMemoryImage(recentPhotos[index]);
                     },
@@ -872,6 +950,191 @@ class _HomeTabState extends State<HomeTab> {
                   child: const Icon(Icons.photo, color: AppTheme.secondary),
                 ),
               ),
+      ),
+    );
+  }
+
+  Widget _buildInvitationReceivedCard(
+    BuildContext context,
+    List<Pet> allPets,
+    bool isDark,
+    Color textPrimary,
+    Color textSecondary,
+    Color cardBg,
+  ) {
+    return FutureBuilder<List<PetInvitation>>(
+      future: FirebaseRepository().getPendingInvitationsForCurrentUser(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          // Fallback check on pet.members for local/mock pending members
+          Pet? pendingPet;
+          SharedMember? pendingInvite;
+          final user = FirebaseAuth.instance.currentUser;
+          final userEmail = user?.email ?? '';
+          final userId = user?.uid ?? '';
+
+          for (final pet in allPets) {
+            for (final member in pet.members) {
+              if (member.status == 'Pending') {
+                if (member.id == userId ||
+                    (userEmail.isNotEmpty &&
+                        member.email.toLowerCase() ==
+                            userEmail.toLowerCase())) {
+                  pendingPet = pet;
+                  pendingInvite = member;
+                  break;
+                }
+              }
+            }
+            if (pendingPet != null) break;
+          }
+
+          if (pendingPet == null || pendingInvite == null) {
+            return const SizedBox.shrink();
+          }
+
+          return _renderInvitationCardWidget(
+            context: context,
+            petName: pendingPet.name,
+            roleName: pendingInvite.role.displayName,
+            isDark: isDark,
+            textSecondary: textSecondary,
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => InvitationReceivedScreen(
+                    pet: pendingPet,
+                    invitation: pendingInvite,
+                  ),
+                ),
+              );
+              if (context.mounted) {
+                context.read<PetBloc>().add(LoadPets());
+              }
+            },
+          );
+        }
+
+        final topInvitation = snapshot.data!.first;
+
+        return _renderInvitationCardWidget(
+          context: context,
+          petName: topInvitation.petName,
+          roleName: topInvitation.role.displayName,
+          isDark: isDark,
+          textSecondary: textSecondary,
+          onTap: () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    InvitationReceivedScreen(petInvitation: topInvitation),
+              ),
+            );
+            if (context.mounted) {
+              context.read<PetBloc>().add(LoadPets());
+            }
+          },
+        );
+      },
+    );
+  }
+
+  Widget _renderInvitationCardWidget({
+    required BuildContext context,
+    required String petName,
+    required String roleName,
+    required bool isDark,
+    required Color textSecondary,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF5C2B1D).withValues(alpha: 0.5)
+            : AppTheme.tertiaryFixed.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.tertiary, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.tertiary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.mark_email_unread,
+                color: Colors.white,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'Invitation Received',
+                        style: TextStyle(
+                          fontFamily: 'Montserrat',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: AppTheme.tertiary,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.tertiary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'NEW',
+                          style: TextStyle(
+                            fontFamily: 'Montserrat',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 9,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Share care of $petName as $roleName',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      color: textSecondary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppTheme.tertiary),
+          ],
+        ),
       ),
     );
   }

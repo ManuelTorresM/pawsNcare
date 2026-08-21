@@ -1480,25 +1480,35 @@ class _PetProfileScreenState extends State<PetProfileScreen>
   ) {
     final date = med.nextDoseDate;
     final now = DateTime.now();
-    final isToday =
-        date.year == now.year && date.month == now.month && date.day == now.day;
-    final isOverdue = date.isBefore(DateTime(now.year, now.month, now.day));
+    final today = DateTime(now.year, now.month, now.day);
+    final dueDate = DateTime(date.year, date.month, date.day);
+    final isToday = today.isAtSameMomentAs(dueDate);
+    final isOverdue = dueDate.isBefore(today);
+    final daysOverdue = today.difference(dueDate).inDays;
 
-    final statusText = isToday
-        ? 'Due Today'
-        : (isOverdue ? 'Overdue' : 'Scheduled');
-    final statusColor = isToday
-        ? headerColor
-        : (isOverdue ? AppTheme.error : textSecondary);
-    final statusBg = isToday
-        ? (isDark
-              ? const Color(0xFF2E4E30)
-              : AppTheme.primaryContainer.withValues(alpha: 0.6))
-        : (isOverdue
-              ? AppTheme.errorContainer.withValues(alpha: 0.5)
-              : (isDark
-                    ? const Color(0xFF383634)
-                    : AppTheme.surfaceContainerHigh));
+    final String statusText;
+    final Color statusColor;
+    final Color statusBg;
+    final IconData statusIcon;
+
+    if (isToday) {
+      statusText = 'Due Today';
+      statusColor = headerColor;
+      statusBg = isDark
+          ? const Color(0xFF2E4E30)
+          : AppTheme.primaryContainer.withValues(alpha: 0.6);
+      statusIcon = Icons.today;
+    } else if (isOverdue) {
+      statusText = 'Overdue${daysOverdue > 0 ? ' ${daysOverdue}d' : ''}';
+      statusColor = const Color(0xFF410002);
+      statusBg = const Color(0xFFFFDAD6);
+      statusIcon = Icons.error_outline;
+    } else {
+      statusText = 'Scheduled';
+      statusColor = const Color(0xFF854D0E);
+      statusBg = const Color(0xFFFEF08A);
+      statusIcon = Icons.event;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -1519,11 +1529,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
             width: 48,
             height: 50,
             decoration: BoxDecoration(
-              color: isToday
-                  ? AppTheme.primary
-                  : (isDark
-                        ? const Color(0xFF2E4E30)
-                        : AppTheme.primaryContainer.withValues(alpha: 0.5)),
+              color: statusBg,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
@@ -1534,7 +1540,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: isToday ? Colors.white : headerColor,
+                    color: isToday ? Colors.white : statusColor,
                   ),
                 ),
                 Text(
@@ -1542,7 +1548,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: isToday ? Colors.white : textPrimary,
+                    color: isToday ? Colors.white : statusColor,
                   ),
                 ),
               ],
@@ -1577,13 +1583,20 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                         color: statusBg,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(
-                        statusText,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: statusColor,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(statusIcon, size: 11, color: statusColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            statusText,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: statusColor,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -1641,23 +1654,33 @@ class _PetProfileScreenState extends State<PetProfileScreen>
   ) {
     final date = v.nextDoseDate;
     final now = DateTime.now();
-    final isToday =
-        date.year == now.year && date.month == now.month && date.day == now.day;
-    final isOverdue = date.isBefore(DateTime(now.year, now.month, now.day));
+    final today = DateTime(now.year, now.month, now.day);
+    final dueDate = DateTime(date.year, date.month, date.day);
+    final isToday = today.isAtSameMomentAs(dueDate);
+    final isOverdue = dueDate.isBefore(today);
+    final daysOverdue = today.difference(dueDate).inDays;
 
-    final statusText = isToday
-        ? 'Due Today'
-        : (isOverdue ? 'Overdue' : 'Scheduled');
-    final statusColor = isToday
-        ? AppTheme.tertiary
-        : (isOverdue ? AppTheme.error : textSecondary);
-    final statusBg = isToday
-        ? AppTheme.tertiaryContainer.withValues(alpha: 0.6)
-        : (isOverdue
-              ? AppTheme.errorContainer.withValues(alpha: 0.5)
-              : (isDark
-                    ? const Color(0xFF383634)
-                    : AppTheme.surfaceContainerHigh));
+    final String statusText;
+    final Color statusColor;
+    final Color statusBg;
+    final IconData statusIcon;
+
+    if (isToday) {
+      statusText = 'Due Today';
+      statusColor = AppTheme.tertiary;
+      statusBg = AppTheme.tertiaryContainer.withValues(alpha: 0.6);
+      statusIcon = Icons.today;
+    } else if (isOverdue) {
+      statusText = 'Overdue${daysOverdue > 0 ? ' ${daysOverdue}d' : ''}';
+      statusColor = const Color(0xFF410002);
+      statusBg = const Color(0xFFFFDAD6);
+      statusIcon = Icons.error_outline;
+    } else {
+      statusText = 'Scheduled';
+      statusColor = const Color(0xFF854D0E);
+      statusBg = const Color(0xFFFEF08A);
+      statusIcon = Icons.event;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -1678,9 +1701,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
             width: 48,
             height: 50,
             decoration: BoxDecoration(
-              color: isToday
-                  ? AppTheme.tertiary
-                  : AppTheme.tertiaryContainer.withValues(alpha: 0.5),
+              color: statusBg,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
@@ -1691,7 +1712,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: isToday ? Colors.white : AppTheme.tertiary,
+                    color: isToday ? Colors.white : statusColor,
                   ),
                 ),
                 Text(
@@ -1699,7 +1720,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: isToday ? Colors.white : textPrimary,
+                    color: isToday ? Colors.white : statusColor,
                   ),
                 ),
               ],
@@ -1734,13 +1755,20 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                         color: statusBg,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(
-                        statusText,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: statusColor,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(statusIcon, size: 11, color: statusColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            statusText,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: statusColor,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -1786,46 +1814,19 @@ class _PetProfileScreenState extends State<PetProfileScreen>
             .toList()
           ..sort((a, b) => a.nextDoseDate.compareTo(b.nextDoseDate));
 
+    // Administered Vaccines ready to be saved to Vaccination History: type == 'vaccine' && isCompleted && !isSavedToHistory
+    final readyToSaveVaccines = _pet.medications
+        .where(
+          (m) => m.type == 'vaccine' && m.isCompleted && !m.isSavedToHistory,
+        )
+        .toList();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
-
-          // Primary Add Button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => MedsVaccinesScreen(
-                      pet: _pet,
-                      openAddDialog: true,
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.add, color: Colors.white, size: 20),
-              label: const Text(
-                'Add Medication or Vaccine',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Colors.white,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
 
           // 1. Upcoming Medications Section
           Row(
@@ -1928,6 +1929,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
             ],
           ),
           const SizedBox(height: 12),
+
           if (upcomingVaccines.isEmpty)
             _buildEmptyMinimalCard(
               'No upcoming vaccines scheduled.',
@@ -1976,6 +1978,42 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Vaccines Ready to be Saved Banner (Under Manage All Meds & Vaccines Button)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppTheme.primaryContainer.withValues(alpha: 0.2)
+                  : AppTheme.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isDark
+                    ? AppTheme.primaryFixedDim.withValues(alpha: 0.3)
+                    : AppTheme.primary.withValues(alpha: 0.25),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.verified_rounded, color: headerColor, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    readyToSaveVaccines.isNotEmpty
+                        ? '${readyToSaveVaccines.length} ${readyToSaveVaccines.length == 1 ? 'administered vaccine is' : 'administered vaccines are'} ready to be saved to health history!'
+                        : 'All administered vaccines are saved to health history.',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: textPrimary,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 24),

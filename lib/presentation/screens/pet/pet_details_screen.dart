@@ -1,16 +1,1363 @@
+import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../data/models/pet.dart';
+import '../../../logic/pet/pet_bloc.dart';
 import '../../theme/app_theme.dart';
 import 'medical_history_screen.dart';
+import 'share_ownership_screen.dart';
+import 'invitation_received_screen.dart';
 
-class PetDetailsScreen extends StatelessWidget {
+class PetDetailsScreen extends StatefulWidget {
   final Pet pet;
 
   const PetDetailsScreen({super.key, required this.pet});
 
   @override
+  State<PetDetailsScreen> createState() => _PetDetailsScreenState();
+}
+
+class _PetDetailsScreenState extends State<PetDetailsScreen> {
+  late Pet _pet;
+
+  @override
+  void initState() {
+    super.initState();
+    _pet = widget.pet;
+  }
+
+  void _updatePet(Pet updated) {
+    setState(() {
+      _pet = updated;
+    });
+    context.read<PetBloc>().add(UpdatePet(updated));
+  }
+
+  Widget _buildPetImageWidget(
+    String url, {
+    double? width,
+    double? height,
+    BoxFit fit = BoxFit.cover,
+    double iconSize = 24,
+  }) {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return Image.network(
+        url,
+        width: width,
+        height: height,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) => Container(
+          width: width,
+          height: height,
+          color: AppTheme.surfaceContainer,
+          child: Icon(Icons.pets, size: iconSize, color: AppTheme.secondary),
+        ),
+      );
+    }
+    return Image.file(
+      File(url),
+      width: width,
+      height: height,
+      fit: fit,
+      errorBuilder: (context, error, stackTrace) => Container(
+        width: width,
+        height: height,
+        color: AppTheme.surfaceContainer,
+        child: Icon(Icons.pets, size: iconSize, color: AppTheme.secondary),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 1. Comprehensive Pet Profile Edit Dialog (Matches create_pet_step1)
+  // ---------------------------------------------------------------------------
+  void _showEditPetProfileDialog() {
+    final nameCtrl = TextEditingController(text: _pet.name);
+    final breedCtrl = TextEditingController(text: _pet.breed);
+    String selectedAvatarUrl = _pet.avatarUrl;
+    String selectedGender = _pet.gender;
+    String selectedNeutered = _pet.neutered;
+    DateTime selectedBirthDate = _pet.birthDate;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            Widget buildOptionChip(
+              String value,
+              IconData? icon,
+              String currentValue,
+              ValueChanged<String> onChanged,
+            ) {
+              final isSelected =
+                  currentValue.toLowerCase() == value.toLowerCase();
+              return OutlinedButton(
+                onPressed: () => onChanged(value),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: isSelected
+                      ? AppTheme.primary
+                      : AppTheme.surfaceContainerLow,
+                  foregroundColor: isSelected
+                      ? Colors.white
+                      : AppTheme.secondary,
+                  side: BorderSide(
+                    color: isSelected
+                        ? AppTheme.primary
+                        : AppTheme.surfaceContainer,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (icon != null) ...[
+                      Icon(
+                        icon,
+                        color: isSelected ? Colors.white : AppTheme.secondary,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Text(
+                      value,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Text(
+                'Edit Companion Profile',
+                style: TextStyle(
+                  fontFamily: 'Montserrat',
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primary,
+                  fontSize: 18,
+                ),
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Interactive Pet Profile Photo Button
+                      Center(
+                        child: GestureDetector(
+                          onTap: () {
+                            showModalBottomSheet(
+                              context: dialogContext,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(24),
+                                ),
+                              ),
+                              builder: (sheetContext) {
+                                return SafeArea(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24.0),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        const Text(
+                                          'Change Companion Photo',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 20),
+                                        ListTile(
+                                          leading: const Icon(
+                                            Icons.photo_library,
+                                            color: AppTheme.primary,
+                                          ),
+                                          title: const Text('Open Gallery'),
+                                          onTap: () async {
+                                            final messenger =
+                                                ScaffoldMessenger.of(context);
+                                            Navigator.pop(sheetContext);
+                                            try {
+                                              final picker = ImagePicker();
+                                              final file = await picker
+                                                  .pickImage(
+                                                    source: ImageSource.gallery,
+                                                  );
+                                              if (file != null) {
+                                                setDialogState(() {
+                                                  selectedAvatarUrl = file.path;
+                                                });
+                                              }
+                                            } catch (e) {
+                                              messenger.showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Error selecting image: $e',
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          },
+                                        ),
+                                        ListTile(
+                                          leading: const Icon(
+                                            Icons.photo_camera,
+                                            color: AppTheme.primary,
+                                          ),
+                                          title: const Text('Take a Photo'),
+                                          onTap: () async {
+                                            final messenger =
+                                                ScaffoldMessenger.of(context);
+                                            Navigator.pop(sheetContext);
+                                            try {
+                                              final picker = ImagePicker();
+                                              final file = await picker
+                                                  .pickImage(
+                                                    source: ImageSource.camera,
+                                                  );
+                                              if (file != null) {
+                                                setDialogState(() {
+                                                  selectedAvatarUrl = file.path;
+                                                });
+                                              }
+                                            } catch (e) {
+                                              messenger.showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Error taking photo: $e',
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                          child: Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              Container(
+                                width: 96,
+                                height: 96,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppTheme.primaryFixed,
+                                    width: 3,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(48),
+                                  child: _buildPetImageWidget(
+                                    selectedAvatarUrl,
+                                    width: 96,
+                                    height: 96,
+                                    iconSize: 32,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.edit,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Pet Name
+                      const Text(
+                        'Pet Name',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: nameCtrl,
+                        decoration: InputDecoration(
+                          hintText: 'e.g. Luna',
+                          filled: true,
+                          fillColor: AppTheme.surfaceContainerLow,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Breed
+                      const Text(
+                        'Breed',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: breedCtrl,
+                        decoration: InputDecoration(
+                          hintText: 'Search or enter breed...',
+                          filled: true,
+                          fillColor: AppTheme.surfaceContainerLow,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Gender
+                      const Text(
+                        'Gender',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: buildOptionChip(
+                              'Male',
+                              Icons.male,
+                              selectedGender,
+                              (v) => setDialogState(() => selectedGender = v),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: buildOptionChip(
+                              'Female',
+                              Icons.female,
+                              selectedGender,
+                              (v) => setDialogState(() => selectedGender = v),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Neutered / Spayed
+                      const Text(
+                        'Neutered / Spayed',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: buildOptionChip(
+                              'Yes',
+                              null,
+                              selectedNeutered,
+                              (v) => setDialogState(() => selectedNeutered = v),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: buildOptionChip(
+                              'No',
+                              null,
+                              selectedNeutered,
+                              (v) => setDialogState(() => selectedNeutered = v),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Date of Birth
+                      const Text(
+                        'Date of Birth',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      GestureDetector(
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: dialogContext,
+                            initialDate: selectedBirthDate,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime.now(),
+                          );
+                          if (date != null) {
+                            setDialogState(() => selectedBirthDate = date);
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${selectedBirthDate.day}/${selectedBirthDate.month}/${selectedBirthDate.year}',
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const Icon(
+                                Icons.calendar_today,
+                                color: AppTheme.primary,
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final newName = nameCtrl.text.trim();
+                    if (newName.isNotEmpty) {
+                      final updated = _pet.copyWith(
+                        name: newName,
+                        avatarUrl: selectedAvatarUrl,
+                        breed: breedCtrl.text.trim(),
+                        gender: selectedGender,
+                        neutered: selectedNeutered,
+                        birthDate: selectedBirthDate,
+                      );
+                      _updatePet(updated);
+                      Navigator.pop(dialogContext);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 3. Edit Health Profile Dialog (Matches medical_history_step2)
+  // ---------------------------------------------------------------------------
+  void _showEditHealthProfileDialog() {
+    List<String> selectedConditions = List<String>.from(_pet.medicalConditions);
+    List<String> selectedAllergies = List<String>.from(_pet.allergies);
+
+    // Custom Condition State
+    bool isCustomConditionVisible = false;
+    final customConditionCtrl = TextEditingController();
+
+    // Allergies Autocomplete State
+    final allergySearchCtrl = TextEditingController();
+    const List<String> allergyLibrary = [
+      'Beef',
+      'Pollen',
+      'Grain-Free',
+      'Chicken',
+      'Dairy',
+      'Flea Saliva',
+      'Penicillin',
+      'Soy',
+      'Wheat',
+      'Dust Mites',
+    ];
+    List<String> filteredAllergies = [];
+    bool isAllergyDropdownVisible = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            void toggleCondition(String condition) {
+              setDialogState(() {
+                final lower = condition.toLowerCase();
+                if (lower == 'none') {
+                  selectedConditions = ['none'];
+                } else {
+                  selectedConditions.remove('none');
+                  if (selectedConditions.contains(lower)) {
+                    selectedConditions.remove(lower);
+                  } else {
+                    selectedConditions.add(lower);
+                  }
+                }
+              });
+            }
+
+            Widget buildConditionButton(String label) {
+              final lower = label.toLowerCase();
+              final isSelected = selectedConditions.contains(lower);
+              return OutlinedButton(
+                onPressed: () => toggleCondition(label),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: isSelected
+                      ? AppTheme.primary
+                      : AppTheme.surfaceContainerLow,
+                  foregroundColor: isSelected
+                      ? Colors.white
+                      : AppTheme.secondary,
+                  side: BorderSide(
+                    color: isSelected
+                        ? AppTheme.primary
+                        : AppTheme.surfaceContainer,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              );
+            }
+
+            Widget buildAddCustomButton() {
+              return OutlinedButton.icon(
+                onPressed: () =>
+                    setDialogState(() => isCustomConditionVisible = true),
+                icon: const Icon(Icons.add, size: 14),
+                label: const Text(
+                  'Add Custom',
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.primary,
+                  side: const BorderSide(color: AppTheme.primary),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              );
+            }
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Text(
+                'Edit Health Profile',
+                style: TextStyle(
+                  fontFamily: 'Montserrat',
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primary,
+                  fontSize: 18,
+                ),
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Section 1: Medical Conditions
+                      const Row(
+                        children: [
+                          Icon(
+                            Icons.healing_outlined,
+                            color: AppTheme.primary,
+                            size: 20,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Medical Conditions',
+                            style: TextStyle(
+                              fontFamily: 'Montserrat',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // 2-Column Grid Layout
+                      Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(child: buildConditionButton('Diabetes')),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: buildConditionButton('Arthritis'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: buildConditionButton('Heart Murmur'),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(child: buildConditionButton('Epilepsy')),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(child: buildConditionButton('None')),
+                              const SizedBox(width: 8),
+                              Expanded(child: buildAddCustomButton()),
+                            ],
+                          ),
+                        ],
+                      ),
+
+                      // Custom Added Conditions Tags
+                      if (selectedConditions.any(
+                        (c) =>
+                            c != 'diabetes' &&
+                            c != 'arthritis' &&
+                            c != 'heart murmur' &&
+                            c != 'epilepsy' &&
+                            c != 'none',
+                      )) ...[
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: selectedConditions
+                              .where(
+                                (c) =>
+                                    c != 'diabetes' &&
+                                    c != 'arthritis' &&
+                                    c != 'heart murmur' &&
+                                    c != 'epilepsy' &&
+                                    c != 'none',
+                              )
+                              .map((condition) {
+                                return Chip(
+                                  label: Text(condition),
+                                  deleteIcon: const Icon(Icons.close, size: 14),
+                                  onDeleted: () => toggleCondition(condition),
+                                  backgroundColor: AppTheme.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  labelStyle: const TextStyle(
+                                    fontFamily: 'Montserrat',
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.primary,
+                                    fontSize: 11,
+                                  ),
+                                );
+                              })
+                              .toList(),
+                        ),
+                      ],
+
+                      if (isCustomConditionVisible) ...[
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: customConditionCtrl,
+                                autofocus: true,
+                                decoration: const InputDecoration(
+                                  hintText: 'Enter condition...',
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            ElevatedButton(
+                              onPressed: () {
+                                final text = customConditionCtrl.text.trim();
+                                if (text.isNotEmpty) {
+                                  toggleCondition(text);
+                                  customConditionCtrl.clear();
+                                  setDialogState(
+                                    () => isCustomConditionVisible = false,
+                                  );
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                              ),
+                              child: const Text('Add'),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 18),
+                              onPressed: () => setDialogState(
+                                () => isCustomConditionVisible = false,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+
+                      const SizedBox(height: 20),
+
+                      // Section 2: Allergies
+                      const Row(
+                        children: [
+                          Icon(
+                            Icons.eco_outlined,
+                            color: AppTheme.primary,
+                            size: 20,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Allergies',
+                            style: TextStyle(
+                              fontFamily: 'Montserrat',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      TextField(
+                        controller: allergySearchCtrl,
+                        decoration: const InputDecoration(
+                          hintText: 'Search or type custom allergy...',
+                          isDense: true,
+                          prefixIcon: Icon(Icons.search, size: 18),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                        ),
+                        onSubmitted: (value) {
+                          final query = value.trim();
+                          if (query.isNotEmpty) {
+                            setDialogState(() {
+                              if (!selectedAllergies.contains(query)) {
+                                selectedAllergies.add(query);
+                              }
+                              allergySearchCtrl.clear();
+                              isAllergyDropdownVisible = false;
+                              filteredAllergies = [];
+                            });
+                          }
+                        },
+                        onChanged: (query) {
+                          if (query.isEmpty) {
+                            setDialogState(() {
+                              filteredAllergies = [];
+                              isAllergyDropdownVisible = false;
+                            });
+                            return;
+                          }
+                          final filtered = allergyLibrary
+                              .where(
+                                (a) =>
+                                    a.toLowerCase().contains(
+                                      query.toLowerCase(),
+                                    ) &&
+                                    !selectedAllergies.contains(a),
+                              )
+                              .toList();
+                          setDialogState(() {
+                            filteredAllergies = filtered;
+                            isAllergyDropdownVisible = true;
+                          });
+                        },
+                      ),
+
+                      if (isAllergyDropdownVisible &&
+                          filteredAllergies.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Container(
+                          constraints: const BoxConstraints(maxHeight: 150),
+                          decoration: BoxDecoration(
+                            color: AppTheme.surfaceContainerLowest,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppTheme.surfaceContainer,
+                            ),
+                          ),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              children: filteredAllergies.map((allergy) {
+                                return ListTile(
+                                  dense: true,
+                                  title: Text(
+                                    allergy,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                  onTap: () {
+                                    setDialogState(() {
+                                      if (!selectedAllergies.contains(
+                                        allergy,
+                                      )) {
+                                        selectedAllergies.add(allergy);
+                                      }
+                                      allergySearchCtrl.clear();
+                                      isAllergyDropdownVisible = false;
+                                      filteredAllergies = [];
+                                    });
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      ],
+
+                      if (selectedAllergies.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: selectedAllergies.map((allergy) {
+                            return Chip(
+                              label: Text(allergy),
+                              deleteIcon: const Icon(Icons.close, size: 14),
+                              onDeleted: () {
+                                setDialogState(() {
+                                  selectedAllergies.remove(allergy);
+                                });
+                              },
+                              backgroundColor: AppTheme.errorContainer,
+                              labelStyle: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.error,
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final updated = _pet.copyWith(
+                      medicalConditions: selectedConditions,
+                      allergies: selectedAllergies,
+                    );
+                    _updatePet(updated);
+                    Navigator.pop(dialogContext);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 4. Edit Lifestyle & Routine Dialog (Matches lifestyle_routine_step3)
+  // ---------------------------------------------------------------------------
+  void _showEditLifestyleDialog() {
+    String selectedActivity = _pet.activityLevel.isNotEmpty
+        ? _pet.activityLevel
+        : 'Moderate';
+    bool isDietEnabled = _pet.dietEnabled;
+    String selectedFoodType = _pet.foodType.isNotEmpty
+        ? _pet.foodType
+        : 'Dry Kibble';
+    final notesCtrl = TextEditingController(text: _pet.feedingNotes);
+    List<String> selectedBehaviorTags = List<String>.from(_pet.behaviorTags);
+
+    const foodTypeItems = [
+      'Mixed',
+      'Home-cooked',
+      'Dry Kibble',
+      'Wet Food',
+      'Raw Diet',
+      'Other',
+    ];
+
+    const presetBehaviorTags = [
+      'Social',
+      'Anxious',
+      'Quiet',
+      'Playful',
+      'Vocal',
+      'Independent',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            Widget buildActivityCard(
+              String value,
+              IconData icon,
+              String label,
+            ) {
+              final isSelected =
+                  selectedActivity.toLowerCase() == value.toLowerCase();
+              return GestureDetector(
+                onTap: () => setDialogState(() => selectedActivity = value),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppTheme.primaryFixedDim.withValues(alpha: 0.2)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppTheme.primary
+                          : AppTheme.surfaceContainer,
+                      width: 2,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, color: AppTheme.primary, size: 26),
+                      const SizedBox(height: 6),
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Text(
+                'Edit Lifestyle & Routine',
+                style: TextStyle(
+                  fontFamily: 'Montserrat',
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primary,
+                  fontSize: 18,
+                ),
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Section 1: Activity Level
+                      const Text(
+                        'Activity Level',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: AppTheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                        childAspectRatio: 1.3,
+                        children: [
+                          buildActivityCard('Low', Icons.bed_outlined, 'Low'),
+                          buildActivityCard(
+                            'Moderate',
+                            Icons.directions_walk,
+                            'Moderate',
+                          ),
+                          buildActivityCard(
+                            'High',
+                            Icons.run_circle_outlined,
+                            'High',
+                          ),
+                          buildActivityCard(
+                            'Very High',
+                            Icons.bolt,
+                            'Very High',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Section 2: Diet & Nutrition Card
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppTheme.surfaceContainer),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Diet & Nutrition',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                Switch(
+                                  value: isDietEnabled,
+                                  activeThumbColor: AppTheme.primary,
+                                  onChanged: (val) {
+                                    setDialogState(() => isDietEnabled = val);
+                                  },
+                                ),
+                              ],
+                            ),
+                            if (isDietEnabled) ...[
+                              const SizedBox(height: 14),
+                              const Text(
+                                'Main food type',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 12,
+                                  color: AppTheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              DropdownButtonFormField<String>(
+                                initialValue:
+                                    foodTypeItems.contains(selectedFoodType)
+                                    ? selectedFoodType
+                                    : 'Dry Kibble',
+                                decoration: const InputDecoration(
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
+                                  ),
+                                ),
+                                items: foodTypeItems
+                                    .map(
+                                      (type) => DropdownMenuItem(
+                                        value: type,
+                                        child: Text(type),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setDialogState(
+                                      () => selectedFoodType = val,
+                                    );
+                                  }
+                                },
+                              ),
+                              const SizedBox(height: 14),
+                              const Text(
+                                'Feeding Schedule/Notes',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 12,
+                                  color: AppTheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: notesCtrl,
+                                maxLines: 3,
+                                style: const TextStyle(fontFamily: 'Inter'),
+                                decoration: InputDecoration(
+                                  hintText:
+                                      'e.g. 1/2 cup twice a day, morning and evening.',
+                                  hintStyle: TextStyle(
+                                    color: AppTheme.secondary.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Section 3: Behavior Tags
+                      const Text(
+                        'Behavior Tags (Optional)',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: AppTheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: presetBehaviorTags.map((tag) {
+                          final isSelected = selectedBehaviorTags.contains(tag);
+                          return FilterChip(
+                            label: Text(tag),
+                            selected: isSelected,
+                            onSelected: (val) {
+                              setDialogState(() {
+                                if (isSelected) {
+                                  selectedBehaviorTags.remove(tag);
+                                } else {
+                                  selectedBehaviorTags.add(tag);
+                                }
+                              });
+                            },
+                            selectedColor: AppTheme.secondaryContainer,
+                            checkmarkColor: AppTheme.secondary,
+                            labelStyle: TextStyle(
+                              fontFamily: 'Inter',
+                              color: isSelected
+                                  ? AppTheme.onSurface
+                                  : AppTheme.secondary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final updated = _pet.copyWith(
+                      activityLevel: selectedActivity,
+                      dietEnabled: isDietEnabled,
+                      foodType: selectedFoodType,
+                      feedingNotes: notesCtrl.text.trim(),
+                      behaviorTags: selectedBehaviorTags,
+                    );
+                    _updatePet(updated);
+                    Navigator.pop(dialogContext);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPendingInviteBanner() {
+    final user = FirebaseAuth.instance.currentUser;
+    final userEmail = user?.email ?? '';
+    final userId = user?.uid ?? '';
+
+    final pendingMatches = _pet.members.where(
+      (m) =>
+          m.status == 'Pending' &&
+          (m.id == userId ||
+              (userEmail.isNotEmpty &&
+                  m.email.toLowerCase() == userEmail.toLowerCase())),
+    );
+
+    if (pendingMatches.isEmpty) return const SizedBox.shrink();
+    final invitation = pendingMatches.first;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.tertiaryFixed.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.tertiary),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              color: AppTheme.tertiary,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.mail_outline,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Pending Care Invitation!',
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: AppTheme.tertiary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'You were invited as ${invitation.role.displayName}.',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    color: AppTheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final result = await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => InvitationReceivedScreen(
+                    pet: _pet,
+                    invitation: invitation,
+                  ),
+                ),
+              );
+              if (result != null) {
+                setState(() {});
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.tertiary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('View', style: TextStyle(fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Determine dynamic birthdate string
+    // Dynamic birthdate string
     final months = [
       'Jan',
       'Feb',
@@ -26,14 +1373,16 @@ class PetDetailsScreen extends StatelessWidget {
       'Dec',
     ];
     final birthStr =
-        "${months[pet.birthDate.month - 1]} ${pet.birthDate.day}, ${pet.birthDate.year}";
+        "${months[_pet.birthDate.month - 1]} ${_pet.birthDate.day}, ${_pet.birthDate.year}";
 
-    // Age value extraction
-    String ageNum = '3.5';
-    final ageMatch = RegExp(r'(\d+)').firstMatch(pet.ageString);
-    if (ageMatch != null) {
-      ageNum = ageMatch.group(1) ?? '3.5';
+    // Age value calculation
+    final now = DateTime.now();
+    int ageYears = now.year - _pet.birthDate.year;
+    if (now.month < _pet.birthDate.month ||
+        (now.month == _pet.birthDate.month && now.day < _pet.birthDate.day)) {
+      ageYears--;
     }
+    if (ageYears < 0) ageYears = 0;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -46,7 +1395,7 @@ class PetDetailsScreen extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          "${pet.name}'s Details",
+          "${_pet.name}'s Details",
           style: const TextStyle(
             fontFamily: 'Montserrat',
             fontWeight: FontWeight.bold,
@@ -58,45 +1407,12 @@ class PetDetailsScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.share_outlined, color: AppTheme.primary),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Details link copied to clipboard!'),
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => ShareOwnershipScreen(pet: _pet),
                 ),
               );
             },
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0, left: 8),
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppTheme.primaryFixed, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: Image.network(
-                  pet.avatarUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: AppTheme.surfaceContainer,
-                    child: const Icon(
-                      Icons.pets,
-                      size: 18,
-                      color: AppTheme.secondary,
-                    ),
-                  ),
-                ),
-              ),
-            ),
           ),
         ],
       ),
@@ -105,6 +1421,7 @@ class PetDetailsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _buildPendingInviteBanner(),
             // Hero Image Area (Asymmetric Layout)
             SizedBox(
               height: 180,
@@ -132,18 +1449,9 @@ class PetDetailsScreen extends StatelessWidget {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(20),
-                          child: Image.network(
-                            pet.avatarUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                                  color: AppTheme.surfaceContainer,
-                                  child: const Icon(
-                                    Icons.pets,
-                                    size: 48,
-                                    color: AppTheme.secondary,
-                                  ),
-                                ),
+                          child: _buildPetImageWidget(
+                            _pet.avatarUrl,
+                            iconSize: 48,
                           ),
                         ),
                       ),
@@ -178,7 +1486,7 @@ class PetDetailsScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                ageNum,
+                                '$ageYears',
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontFamily: 'Montserrat',
@@ -187,9 +1495,9 @@ class PetDetailsScreen extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              const Text(
-                                'Years',
-                                style: TextStyle(
+                              Text(
+                                ageYears == 1 ? 'Year' : 'Years',
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: AppTheme.tertiary,
                                   fontWeight: FontWeight.w500,
@@ -199,7 +1507,7 @@ class PetDetailsScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        // Edit Button
+                        // Edit Header Button
                         Container(
                           height: 56,
                           width: double.infinity,
@@ -218,13 +1526,7 @@ class PetDetailsScreen extends StatelessWidget {
                             color: Colors.transparent,
                             child: InkWell(
                               borderRadius: BorderRadius.circular(24),
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Edit feature coming soon!'),
-                                  ),
-                                );
-                              },
+                              onTap: _showEditPetProfileDialog,
                               child: const Icon(
                                 Icons.edit,
                                 color: Colors.white,
@@ -241,34 +1543,14 @@ class PetDetailsScreen extends StatelessWidget {
             const SizedBox(height: 28),
 
             // Section 1: Basic Info
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Basic Information',
-                  style: TextStyle(
-                    fontFamily: 'Montserrat',
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: AppTheme.primary,
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.edit_note,
-                    size: 18,
-                    color: AppTheme.primary,
-                  ),
-                  label: const Text(
-                    'Edit',
-                    style: TextStyle(
-                      color: AppTheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+            const Text(
+              'Basic Information',
+              style: TextStyle(
+                fontFamily: 'Montserrat',
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: AppTheme.primary,
+              ),
             ),
             const SizedBox(height: 8),
 
@@ -288,19 +1570,19 @@ class PetDetailsScreen extends StatelessWidget {
                 ),
                 _buildBentoItem(
                   title: 'Breed',
-                  value: pet.breed,
+                  value: _pet.breed.isNotEmpty ? _pet.breed : 'Unknown',
                   icon: Icons.pets,
                 ),
                 _buildBentoItem(
                   title: 'Gender',
-                  value: pet.gender,
-                  icon: pet.gender.toLowerCase() == 'female'
+                  value: _pet.gender,
+                  icon: _pet.gender.toLowerCase() == 'female'
                       ? Icons.female
                       : Icons.male,
                 ),
                 _buildBentoItem(
                   title: 'Neutered',
-                  value: pet.neutered,
+                  value: _pet.neutered,
                   icon: Icons.verified,
                 ),
               ],
@@ -321,7 +1603,7 @@ class PetDetailsScreen extends StatelessWidget {
                   ),
                 ),
                 TextButton.icon(
-                  onPressed: () {},
+                  onPressed: _showEditHealthProfileDialog,
                   icon: const Icon(
                     Icons.medical_services_outlined,
                     size: 18,
@@ -365,23 +1647,56 @@ class PetDetailsScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceContainer,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      'None',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  _pet.medicalConditions.isEmpty ||
+                          (_pet.medicalConditions.length == 1 &&
+                              _pet.medicalConditions.first.toLowerCase() ==
+                                  'none')
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.surfaceContainer,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            'None',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                      : Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: _pet.medicalConditions
+                              .where((c) => c.toLowerCase() != 'none')
+                              .map(
+                                (c) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primary.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    c[0].toUpperCase() + c.substring(1),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
                   const SizedBox(height: 16),
                   const Text(
                     'Allergies',
@@ -392,7 +1707,7 @@ class PetDetailsScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  pet.allergies.isEmpty
+                  _pet.allergies.isEmpty
                       ? const Text(
                           'None',
                           style: TextStyle(
@@ -403,7 +1718,7 @@ class PetDetailsScreen extends StatelessWidget {
                       : Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: pet.allergies
+                          children: _pet.allergies
                               .map((a) => _buildAllergyChip(a))
                               .toList(),
                         ),
@@ -413,7 +1728,7 @@ class PetDetailsScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) => MedicalHistoryScreen(pet: pet),
+                          builder: (context) => MedicalHistoryScreen(pet: _pet),
                         ),
                       );
                     },
@@ -462,7 +1777,7 @@ class PetDetailsScreen extends StatelessWidget {
                   ),
                 ),
                 TextButton.icon(
-                  onPressed: () {},
+                  onPressed: _showEditLifestyleDialog,
                   icon: const Icon(
                     Icons.favorite_border,
                     size: 18,
@@ -498,14 +1813,16 @@ class PetDetailsScreen extends StatelessWidget {
                 children: [
                   _buildRoutineItem(
                     title: 'Activity Level',
-                    value: pet.activityLevel,
+                    value: _pet.activityLevel.isNotEmpty
+                        ? _pet.activityLevel
+                        : 'Moderate',
                     icon: Icons.directions_run,
                   ),
                   const Divider(height: 24),
                   _buildRoutineItem(
                     title: 'Diet',
-                    value: pet.dietEnabled
-                        ? "${pet.foodType}${pet.feedingNotes.isNotEmpty ? ' - ${pet.feedingNotes}' : ''}"
+                    value: _pet.dietEnabled
+                        ? "${_pet.foodType.isNotEmpty ? _pet.foodType : 'Mixed'}${_pet.feedingNotes.isNotEmpty ? ' - ${_pet.feedingNotes}' : ''}"
                         : 'Not Specified',
                     icon: Icons.restaurant,
                   ),
@@ -526,7 +1843,7 @@ class PetDetailsScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            pet.behaviorTags.isEmpty
+                            _pet.behaviorTags.isEmpty
                                 ? const Text(
                                     'None',
                                     style: TextStyle(
@@ -537,7 +1854,7 @@ class PetDetailsScreen extends StatelessWidget {
                                 : Wrap(
                                     spacing: 8,
                                     runSpacing: 8,
-                                    children: pet.behaviorTags
+                                    children: _pet.behaviorTags
                                         .map((t) => _buildBehaviorChip(t))
                                         .toList(),
                                   ),

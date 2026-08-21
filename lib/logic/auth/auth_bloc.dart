@@ -28,6 +28,15 @@ class RegisterSubmitted extends AuthEvent {
   List<Object?> get props => [email, password, name];
 }
 
+class GoogleLoginSubmitted extends AuthEvent {}
+
+class UserNameUpdated extends AuthEvent {
+  final String name;
+  const UserNameUpdated(this.name);
+  @override
+  List<Object?> get props => [name];
+}
+
 class LogoutRequested extends AuthEvent {}
 
 // States
@@ -65,7 +74,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc({required this.repositorySelector}) : super(AuthInitial()) {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<LoginSubmitted>(_onLoginSubmitted);
+    on<GoogleLoginSubmitted>(_onGoogleLoginSubmitted);
     on<RegisterSubmitted>(_onRegisterSubmitted);
+    on<UserNameUpdated>(_onUserNameUpdated);
     on<LogoutRequested>(_onLogoutRequested);
   }
 
@@ -103,6 +114,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
+  Future<void> _onGoogleLoginSubmitted(
+      GoogleLoginSubmitted event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
+    try {
+      final repo = await repositorySelector.getActiveRepository();
+      final success = await repo.loginWithGoogle();
+      if (success) {
+        final email = await repo.getCurrentUserEmail();
+        final name = await repo.getCurrentUserName();
+        emit(Authenticated(email: email ?? '', name: name ?? ''));
+      } else {
+        emit(Unauthenticated());
+      }
+    } catch (e) {
+      emit(AuthFailure(e.toString()));
+    }
+  }
+
   Future<void> _onRegisterSubmitted(RegisterSubmitted event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     try {
@@ -115,6 +144,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       } else {
         emit(const AuthFailure("Registration failed"));
       }
+    } catch (e) {
+      emit(AuthFailure(e.toString()));
+    }
+  }
+
+  Future<void> _onUserNameUpdated(
+      UserNameUpdated event, Emitter<AuthState> emit) async {
+    try {
+      final repo = await repositorySelector.getActiveRepository();
+      await repo.updateUserName(event.name);
+      final email = await repo.getCurrentUserEmail();
+      emit(Authenticated(email: email ?? '', name: event.name));
     } catch (e) {
       emit(AuthFailure(e.toString()));
     }

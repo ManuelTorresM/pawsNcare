@@ -118,130 +118,470 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
         // Section 1: Vaccinations
         Row(
           children: const [
-            Icon(Icons.medical_services_outlined, color: AppTheme.primary),
+            Icon(Icons.vaccines, color: AppTheme.primary),
             SizedBox(width: 8),
-            Text(
-              'Vaccinations',
-              style: TextStyle(
-                fontFamily: 'Montserrat',
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
+            Expanded(
+              child: Text(
+                'Vaccinations & Immunization Scheme',
+                style: TextStyle(
+                  fontFamily: 'Montserrat',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 17,
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        ...widget.vaccinations.asMap().entries.map((entry) {
-          final index = entry.key;
-          final vaccine = entry.value;
-          final date = vaccine['date'] as DateTime?;
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
+        const SizedBox(height: 4),
+        const Text(
+          'Track past administration dates, next booster due dates, and batch numbers.',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 13,
+            color: AppTheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        if (widget.vaccinations.isEmpty)
+          Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppTheme.surfaceContainerLow,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppTheme.surfaceContainer),
             ),
-            child: Row(
+            child: const Row(
               children: [
+                Icon(Icons.info_outline, color: AppTheme.secondary, size: 20),
+                SizedBox(width: 10),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        vaccine['name'],
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                  child: Text(
+                    'No vaccinations added yet. Choose a preset or custom vaccine below.',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      color: AppTheme.secondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        ...widget.vaccinations.asMap().entries.map((entry) {
+          final index = entry.key;
+          final vaccine = entry.value;
+          final date = vaccine['date'] as DateTime?;
+          final nextDoseDate = vaccine['nextDoseDate'] as DateTime?;
+          final lotNumber = (vaccine['lotNumber'] as String?) ?? '';
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppTheme.surfaceContainer),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top Header Row
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(height: 2),
+                      child: const Icon(
+                        Icons.vaccines_outlined,
+                        size: 20,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            vaccine['name'] ?? 'Vaccine',
+                            style: const TextStyle(
+                              fontFamily: 'Montserrat',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                          if ((vaccine['subtitle'] ?? '').toString().isNotEmpty)
+                            Text(
+                              vaccine['subtitle'],
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 12,
+                                color: AppTheme.secondary,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: AppTheme.secondary,
+                        size: 20,
+                      ),
+                      onPressed: () => widget.onVaccineRemoved(index),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Date Selection Row: Administered Date & Next Booster Date
+                Row(
+                  children: [
+                    // Administered Date Picker
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Administered Date',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.secondary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          InkWell(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: date ?? DateTime.now(),
+                                firstDate: DateTime(2015),
+                                lastDate: DateTime.now().add(
+                                  const Duration(days: 365),
+                                ),
+                              );
+                              if (picked != null) {
+                                widget.onVaccineDateChanged(index, picked);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.surfaceContainerLowest,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: AppTheme.surfaceContainer,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.calendar_today,
+                                    size: 14,
+                                    color: AppTheme.primary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      date == null
+                                          ? 'Select Date'
+                                          : '${date.day}/${date.month}/${date.year}',
+                                      style: const TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+
+                    // Next Booster Date Picker
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Next Booster Due',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.secondary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          InkWell(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate:
+                                    nextDoseDate ??
+                                    (date != null
+                                        ? DateTime(
+                                            date.year + 1,
+                                            date.month,
+                                            date.day,
+                                          )
+                                        : DateTime.now().add(
+                                            const Duration(days: 365),
+                                          )),
+                                firstDate: DateTime.now().subtract(
+                                  const Duration(days: 30),
+                                ),
+                                lastDate: DateTime.now().add(
+                                  const Duration(days: 365 * 3),
+                                ),
+                              );
+                              if (picked != null) {
+                                setState(() {
+                                  vaccine['nextDoseDate'] = picked;
+                                });
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.surfaceContainerLowest,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: AppTheme.surfaceContainer,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.notifications_active_outlined,
+                                    size: 14,
+                                    color: AppTheme.primary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      nextDoseDate == null
+                                          ? 'None'
+                                          : '${nextDoseDate.day}/${nextDoseDate.month}/${nextDoseDate.year}',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: nextDoseDate == null
+                                            ? AppTheme.secondary
+                                            : AppTheme.onSurface,
+                                      ),
+                                    ),
+                                  ),
+                                  if (nextDoseDate != null)
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          vaccine['nextDoseDate'] = null;
+                                        });
+                                      },
+                                      child: const Icon(
+                                        Icons.close,
+                                        size: 14,
+                                        color: AppTheme.secondary,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Lot Number Field
+                TextFormField(
+                  initialValue: lotNumber,
+                  onChanged: (val) {
+                    vaccine['lotNumber'] = val.trim();
+                  },
+                  style: const TextStyle(fontSize: 12),
+                  decoration: InputDecoration(
+                    hintText: 'Batch / Lot # (optional, e.g. VAC-99402)',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    filled: true,
+                    fillColor: AppTheme.surfaceContainerLowest,
+                    prefixIcon: const Icon(Icons.qr_code, size: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                        color: AppTheme.surfaceContainer,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                        color: AppTheme.surfaceContainer,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+
+        const SizedBox(height: 8),
+
+        // Action Row: Add Preset Vaccine or Custom Vaccine
+        Row(
+          children: [
+            // Add Preset Popup Menu Button
+            Expanded(
+              child: PopupMenuButton<Map<String, String>>(
+                onSelected: (preset) {
+                  widget.onAddCustomVaccine(preset['name']!);
+                  final added = widget.vaccinations.last;
+                  added['subtitle'] = preset['subtitle'];
+                  setState(() {});
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(
+                    value: {
+                      'name': 'Rabies',
+                      'subtitle': 'Core vaccine - Annual / 3-Yr Booster',
+                    },
+                    child: Text('🐶/🐱 Rabies Vaccine'),
+                  ),
+                  PopupMenuItem(
+                    value: {
+                      'name': 'DHPP (Distemper/Parvo)',
+                      'subtitle': 'Core combination protection',
+                    },
+                    child: Text('🐶 DHPP (Distemper/Parvo)'),
+                  ),
+                  PopupMenuItem(
+                    value: {
+                      'name': 'Bordetella',
+                      'subtitle': 'Kennel Cough protection',
+                    },
+                    child: Text('🐶 Bordetella'),
+                  ),
+                  PopupMenuItem(
+                    value: {
+                      'name': 'Leptospirosis',
+                      'subtitle': 'Bacterial infection protection',
+                    },
+                    child: Text('🐶 Leptospirosis'),
+                  ),
+                  PopupMenuItem(
+                    value: {
+                      'name': 'FVRCP',
+                      'subtitle': 'Feline core combination',
+                    },
+                    child: Text('🐱 FVRCP (Feline Combo)'),
+                  ),
+                  PopupMenuItem(
+                    value: {
+                      'name': 'FeLV',
+                      'subtitle': 'Feline Leukemia Virus protection',
+                    },
+                    child: Text('🐱 FeLV (Feline Leukemia)'),
+                  ),
+                  PopupMenuItem(
+                    value: {
+                      'name': 'Lyme Vaccine',
+                      'subtitle': 'Tick-borne disease protection',
+                    },
+                    child: Text('🐶 Lyme Disease Vaccine'),
+                  ),
+                ],
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: AppTheme.primary.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add, size: 18, color: AppTheme.primary),
+                      SizedBox(width: 6),
                       Text(
-                        vaccine['subtitle'],
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
+                        'Preset Vaccine',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Montserrat',
+                          fontWeight: FontWeight.bold,
                           fontSize: 12,
-                          color: AppTheme.secondary,
+                          color: AppTheme.primary,
                         ),
                       ),
                     ],
                   ),
                 ),
-                GestureDetector(
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: date ?? DateTime.now(),
-                      firstDate: DateTime(2015),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                    );
-                    if (picked != null) {
-                      widget.onVaccineDateChanged(index, picked);
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceContainerLowest,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.surfaceContainer),
-                    ),
-                    child: Text(
-                      date == null
-                          ? 'Select Date'
-                          : '${date.day}/${date.month}/${date.year}',
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    color: AppTheme.secondary,
-                    size: 20,
-                  ),
-                  onPressed: () => widget.onVaccineRemoved(index),
-                ),
-              ],
-            ),
-          );
-        }), //.toList(),
-        // Add Custom Vaccine button or input
-        if (!_isCustomVaccineVisible)
-          OutlinedButton.icon(
-            onPressed: () => setState(() => _isCustomVaccineVisible = true),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Add Custom Vaccination'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.primary,
-              side: const BorderSide(
-                color: AppTheme.primary,
-                style: BorderStyle.solid,
-              ),
-              minimumSize: const Size.fromHeight(48),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
               ),
             ),
-          )
-        else
+            const SizedBox(width: 8),
+
+            // Custom Vaccine Button
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => setState(() => _isCustomVaccineVisible = true),
+                icon: const Icon(Icons.edit_note, size: 16),
+                label: const Text(
+                  'Custom Vaccine',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.primary,
+                  side: const BorderSide(color: AppTheme.primary),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        if (_isCustomVaccineVisible) ...[
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: TextField(
                   controller: _customVaccineController,
                   decoration: const InputDecoration(
-                    hintText: 'Vaccine name...',
+                    hintText: 'Enter vaccine name...',
                     contentPadding: EdgeInsets.symmetric(horizontal: 16),
                   ),
                 ),
@@ -270,6 +610,7 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
               ),
             ],
           ),
+        ],
         const SizedBox(height: 32),
 
         // Section 2: Medical Conditions
@@ -287,24 +628,56 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
+        const SizedBox(height: 14),
+
+        // 2-Column Grid Layout
+        Column(
           children: [
-            ...[
-              'Diabetes',
-              'Arthritis',
-              'Heart Murmur',
-              'Epilepsy',
-              'None',
-            ].map((condition) {
-              final isSelected = widget.selectedConditions.contains(
-                condition.toLowerCase(),
-              );
-              return _buildConditionChip(condition, isSelected);
-            }), //.toList(),
-            ...widget.selectedConditions
+            // Row 1: [Diabetes] [Arthritis]
+            Row(
+              children: [
+                Expanded(child: _buildConditionButton('Diabetes')),
+                const SizedBox(width: 10),
+                Expanded(child: _buildConditionButton('Arthritis')),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Row 2: [Heart Murmur] [Epilepsy]
+            Row(
+              children: [
+                Expanded(child: _buildConditionButton('Heart Murmur')),
+                const SizedBox(width: 10),
+                Expanded(child: _buildConditionButton('Epilepsy')),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Row 3: [None] [Add Custom]
+            Row(
+              children: [
+                Expanded(child: _buildConditionButton('None')),
+                const SizedBox(width: 10),
+                Expanded(child: _buildAddCustomButton()),
+              ],
+            ),
+          ],
+        ),
+
+        // Custom Added Conditions Tags
+        if (widget.selectedConditions.any(
+          (c) =>
+              c != 'diabetes' &&
+              c != 'arthritis' &&
+              c != 'heart murmur' &&
+              c != 'epilepsy' &&
+              c != 'none',
+        )) ...[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: widget.selectedConditions
                 .where(
                   (c) =>
                       c != 'diabetes' &&
@@ -314,36 +687,31 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
                       c != 'none',
                 )
                 .map((condition) {
-                  return _buildConditionChip(condition, true, isCustom: true);
-                }), //.toList(),
-          ],
-        ),
-        const SizedBox(height: 12),
+                  return Chip(
+                    label: Text(condition),
+                    deleteIcon: const Icon(Icons.close, size: 16),
+                    onDeleted: () => widget.onConditionToggled(condition),
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                    labelStyle: const TextStyle(
+                      fontFamily: 'Montserrat',
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primary,
+                      fontSize: 12,
+                    ),
+                  );
+                })
+                .toList(),
+          ),
+        ],
 
-        // Custom Condition field
-        if (!_isCustomConditionVisible)
-          OutlinedButton.icon(
-            onPressed: () => setState(() => _isCustomConditionVisible = true),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Add Custom Condition'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.primary,
-              side: const BorderSide(
-                color: AppTheme.primary,
-                style: BorderStyle.solid,
-              ),
-              minimumSize: const Size.fromHeight(48),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-            ),
-          )
-        else
+        if (_isCustomConditionVisible) ...[
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: TextField(
                   controller: _customConditionController,
+                  autofocus: true,
                   decoration: const InputDecoration(
                     hintText: 'Enter condition name...',
                     contentPadding: EdgeInsets.symmetric(horizontal: 16),
@@ -374,6 +742,7 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
               ),
             ],
           ),
+        ],
         const SizedBox(height: 32),
 
         // Section 3: Allergies Search & Tags
@@ -488,23 +857,89 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
     );
   }
 
-  Widget _buildConditionChip(
-    String label,
-    bool isSelected, {
-    bool isCustom = false,
-  }) {
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (val) {
-        widget.onConditionToggled(label.toLowerCase());
-      },
-      selectedColor: AppTheme.primaryFixedDim,
-      checkmarkColor: AppTheme.primary,
-      labelStyle: TextStyle(
-        fontFamily: 'Inter',
-        color: isSelected ? AppTheme.primary : AppTheme.secondary,
-        fontWeight: FontWeight.bold,
+  Widget _buildConditionButton(String label) {
+    final lowerKey = label.toLowerCase();
+    final isSelected = widget.selectedConditions.contains(lowerKey);
+
+    return InkWell(
+      onTap: () => widget.onConditionToggled(lowerKey),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.primary.withValues(alpha: 0.12)
+              : AppTheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? AppTheme.primary
+                : AppTheme.surfaceContainerHighest,
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (isSelected) ...[
+              const Icon(Icons.check_circle, size: 16, color: AppTheme.primary),
+              const SizedBox(width: 6),
+            ],
+            Expanded(
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Montserrat',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: isSelected ? AppTheme.primary : AppTheme.onSurface,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddCustomButton() {
+    return InkWell(
+      onTap: () => setState(() => _isCustomConditionVisible = true),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppTheme.primary.withValues(alpha: 0.4),
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add, size: 16, color: AppTheme.primary),
+            SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'Add custom',
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Montserrat',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: AppTheme.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

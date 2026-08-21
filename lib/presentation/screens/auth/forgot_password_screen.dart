@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../data/repositories/repository_selector.dart';
 import '../../../logic/theme/theme_cubit.dart';
 import '../../theme/app_theme.dart';
 import 'verify_code_screen.dart';
@@ -14,11 +15,38 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _isSending = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleSendResetLink() async {
+    if (!_formKey.currentState!.validate() || _isSending) return;
+
+    setState(() {
+      _isSending = true;
+    });
+
+    final email = _emailController.text.trim();
+
+    try {
+      final repo = await RepositorySelector().getActiveRepository();
+      await repo.sendPasswordResetEmail(email);
+    } catch (_) {}
+
+    if (!mounted) return;
+    setState(() {
+      _isSending = false;
+    });
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => VerifyCodeScreen(email: email),
+      ),
+    );
   }
 
   @override
@@ -143,19 +171,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Send Code Button
+                // Send Reset Link Button
                 ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => VerifyCodeScreen(
-                            email: _emailController.text.trim(),
-                          ),
-                        ),
-                      );
-                    }
-                  },
+                  onPressed: _isSending ? null : _handleSendResetLink,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primary,
                     foregroundColor: Colors.white,
@@ -165,21 +183,30 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Send Verification Code',
-                        style: TextStyle(
-                          fontFamily: 'Montserrat',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                  child: _isSending
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation(Colors.white),
+                          ),
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Send Reset Email',
+                              style: TextStyle(
+                                fontFamily: 'Montserrat',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Icon(Icons.arrow_forward_rounded, size: 18),
+                          ],
                         ),
-                      ),
-                      SizedBox(width: 8),
-                      Icon(Icons.arrow_forward_rounded, size: 18),
-                    ],
-                  ),
                 ),
               ],
             ),
