@@ -19,6 +19,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _medsNotifications = true;
   bool _vaccinesNotifications = true;
   bool _feedingNotifications = false;
+  bool _quietHoursEnabled = true;
+  TimeOfDay _quietStart = const TimeOfDay(hour: 22, minute: 0); // 10:00 PM
+  TimeOfDay _quietEnd = const TimeOfDay(hour: 7, minute: 0); // 07:00 AM
+
+  String _formatTimeOfDay(TimeOfDay time) {
+    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final minute = time.minute.toString().padLeft(2, '0');
+    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
+  }
 
   @override
   void initState() {
@@ -58,6 +68,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeCubit>().state;
+    final cardBg = isDark ? AppTheme.darkSurface : AppTheme.surfaceContainerLow;
+    final textSecondary = isDark
+        ? AppTheme.darkOnSurfaceVariant
+        : AppTheme.secondary;
+    final dividerColor = isDark
+        ? const Color(0xFF383634)
+        : AppTheme.surfaceContainer;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
@@ -65,7 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // User Profile Section
-          _buildSectionHeader('User Profile'),
+          _buildSectionHeader('User Profile', textSecondary),
           const SizedBox(height: 8),
           BlocBuilder<AuthBloc, AuthState>(
             builder: (context, state) {
@@ -78,7 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               return Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceContainerLow,
+                  color: cardBg,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -125,15 +142,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           const SizedBox(height: 2),
                           Text(
                             email,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: AppTheme.secondary,
+                              color: textSecondary,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.chevron_right, color: AppTheme.secondary),
+                    Icon(Icons.chevron_right, color: textSecondary),
                   ],
                 ),
               );
@@ -142,11 +159,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
 
           // Database Storage Section
-          _buildSectionHeader('Database Storage'),
+          _buildSectionHeader('Database Storage', textSecondary),
           const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
-              color: AppTheme.surfaceContainerLow,
+              color: cardBg,
               borderRadius: BorderRadius.circular(16),
             ),
             child: RadioGroup<String>(
@@ -156,19 +173,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   RadioListTile<String>(
                     title: const Text('Mock Database (Local Persistence)'),
-                    subtitle: const Text(
+                    subtitle: Text(
                       'Runs instantly without credentials.',
-                      style: TextStyle(fontSize: 12),
+                      style: TextStyle(fontSize: 12, color: textSecondary),
                     ),
                     value: 'mock',
                     activeColor: AppTheme.primary,
                   ),
-                  const Divider(height: 1, color: AppTheme.surfaceContainer),
+                  Divider(height: 1, color: dividerColor),
                   RadioListTile<String>(
                     title: const Text('Firebase Firestore Database'),
-                    subtitle: const Text(
+                    subtitle: Text(
                       'Connects to real cloud services.',
-                      style: TextStyle(fontSize: 12),
+                      style: TextStyle(fontSize: 12, color: textSecondary),
                     ),
                     value: 'firebase',
                     activeColor: AppTheme.primary,
@@ -180,62 +197,224 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
 
           // Notifications Toggles Section
-          _buildSectionHeader('Notifications'),
+          _buildSectionHeader('Notifications', textSecondary),
           const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
-              color: AppTheme.surfaceContainerLow,
+              color: cardBg,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
               children: [
                 _buildNotificationToggle(
                   icon: Icons.medical_services,
-                  iconBg: AppTheme.tertiaryFixed,
-                  iconColor: AppTheme.onTertiaryFixedVariant,
+                  iconBg: isDark
+                      ? const Color(0xFF5C2B1D)
+                      : AppTheme.tertiaryFixed,
+                  iconColor: isDark
+                      ? const Color(0xFFFFB4A3)
+                      : AppTheme.onTertiaryFixedVariant,
                   title: 'Medications',
                   subtitle: 'Daily reminders for dosages',
+                  textColor: textSecondary,
                   value: _medsNotifications,
                   onChanged: (val) {
                     setState(() => _medsNotifications = val);
                   },
                 ),
-                const Divider(height: 1, color: AppTheme.surfaceContainer),
+                Divider(height: 1, color: dividerColor),
                 _buildNotificationToggle(
                   icon: Icons.vaccines,
-                  iconBg: AppTheme.primaryFixed,
-                  iconColor: AppTheme.onPrimaryFixed,
+                  iconBg: isDark
+                      ? const Color(0xFF2E4E30)
+                      : AppTheme.primaryFixed,
+                  iconColor: isDark
+                      ? AppTheme.primaryFixedDim
+                      : AppTheme.onPrimaryFixed,
                   title: 'Vaccinations',
                   subtitle: 'Upcoming appointment alerts',
+                  textColor: textSecondary,
                   value: _vaccinesNotifications,
                   onChanged: (val) {
                     setState(() => _vaccinesNotifications = val);
                   },
                 ),
-                const Divider(height: 1, color: AppTheme.surfaceContainer),
+                Divider(height: 1, color: dividerColor),
                 _buildNotificationToggle(
                   icon: Icons.restaurant,
-                  iconBg: AppTheme.secondaryContainer,
-                  iconColor: AppTheme.secondary,
+                  iconBg: isDark
+                      ? const Color(0xFF383634)
+                      : AppTheme.secondaryContainer,
+                  iconColor: isDark
+                      ? AppTheme.primaryFixedDim
+                      : AppTheme.secondary,
                   title: 'Feeding Times',
                   subtitle: 'Scheduled meal notifications',
+                  textColor: textSecondary,
                   value: _feedingNotifications,
                   onChanged: (val) {
                     setState(() => _feedingNotifications = val);
                   },
                 ),
+                Divider(height: 1, color: dividerColor),
+                _buildNotificationToggle(
+                  icon: Icons.bedtime,
+                  iconBg: isDark
+                      ? const Color(0xFF383634)
+                      : AppTheme.surfaceContainerHigh,
+                  iconColor: isDark
+                      ? AppTheme.primaryFixedDim
+                      : AppTheme.primary,
+                  title: 'Quiet Hours (Silent Period)',
+                  subtitle: 'Silence all reminders during specified hours',
+                  textColor: textSecondary,
+                  value: _quietHoursEnabled,
+                  onChanged: (val) {
+                    setState(() => _quietHoursEnabled = val);
+                  },
+                ),
+                if (_quietHoursEnabled) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 12.0,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Start Time',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  OutlinedButton.icon(
+                                    onPressed: () async {
+                                      final picked = await showTimePicker(
+                                        context: context,
+                                        initialTime: _quietStart,
+                                      );
+                                      if (picked != null) {
+                                        setState(() => _quietStart = picked);
+                                      }
+                                    },
+                                    icon: const Icon(
+                                      Icons.access_time,
+                                      size: 16,
+                                    ),
+                                    label: Text(_formatTimeOfDay(_quietStart)),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: isDark
+                                          ? AppTheme.primaryFixedDim
+                                          : AppTheme.primary,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'End Time',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  OutlinedButton.icon(
+                                    onPressed: () async {
+                                      final picked = await showTimePicker(
+                                        context: context,
+                                        initialTime: _quietEnd,
+                                      );
+                                      if (picked != null) {
+                                        setState(() => _quietEnd = picked);
+                                      }
+                                    },
+                                    icon: const Icon(
+                                      Icons.access_time_filled,
+                                      size: 16,
+                                    ),
+                                    label: Text(_formatTimeOfDay(_quietEnd)),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: isDark
+                                          ? AppTheme.primaryFixedDim
+                                          : AppTheme.primary,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryContainer.withAlpha(50),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                size: 16,
+                                color: isDark
+                                    ? AppTheme.primaryFixedDim
+                                    : AppTheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Reminders will be muted from ${_formatTimeOfDay(_quietStart)} to ${_formatTimeOfDay(_quietEnd)}.',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark
+                                        ? AppTheme.primaryFixedDim
+                                        : AppTheme.primary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
           const SizedBox(height: 24),
 
           // Appearance Section
-          _buildSectionHeader('Appearance'),
+          _buildSectionHeader('Appearance', textSecondary),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceContainerLow,
+              color: cardBg,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -244,12 +423,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceContainerHigh,
+                    color: isDark
+                        ? const Color(0xFF383634)
+                        : AppTheme.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     isDark ? Icons.dark_mode : Icons.light_mode,
-                    color: AppTheme.onSurfaceVariant,
+                    color: isDark
+                        ? AppTheme.primaryFixedDim
+                        : AppTheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -269,10 +452,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         isDark
                             ? 'Currently in Dark Mode'
                             : 'Currently in Light Mode',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.secondary,
-                        ),
+                        style: TextStyle(fontSize: 12, color: textSecondary),
                       ),
                     ],
                   ),
@@ -304,11 +484,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
 
           // App Info Section
-          _buildSectionHeader('App Info'),
+          _buildSectionHeader('App Info', textSecondary),
           const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
-              color: AppTheme.surfaceContainerLow,
+              color: cardBg,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
@@ -316,10 +496,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildInfoTile(
                   icon: Icons.help_outline,
                   title: 'Help Center',
-                  trailing: const Icon(
+                  trailing: Icon(
                     Icons.open_in_new,
                     size: 18,
-                    color: AppTheme.secondary,
+                    color: textSecondary,
                   ),
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -327,14 +507,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     );
                   },
                 ),
-                const Divider(height: 1, color: AppTheme.surfaceContainer),
+                Divider(height: 1, color: dividerColor),
                 _buildInfoTile(
                   icon: Icons.verified_user_outlined,
                   title: 'Privacy Policy',
-                  trailing: const Icon(
-                    Icons.chevron_right,
-                    color: AppTheme.secondary,
-                  ),
+                  trailing: Icon(Icons.chevron_right, color: textSecondary),
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -380,16 +557,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, Color textColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'Inter',
           fontWeight: FontWeight.bold,
           fontSize: 11,
-          color: AppTheme.secondary,
+          color: textColor,
           letterSpacing: 1.0,
         ),
       ),
@@ -402,6 +579,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required Color iconColor,
     required String title,
     required String subtitle,
+    required Color textColor,
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
@@ -415,7 +593,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(fontSize: 12, color: AppTheme.secondary),
+        style: TextStyle(fontSize: 12, color: textColor),
       ),
       secondary: Container(
         width: 40,

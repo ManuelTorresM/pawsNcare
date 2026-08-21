@@ -14,6 +14,10 @@ class Medication extends Equatable {
   final DateTime? startDate;
   final DateTime? endDate;
   final bool remindersEnabled;
+  final int dosesAdministeredToday;
+
+  final bool hasStartTime;
+  final bool isSavedToHistory;
 
   const Medication({
     required this.id,
@@ -29,7 +33,35 @@ class Medication extends Equatable {
     this.startDate,
     this.endDate,
     this.remindersEnabled = false,
+    this.dosesAdministeredToday = 0,
+    this.hasStartTime = true,
+    this.isSavedToHistory = false,
   });
+
+  int get dosesToday {
+    if (administeredDate == null) return 0;
+    final now = DateTime.now();
+    final isToday = administeredDate!.year == now.year &&
+        administeredDate!.month == now.month &&
+        administeredDate!.day == now.day;
+    return isToday ? dosesAdministeredToday : 0;
+  }
+
+  int get maxDosesToday {
+    if (type == 'vaccine') return 1;
+    switch (frequency) {
+      case 'Every 8h':
+        return 3;
+      case 'Every 12h':
+        return 2;
+      case 'Every 24h':
+      case 'Weekly':
+      case 'Monthly':
+      case 'One-time':
+      default:
+        return 1;
+    }
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -46,6 +78,9 @@ class Medication extends Equatable {
       'startDate': startDate?.toIso8601String(),
       'endDate': endDate?.toIso8601String(),
       'remindersEnabled': remindersEnabled,
+      'dosesAdministeredToday': dosesAdministeredToday,
+      'hasStartTime': hasStartTime,
+      'isSavedToHistory': isSavedToHistory,
     };
   }
 
@@ -70,6 +105,9 @@ class Medication extends Equatable {
           ? DateTime.parse(map['endDate'])
           : null,
       remindersEnabled: map['remindersEnabled'] ?? false,
+      dosesAdministeredToday: map['dosesAdministeredToday'] ?? 0,
+      hasStartTime: map['hasStartTime'] ?? true,
+      isSavedToHistory: map['isSavedToHistory'] ?? false,
     );
   }
 
@@ -87,6 +125,9 @@ class Medication extends Equatable {
     DateTime? startDate,
     DateTime? endDate,
     bool? remindersEnabled,
+    int? dosesAdministeredToday,
+    bool? hasStartTime,
+    bool? isSavedToHistory,
   }) {
     return Medication(
       id: id ?? this.id,
@@ -102,6 +143,9 @@ class Medication extends Equatable {
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       remindersEnabled: remindersEnabled ?? this.remindersEnabled,
+      dosesAdministeredToday: dosesAdministeredToday ?? this.dosesAdministeredToday,
+      hasStartTime: hasStartTime ?? this.hasStartTime,
+      isSavedToHistory: isSavedToHistory ?? this.isSavedToHistory,
     );
   }
 
@@ -120,5 +164,8 @@ class Medication extends Equatable {
         startDate,
         endDate,
         remindersEnabled,
+        dosesAdministeredToday,
+        hasStartTime,
+        isSavedToHistory,
       ];
 }

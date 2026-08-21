@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../data/models/pet.dart';
 import '../../theme/app_theme.dart';
+import 'medical_history_screen.dart';
 
 class PetDetailsScreen extends StatelessWidget {
   final Pet pet;
@@ -410,9 +411,9 @@ class PetDetailsScreen extends StatelessWidget {
                   // Vaccination button
                   ElevatedButton(
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Vaccination history is up-to-date.'),
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => MedicalHistoryScreen(pet: pet),
                         ),
                       );
                     },

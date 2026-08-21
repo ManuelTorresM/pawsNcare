@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../../data/models/pet.dart';
 import '../../../data/models/weight_log.dart';
@@ -8,6 +9,7 @@ import '../../theme/app_theme.dart';
 import 'create_pet_step1.dart';
 import 'medical_history_step2.dart';
 import 'lifestyle_routine_step3.dart';
+import 'create_pet_finish_screen.dart';
 
 class AddPetWizard extends StatefulWidget {
   const AddPetWizard({super.key});
@@ -26,13 +28,18 @@ class _AddPetWizardState extends State<AddPetWizard> {
   String? _selectedGender;
   String? _selectedNeutered;
   DateTime? _birthDate;
-  String _selectedAvatar = 'https://lh3.googleusercontent.com/aida-public/AB6AXuAH4q1ZxA4-kVWnFA2l_v138H6omdsv0f2VnRf02r4qUhGIC31Q7V-6LJi9vOTHwCzivv5LXVUp0uqEgLAwY5VAR_upvrgz6VicZcLd64Mp0aXTBK2roz-VVty2zgv4wRykLUcXIDql4wM8lzVEza8ZPVfiOO5cKGHFaHOFWzO1mcbgd5aBQ1NIhs0njlmtX_bce3QhiwKizYSRoyX23nCmNgQSIzzPBJa94FxPhSZvNg3ZDpX2SX7AY9us3VFc3LTeFryokjTdEL8';
+  String _selectedAvatar =
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuAH4q1ZxA4-kVWnFA2l_v138H6omdsv0f2VnRf02r4qUhGIC31Q7V-6LJi9vOTHwCzivv5LXVUp0uqEgLAwY5VAR_upvrgz6VicZcLd64Mp0aXTBK2roz-VVty2zgv4wRykLUcXIDql4wM8lzVEza8ZPVfiOO5cKGHFaHOFWzO1mcbgd5aBQ1NIhs0njlmtX_bce3QhiwKizYSRoyX23nCmNgQSIzzPBJa94FxPhSZvNg3ZDpX2SX7AY9us3VFc3LTeFryokjTdEL8';
 
   // Step 2 State
   final List<Map<String, dynamic>> _vaccinations = [
     {'name': 'Rabies', 'subtitle': 'Last administration date', 'date': null},
     {'name': 'Distemper', 'subtitle': 'DHPP combination vaccine', 'date': null},
-    {'name': 'Parvovirus', 'subtitle': 'Highly contagious protection', 'date': null},
+    {
+      'name': 'Parvovirus',
+      'subtitle': 'Highly contagious protection',
+      'date': null,
+    },
   ];
   final List<String> _selectedConditions = ['none'];
   final List<String> _selectedAllergies = [];
@@ -42,7 +49,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
   bool _isDietEnabled = true;
   String _selectedFoodType = 'Dry Kibble';
   final _feedingNotesController = TextEditingController();
-  final _weightController = TextEditingController(text: '10.0');
+  final _weightController = TextEditingController(text: '0.0');
   final List<String> _selectedBehaviorTags = [];
 
   @override
@@ -59,18 +66,24 @@ class _AddPetWizardState extends State<AddPetWizard> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 8),
-              const Icon(Icons.warning_amber_rounded, color: AppTheme.tertiary, size: 48),
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: AppTheme.tertiary,
+                size: 48,
+              ),
               const SizedBox(height: 16),
               Text(
                 'Discard progress?',
-                style: Theme.of(dialogContext).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  dialogContext,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               const Text(
@@ -85,7 +98,9 @@ class _AddPetWizardState extends State<AddPetWizard> {
                   backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.white,
                   minimumSize: const Size.fromHeight(48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
                 ),
                 child: const Text('Keep Editing'),
               ),
@@ -129,27 +144,64 @@ class _AddPetWizardState extends State<AddPetWizard> {
                 ),
                 const SizedBox(height: 20),
                 ListTile(
-                  leading: const Icon(Icons.photo_library, color: AppTheme.primary),
+                  leading: const Icon(
+                    Icons.photo_library,
+                    color: AppTheme.primary,
+                  ),
                   title: const Text('Choose from Gallery'),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Gallery selection is mocked for testing.')),
-                    );
+                  onTap: () async {
+                    final navigator = Navigator.of(context);
+                    final scaffoldMessenger = ScaffoldMessenger.of(context);
+                    navigator.pop();
+                    try {
+                      final picker = ImagePicker();
+                      final file = await picker.pickImage(
+                        source: ImageSource.gallery,
+                      );
+                      if (file != null) {
+                        setState(() {
+                          _selectedAvatar = file.path;
+                        });
+                      }
+                    } catch (e) {
+                      scaffoldMessenger.showSnackBar(
+                        SnackBar(content: Text('Error selecting image: $e')),
+                      );
+                    }
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.photo_camera, color: AppTheme.primary),
-                  title: const Text('Take a Photo'),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Camera capture is mocked for testing.')),
-                    );
+                  leading: const Icon(
+                    Icons.photo_camera,
+                    color: AppTheme.primary,
+                  ),
+                  title: const Text('Open Camera'),
+                  onTap: () async {
+                    final navigator = Navigator.of(context);
+                    final scaffoldMessenger = ScaffoldMessenger.of(context);
+                    navigator.pop();
+                    try {
+                      final picker = ImagePicker();
+                      final file = await picker.pickImage(
+                        source: ImageSource.camera,
+                      );
+                      if (file != null) {
+                        setState(() {
+                          _selectedAvatar = file.path;
+                        });
+                      }
+                    } catch (e) {
+                      scaffoldMessenger.showSnackBar(
+                        SnackBar(content: Text('Error capturing photo: $e')),
+                      );
+                    }
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.account_circle, color: AppTheme.primary),
+                  leading: const Icon(
+                    Icons.account_circle,
+                    color: AppTheme.primary,
+                  ),
                   title: const Text('Choose Avatar'),
                   onTap: () {
                     Navigator.of(context).pop();
@@ -205,19 +257,24 @@ class _AddPetWizardState extends State<AddPetWizard> {
 
   void _submitWizard() {
     final petId = DateTime.now().millisecondsSinceEpoch.toString();
-    
+
     // Parse and validate weight
     final weightText = _weightController.text.trim();
     final weightVal = double.tryParse(weightText);
-    if (weightVal == null || weightVal < 0.1 || weightVal > 150.0) {
+    if (weightVal == null || weightVal < 0.0 || weightVal > 150.0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid weight between 0.1 and 150.0 kg.')),
+        const SnackBar(
+          content: Text(
+            'Please enter a valid weight between 0.0 and 150.0 kg.',
+          ),
+        ),
       );
       return;
     }
 
     // Calculate age string
-    final birth = _birthDate ?? DateTime.now().subtract(const Duration(days: 365));
+    final birth =
+        _birthDate ?? DateTime.now().subtract(const Duration(days: 365));
     final difference = DateTime.now().difference(birth).inDays;
     final years = (difference / 365).floor();
     final months = ((difference % 365) / 30).floor();
@@ -232,34 +289,42 @@ class _AddPetWizardState extends State<AddPetWizard> {
     for (var vac in _vaccinations) {
       final date = vac['date'] as DateTime?;
       if (date != null) {
-        meds.add(Medication(
-          id: '${vac['name'].toString().toLowerCase()}_$petId',
-          name: vac['name'],
-          nextDoseDate: date.add(const Duration(days: 365)),
-          administeredDate: date,
-          isCompleted: true,
-          type: 'vaccine',
-        ));
+        meds.add(
+          Medication(
+            id: '${vac['name'].toString().toLowerCase()}_$petId',
+            name: vac['name'],
+            nextDoseDate: date.add(const Duration(days: 365)),
+            administeredDate: date,
+            isCompleted: true,
+            type: 'vaccine',
+          ),
+        );
       }
     }
 
     final newPet = Pet(
       id: petId,
-      name: _nameController.text.isNotEmpty ? _nameController.text : 'New Companion',
-      breed: _breedController.text.isNotEmpty ? _breedController.text : 'Mixed Breed',
+      name: _nameController.text.isNotEmpty
+          ? _nameController.text
+          : 'New Companion',
+      breed: _breedController.text.isNotEmpty
+          ? _breedController.text
+          : 'Mixed Breed',
       ageString: ageStr,
       birthDate: birth,
       avatarUrl: _selectedAvatar,
       status: years == 0 ? 'Puppy' : 'Healthy',
       weight: weightVal,
-      weightHistory: [
-        WeightLog(
-          id: 'w_$petId',
-          weight: weightVal,
-          date: DateTime.now(),
-          note: 'Initial Weight',
-        ),
-      ],
+      weightHistory: weightVal == 0.0
+          ? const []
+          : [
+              WeightLog(
+                id: 'w_$petId',
+                weight: weightVal,
+                date: DateTime.now(),
+                note: 'Initial Weight',
+              ),
+            ],
       medications: meds,
       photos: const [],
       species: _selectedSpecies ?? 'Dog',
@@ -274,54 +339,14 @@ class _AddPetWizardState extends State<AddPetWizard> {
     );
 
     context.read<PetBloc>().add(AddPet(newPet));
-    _showSuccessDialog();
-  }
-
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 16),
-              const CircleAvatar(
-                radius: 36,
-                backgroundColor: AppTheme.primaryFixed,
-                child: Icon(Icons.check_circle_outline, color: AppTheme.primary, size: 40),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Success!',
-                style: Theme.of(dialogContext).textTheme.headlineMedium?.copyWith(
-                      color: AppTheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text('${_nameController.text.isNotEmpty ? _nameController.text : 'New Companion'}\'s profile has been created successfully.'),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(dialogContext).pop(); // dismiss dialog
-                  Navigator.of(context).pop(); // dismiss wizard and return to home_tab
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text('Back to Dashboard', style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          ),
-        );
-      },
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => CreatePetFinishScreen(pet: newPet),
+      ),
     );
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -367,8 +392,8 @@ class _AddPetWizardState extends State<AddPetWizard> {
                         _currentStep == 0
                             ? 'Basic Info'
                             : _currentStep == 1
-                                ? 'Health History'
-                                : 'Lifestyle & Diet',
+                            ? 'Health History'
+                            : 'Lifestyle & Diet',
                         style: const TextStyle(
                           fontFamily: 'Inter',
                           color: AppTheme.secondary,
@@ -396,65 +421,116 @@ class _AddPetWizardState extends State<AddPetWizard> {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.surfaceContainer.withValues(alpha: 0.3)),
-                  ),
-                  padding: const EdgeInsets.all(20),
-                  child: _buildStepContent(),
-                ),
-              ),
-            ),
-
-            // Stepper Navigation Actions
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  if (_currentStep > 0)
-                    OutlinedButton(
-                      onPressed: () => setState(() => _currentStep--),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Column(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppTheme.surfaceContainer.withValues(alpha: 0.3),
+                        ),
                       ),
-                      child: const Text('Back'),
-                    )
-                  else
-                    const SizedBox.shrink(),
-                  
-                  ElevatedButton(
-                    onPressed: () {
-                      if (_currentStep < 2) {
-                        if (_currentStep == 0 && _nameController.text.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Please fill out the pet name.')),
-                          );
-                          return;
-                        }
-                        setState(() => _currentStep++);
-                      } else {
-                        _submitWizard();
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.all(20),
+                      child: _buildStepContent(),
                     ),
-                    child: Row(
+                    const SizedBox(height: 24),
+                    // Stepper Navigation Actions
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(_currentStep == 2 ? 'Complete Profile' : 'Continue'),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.arrow_forward, size: 16),
+                        if (_currentStep > 0)
+                          OutlinedButton(
+                            onPressed: () => setState(() => _currentStep--),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text('Back'),
+                          )
+                        else
+                          const SizedBox.shrink(),
+
+                        ElevatedButton(
+                          onPressed: () {
+                            if (_currentStep < 2) {
+                              if (_currentStep == 0) {
+                                if (_nameController.text.trim().isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("Please enter the pet's name."),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                if (_selectedSpecies == null || _selectedSpecies!.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("Please select the pet's species."),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                if (_selectedGender == null || _selectedGender!.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("Please select the pet's gender."),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                if (_selectedNeutered == null || _selectedNeutered!.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("Please select whether the pet is neutered or spayed."),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                if (_birthDate == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("Please select the pet's date of birth."),
+                                    ),
+                                  );
+                                  return;
+                                }
+                              }
+                              setState(() => _currentStep++);
+                            } else {
+                              _submitWizard();
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 16,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Text(
+                                _currentStep == 2 ? 'Complete Profile' : 'Continue',
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.arrow_forward, size: 16),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
@@ -470,11 +546,13 @@ class _AddPetWizardState extends State<AddPetWizard> {
           nameController: _nameController,
           breedController: _breedController,
           selectedSpecies: _selectedSpecies,
-          onSpeciesChanged: (species) => setState(() => _selectedSpecies = species),
+          onSpeciesChanged: (species) =>
+              setState(() => _selectedSpecies = species),
           selectedGender: _selectedGender,
           onGenderChanged: (gender) => setState(() => _selectedGender = gender),
           selectedNeutered: _selectedNeutered,
-          onNeuteredChanged: (neutered) => setState(() => _selectedNeutered = neutered),
+          onNeuteredChanged: (neutered) =>
+              setState(() => _selectedNeutered = neutered),
           birthDate: _birthDate,
           onBirthDateChanged: (date) => setState(() => _birthDate = date),
           selectedAvatar: _selectedAvatar,
@@ -547,7 +625,8 @@ class _AddPetWizardState extends State<AddPetWizard> {
       case 2:
         return LifestyleRoutineStep3(
           selectedActivityLevel: _selectedActivityLevel,
-          onActivityLevelChanged: (level) => setState(() => _selectedActivityLevel = level),
+          onActivityLevelChanged: (level) =>
+              setState(() => _selectedActivityLevel = level),
           isDietEnabled: _isDietEnabled,
           onDietEnabledChanged: (val) => setState(() => _isDietEnabled = val),
           selectedFoodType: _selectedFoodType,

@@ -392,53 +392,57 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
           ],
         ),
         const SizedBox(height: 16),
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            TextField(
-              controller: _allergySearchController,
-              decoration: const InputDecoration(
-                hintText: 'Search allergies (e.g. Beef, Pollen)...',
-                prefixIcon: Icon(Icons.search),
-              ),
-              onChanged: _onSearchChanged,
-            ),
-            if (_isAllergyDropdownVisible && _filteredAllergies.isNotEmpty)
-              Positioned(
-                top: 56,
-                left: 0,
-                right: 0,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: _filteredAllergies.map((allergy) {
-                      return ListTile(
-                        title: Text(allergy),
-                        onTap: () {
-                          widget.onAllergyAdded(allergy);
-                          _allergySearchController.clear();
-                          setState(() {
-                            _isAllergyDropdownVisible = false;
-                            _filteredAllergies = [];
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-          ],
+        TextField(
+          controller: _allergySearchController,
+          decoration: const InputDecoration(
+            hintText: 'Search or type custom allergy...',
+            prefixIcon: Icon(Icons.search),
+          ),
+          onSubmitted: (value) {
+            final query = value.trim();
+            if (query.isNotEmpty) {
+              widget.onAllergyAdded(query);
+              _allergySearchController.clear();
+              setState(() {
+                _isAllergyDropdownVisible = false;
+                _filteredAllergies = [];
+              });
+            }
+          },
+          onChanged: _onSearchChanged,
         ),
+        if (_isAllergyDropdownVisible && _filteredAllergies.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.surfaceContainer),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              children: _filteredAllergies.map((allergy) {
+                return ListTile(
+                  title: Text(allergy),
+                  onTap: () {
+                    widget.onAllergyAdded(allergy);
+                    _allergySearchController.clear();
+                    setState(() {
+                      _isAllergyDropdownVisible = false;
+                      _filteredAllergies = [];
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         // Selected Allergies tags
         Wrap(

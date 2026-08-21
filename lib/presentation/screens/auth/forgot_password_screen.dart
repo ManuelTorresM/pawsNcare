@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../logic/theme/theme_cubit.dart';
 import '../../theme/app_theme.dart';
-import 'verification_screen.dart';
+import 'verify_code_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -21,64 +23,119 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final isDark = context.watch<ThemeCubit>().state;
+    final textPrimary = isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
+    final textSecondary = isDark
+        ? AppTheme.darkOnSurfaceVariant
+        : AppTheme.secondary;
+    final cardBg = isDark
+        ? AppTheme.darkSurface
+        : AppTheme.surfaceContainerLowest;
+    final primaryColor = isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
 
     return Scaffold(
+      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
+          icon: Icon(Icons.arrow_back, color: primaryColor),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(
-                  Icons.lock_reset,
-                  size: 64,
-                  color: AppTheme.tertiary,
+                const SizedBox(height: 20),
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.lock_reset_rounded,
+                      size: 56,
+                      color: primaryColor,
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
                 Text(
                   'Forgot Password',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    color: AppTheme.primary,
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontSize: 26,
                     fontWeight: FontWeight.bold,
+                    color: textPrimary,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
-                  'Enter your email address and we\'ll send you a 4-digit code to verify your identity.',
+                  'Enter your registered email address below to receive a 4-digit verification code.',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.onSurfaceVariant,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    color: textSecondary,
+                    height: 1.4,
                   ),
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 40),
 
-                // Email Field
-                Text('Email Address', style: theme.textTheme.labelLarge),
+                // Email Input
+                Text(
+                  'Email Address',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: textPrimary,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: textPrimary),
+                  decoration: InputDecoration(
                     hintText: 'name@example.com',
-                    prefixIcon: Icon(Icons.alternate_email, color: AppTheme.secondary),
+                    hintStyle: TextStyle(color: textSecondary),
+                    prefixIcon: Icon(Icons.mail_outline, color: primaryColor),
+                    filled: true,
+                    fillColor: cardBg,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF383634)
+                            : AppTheme.outlineVariant,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF383634)
+                            : AppTheme.outlineVariant,
+                      ),
+                    ),
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
+                    if (value == null || value.trim().isEmpty) {
                       return 'Please enter your email';
                     }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    if (!RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value.trim())) {
                       return 'Please enter a valid email address';
                     }
                     return null;
@@ -86,14 +143,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Send Button
+                // Send Code Button
                 ElevatedButton(
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
-                      // Navigate to verification screen (simulate code delivery)
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => VerificationScreen(email: _emailController.text),
+                          builder: (_) => VerifyCodeScreen(
+                            email: _emailController.text.trim(),
+                          ),
                         ),
                       );
                     }
@@ -103,16 +161,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     elevation: 0,
                   ),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('Send Verification Code', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        'Send Verification Code',
+                        style: TextStyle(
+                          fontFamily: 'Montserrat',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
                       SizedBox(width: 8),
-                      Icon(Icons.send, size: 16),
+                      Icon(Icons.arrow_forward_rounded, size: 18),
                     ],
                   ),
                 ),

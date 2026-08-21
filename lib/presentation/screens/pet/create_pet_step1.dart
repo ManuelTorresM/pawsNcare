@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import '../../theme/app_theme.dart';
 
 class CreatePetStep1 extends StatelessWidget {
@@ -48,7 +50,11 @@ class CreatePetStep1 extends StatelessWidget {
                     CircleAvatar(
                       radius: 64,
                       backgroundColor: AppTheme.secondaryContainer,
-                      backgroundImage: NetworkImage(selectedAvatar),
+                      backgroundImage:
+                          selectedAvatar.startsWith('http') ||
+                              selectedAvatar.startsWith('https')
+                          ? NetworkImage(selectedAvatar) as ImageProvider
+                          : FileImage(File(selectedAvatar)) as ImageProvider,
                     ),
                     const CircleAvatar(
                       radius: 18,
@@ -89,8 +95,13 @@ class CreatePetStep1 extends StatelessWidget {
           style: const TextStyle(fontFamily: 'Inter'),
           decoration: InputDecoration(
             hintText: 'e.g. Luna',
-            hintStyle: TextStyle(color: AppTheme.secondary.withValues(alpha: 0.5)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            hintStyle: TextStyle(
+              color: AppTheme.secondary.withValues(alpha: 0.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
             filled: true,
             fillColor: AppTheme.surfaceContainerLow,
             border: OutlineInputBorder(
@@ -112,18 +123,63 @@ class CreatePetStep1 extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          alignment: WrapAlignment.center,
+        Column(
           children: [
-            _buildSpeciesChip('dog', Icons.pets, 'Dog'),
-            _buildSpeciesChip('cat', Icons.star, 'Cat'),
-            _buildSpeciesChip('bird', Icons.flutter_dash, 'Bird'),
-            _buildSpeciesChip('rabbit', Icons.cruelty_free, 'Rabbit'),
-            _buildSpeciesChip('hamster', Icons.pets, 'Hamster'),
-            _buildSpeciesChip('fish', Icons.set_meal, 'Fish'),
-            _buildSpeciesChip('other', Icons.psychology_alt, 'Other'),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSpeciesChip('dog', LucideIcons.dog, 'Dog'),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildSpeciesChip('cat', LucideIcons.cat, 'Cat'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSpeciesChip('bird', LucideIcons.bird, 'Bird'),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildSpeciesChip(
+                    'rabbit',
+                    Icons.cruelty_free,
+                    'Rabbit',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSpeciesChip(
+                    'hamster',
+                    LucideIcons.squirrel,
+                    'Hamster',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildSpeciesChip('fish', LucideIcons.fish, 'Fish'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSpeciesChip(
+                    'other',
+                    LucideIcons.helpCircle,
+                    'Other',
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -144,8 +200,13 @@ class CreatePetStep1 extends StatelessWidget {
           style: const TextStyle(fontFamily: 'Inter'),
           decoration: InputDecoration(
             hintText: 'Search breeds...',
-            hintStyle: TextStyle(color: AppTheme.secondary.withValues(alpha: 0.5)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            hintStyle: TextStyle(
+              color: AppTheme.secondary.withValues(alpha: 0.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
             filled: true,
             fillColor: AppTheme.surfaceContainerLow,
             border: OutlineInputBorder(
@@ -162,7 +223,9 @@ class CreatePetStep1 extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppTheme.primaryFixedDim.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.primaryFixedDim.withValues(alpha: 0.3)),
+            border: Border.all(
+              color: AppTheme.primaryFixedDim.withValues(alpha: 0.3),
+            ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,7 +241,10 @@ class CreatePetStep1 extends StatelessWidget {
                     width: 64,
                     height: 64,
                     color: AppTheme.surfaceContainer,
-                    child: const Icon(Icons.help_outline, color: AppTheme.secondary),
+                    child: const Icon(
+                      Icons.help_outline,
+                      color: AppTheme.secondary,
+                    ),
                   ),
                 ),
               ),
@@ -226,9 +292,23 @@ class CreatePetStep1 extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            Expanded(child: _buildOptionChip('Male', Icons.male, selectedGender, onGenderChanged)),
+            Expanded(
+              child: _buildOptionChip(
+                'Male',
+                Icons.male,
+                selectedGender,
+                onGenderChanged,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildOptionChip('Female', Icons.female, selectedGender, onGenderChanged)),
+            Expanded(
+              child: _buildOptionChip(
+                'Female',
+                Icons.female,
+                selectedGender,
+                onGenderChanged,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -246,9 +326,23 @@ class CreatePetStep1 extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            Expanded(child: _buildOptionChip('Yes', null, selectedNeutered, onNeuteredChanged)),
+            Expanded(
+              child: _buildOptionChip(
+                'Yes',
+                null,
+                selectedNeutered,
+                onNeuteredChanged,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildOptionChip('No', null, selectedNeutered, onNeuteredChanged)),
+            Expanded(
+              child: _buildOptionChip(
+                'No',
+                null,
+                selectedNeutered,
+                onNeuteredChanged,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -268,7 +362,9 @@ class CreatePetStep1 extends StatelessWidget {
           onTap: () async {
             final date = await showDatePicker(
               context: context,
-              initialDate: birthDate ?? DateTime.now().subtract(const Duration(days: 365)),
+              initialDate:
+                  birthDate ??
+                  DateTime.now().subtract(const Duration(days: 365)),
               firstDate: DateTime(2000),
               lastDate: DateTime.now(),
             );
@@ -291,7 +387,9 @@ class CreatePetStep1 extends StatelessWidget {
                       : '${birthDate!.day}/${birthDate!.month}/${birthDate!.year}',
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    color: birthDate == null ? AppTheme.secondary.withValues(alpha: 0.5) : AppTheme.onSurface,
+                    color: birthDate == null
+                        ? AppTheme.secondary.withValues(alpha: 0.5)
+                        : AppTheme.onSurface,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -306,34 +404,37 @@ class CreatePetStep1 extends StatelessWidget {
 
   Widget _buildSpeciesChip(String value, IconData icon, String label) {
     final isSelected = selectedSpecies == value;
-    return ChoiceChip(
-      avatar: Icon(
-        icon,
-        color: isSelected ? Colors.white : AppTheme.secondary,
-        size: 20,
-      ),
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (val) {
-        if (val) {
-          onSpeciesChanged(value);
-        }
-      },
-      selectedColor: AppTheme.primary,
-      backgroundColor: AppTheme.surfaceContainerLow,
-      labelStyle: TextStyle(
-        fontFamily: 'Inter',
-        color: isSelected ? Colors.white : AppTheme.secondary,
-        fontWeight: FontWeight.w600,
-        fontSize: 13,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+    return OutlinedButton(
+      onPressed: () => onSpeciesChanged(value),
+      style: OutlinedButton.styleFrom(
+        backgroundColor: isSelected
+            ? AppTheme.primary
+            : AppTheme.surfaceContainerLow,
+        foregroundColor: isSelected ? Colors.white : AppTheme.secondary,
         side: BorderSide(
           color: isSelected ? AppTheme.primary : AppTheme.surfaceContainer,
         ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.symmetric(vertical: 14),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            color: isSelected ? Colors.white : AppTheme.secondary,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -347,7 +448,9 @@ class CreatePetStep1 extends StatelessWidget {
     return OutlinedButton(
       onPressed: () => onChanged(value),
       style: OutlinedButton.styleFrom(
-        backgroundColor: isSelected ? AppTheme.primary : AppTheme.surfaceContainerLow,
+        backgroundColor: isSelected
+            ? AppTheme.primary
+            : AppTheme.surfaceContainerLow,
         foregroundColor: isSelected ? Colors.white : AppTheme.secondary,
         side: BorderSide(
           color: isSelected ? AppTheme.primary : AppTheme.surfaceContainer,

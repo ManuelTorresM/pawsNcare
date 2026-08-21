@@ -156,6 +156,11 @@ class LifestyleRoutineStep3 extends StatelessWidget {
                     ),
                   ),
                   items: const [
+                    DropdownMenuItem(value: 'Mixed', child: Text('Mixed')),
+                    DropdownMenuItem(
+                      value: 'Home-cooked',
+                      child: Text('Home-cooked'),
+                    ),
                     DropdownMenuItem(
                       value: 'Dry Kibble',
                       child: Text('Dry Kibble'),
@@ -168,11 +173,7 @@ class LifestyleRoutineStep3 extends StatelessWidget {
                       value: 'Raw Diet',
                       child: Text('Raw Diet'),
                     ),
-                    DropdownMenuItem(value: 'Mixed', child: Text('Mixed')),
-                    DropdownMenuItem(
-                      value: 'Home-cooked',
-                      child: Text('Home-cooked'),
-                    ),
+
                     DropdownMenuItem(value: 'Other', child: Text('Other')),
                   ],
                   onChanged: (val) {

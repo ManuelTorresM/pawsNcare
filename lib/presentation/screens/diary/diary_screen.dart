@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../logic/theme/theme_cubit.dart';
 import '../../../logic/diary/diary_bloc.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../../data/models/diary_entry.dart';
@@ -253,7 +254,8 @@ class _DiaryTabState extends State<DiaryTab> {
                           isSelected: severity == 'MODERATE',
                           color: const Color(0xFFF39C12),
                           bgColor: const Color(0xFFFEF9E7),
-                          onTap: () => setDialogState(() => severity = 'MODERATE'),
+                          onTap: () =>
+                              setDialogState(() => severity = 'MODERATE'),
                         ),
                         const SizedBox(width: 8),
                         _buildSeverityOption(
@@ -261,7 +263,8 @@ class _DiaryTabState extends State<DiaryTab> {
                           isSelected: severity == 'SEVERE',
                           color: const Color(0xFFE74C3C),
                           bgColor: const Color(0xFFFDEDEC),
-                          onTap: () => setDialogState(() => severity = 'SEVERE'),
+                          onTap: () =>
+                              setDialogState(() => severity = 'SEVERE'),
                         ),
                       ],
                     ),
@@ -342,6 +345,20 @@ class _DiaryTabState extends State<DiaryTab> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeCubit>().state;
+    final textSecondary = isDark
+        ? AppTheme.darkOnSurfaceVariant
+        : AppTheme.secondary;
+    final textPrimary = isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
+    final cardBg = isDark ? AppTheme.darkSurface : AppTheme.surfaceContainerLow;
+    final tileBg = isDark
+        ? AppTheme.darkSurface
+        : AppTheme.surfaceContainerLowest;
+    final primaryColor = isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
+    final dividerColor = isDark
+        ? const Color(0xFF383634)
+        : AppTheme.surfaceContainer;
+
     final petState = context.watch<PetBloc>().state;
     final List<Pet> pets = [];
     final List<String> activePetNames = [];
@@ -411,57 +428,27 @@ class _DiaryTabState extends State<DiaryTab> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'HEALTH DIARY',
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.bold,
                             fontSize: 11,
-                            color: AppTheme.secondary,
+                            color: textSecondary,
                             letterSpacing: 1.0,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           recordsTitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Montserrat',
                             fontWeight: FontWeight.bold,
                             fontSize: 24,
-                            color: AppTheme.primary,
+                            color: primaryColor,
                           ),
                         ),
                       ],
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Diary PDF exported successfully!'),
-                          ),
-                        );
-                      },
-                      icon: const Icon(
-                        Icons.picture_as_pdf,
-                        size: 16,
-                        color: AppTheme.primary,
-                      ),
-                      label: const Text(
-                        'Export PDF',
-                        style: TextStyle(
-                          color: AppTheme.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                          color: AppTheme.primary,
-                          width: 2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
                     ),
                   ],
                 ),
@@ -476,26 +463,26 @@ class _DiaryTabState extends State<DiaryTab> {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppTheme.surfaceContainerLow,
+                          color: cardBg,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Total Entries',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppTheme.secondary,
+                                color: textSecondary,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               '$totalEntries',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: AppTheme.primary,
+                                color: primaryColor,
                               ),
                             ),
                           ],
@@ -507,26 +494,26 @@ class _DiaryTabState extends State<DiaryTab> {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppTheme.surfaceContainerLow,
+                          color: cardBg,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Last Incident',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppTheme.secondary,
+                                color: textSecondary,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               lastIncidentText,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: AppTheme.primary,
+                                color: primaryColor,
                               ),
                             ),
                           ],
@@ -539,15 +526,15 @@ class _DiaryTabState extends State<DiaryTab> {
               const SizedBox(height: 20),
 
               // Select a Pet filter chips row
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24.0),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Text(
                   'SELECT A PET',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.bold,
                     fontSize: 11,
-                    color: AppTheme.secondary,
+                    color: textSecondary,
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -580,7 +567,14 @@ class _DiaryTabState extends State<DiaryTab> {
                       }
                     }
 
-                    return _buildPetFilterButton(filter, isSelected, pets);
+                    return _buildPetFilterButton(
+                      filter,
+                      isSelected,
+                      pets,
+                      isDark,
+                      primaryColor,
+                      textSecondary,
+                    );
                   },
                 ),
               ),
@@ -589,19 +583,17 @@ class _DiaryTabState extends State<DiaryTab> {
               // Diary List Content
               Expanded(
                 child: isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          color: AppTheme.primary,
-                        ),
+                    ? Center(
+                        child: CircularProgressIndicator(color: primaryColor),
                       )
                     : (entries.isEmpty
-                          ? const Center(
+                          ? Center(
                               child: Text(
                                 'No behavioral logs recorded yet.',
                                 style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontStyle: FontStyle.italic,
-                                  color: AppTheme.secondary,
+                                  color: textSecondary,
                                 ),
                               ),
                             )
@@ -627,7 +619,16 @@ class _DiaryTabState extends State<DiaryTab> {
                                     ? matchedPet.name
                                     : 'Luna';
 
-                                return _buildDiaryCard(entry, petName);
+                                return _buildDiaryCard(
+                                  entry,
+                                  petName,
+                                  isDark,
+                                  tileBg,
+                                  textPrimary,
+                                  textSecondary,
+                                  primaryColor,
+                                  dividerColor,
+                                );
                               },
                             )),
               ),
@@ -638,7 +639,14 @@ class _DiaryTabState extends State<DiaryTab> {
     );
   }
 
-  Widget _buildPetFilterButton(String filter, bool isSelected, List<Pet> pets) {
+  Widget _buildPetFilterButton(
+    String filter,
+    bool isSelected,
+    List<Pet> pets,
+    bool isDark,
+    Color primaryColor,
+    Color textSecondary,
+  ) {
     final displayName = filter == 'all'
         ? 'All'
         : filter[0].toUpperCase() + filter.substring(1);
@@ -680,29 +688,27 @@ class _DiaryTabState extends State<DiaryTab> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? AppTheme.primary : Colors.transparent,
+                  color: isSelected ? primaryColor : Colors.transparent,
                   width: 2,
                 ),
               ),
               padding: const EdgeInsets.all(2),
               child: CircleAvatar(
-                backgroundColor: AppTheme.surfaceContainerHigh,
+                backgroundColor: isDark
+                    ? const Color(0xFF383634)
+                    : AppTheme.surfaceContainerHigh,
                 backgroundImage: resolvedAvatarUrl != null
                     ? NetworkImage(resolvedAvatarUrl)
                     : null,
                 child: resolvedAvatarUrl == null
                     ? (filter == 'all'
-                          ? const Icon(
-                              Icons.group,
-                              color: AppTheme.primary,
-                              size: 30,
-                            )
+                          ? Icon(Icons.group, color: primaryColor, size: 30)
                           : Text(
                               displayName[0],
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'Montserrat',
                                 fontWeight: FontWeight.bold,
-                                color: AppTheme.primary,
+                                color: primaryColor,
                                 fontSize: 24,
                               ),
                             ))
@@ -716,7 +722,7 @@ class _DiaryTabState extends State<DiaryTab> {
                 fontFamily: 'Inter',
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? AppTheme.primary : AppTheme.secondary,
+                color: isSelected ? primaryColor : textSecondary,
               ),
             ),
           ],
@@ -725,11 +731,194 @@ class _DiaryTabState extends State<DiaryTab> {
     );
   }
 
-  Widget _buildDiaryCard(DiaryEntry entry, String petName) {
+  Widget _buildDiaryCard(
+    DiaryEntry entry,
+    String petName,
+    bool isDark,
+    Color tileBg,
+    Color textPrimary,
+    Color textSecondary,
+    Color primaryColor,
+    Color dividerColor,
+  ) {
+    final styles = _getCategoryStyles(entry.category);
+    final label = styles['label'] as String;
+    final icon = styles['icon'] as IconData;
+
+    final severity = entry.severity;
+    Color badgeColor;
+    Color badgeText;
+    switch (severity.toUpperCase()) {
+      case 'SEVERE':
+        badgeColor = isDark ? const Color(0xFF5C2B1D) : const Color(0xFFFDEDEC);
+        badgeText = const Color(0xFFFFB4A3);
+        break;
+      case 'MODERATE':
+        badgeColor = isDark ? const Color(0xFF523B17) : const Color(0xFFFEF9E7);
+        badgeText = const Color(0xFFFFD580);
+        break;
+      case 'MILD':
+      default:
+        badgeColor = isDark ? const Color(0xFF1D3B5C) : const Color(0xFFEBF5FB);
+        badgeText = const Color(0xFF90CAF9);
+        break;
+    }
+
+    return GestureDetector(
+      onTap: () => _showFocusedEntryDialog(context, entry, petName),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: tileBg,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: dividerColor),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 4, color: badgeText),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Top Meta row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                _formatDateTime(entry.timestamp),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: textSecondary,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                width: 4,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: textSecondary,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                petName,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: badgeColor,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              severity,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: badgeText,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Title
+                      Text(
+                        entry.title,
+                        style: TextStyle(
+                          fontFamily: 'Montserrat',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Note Description
+                      Text(
+                        entry.note,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 14,
+                          color: textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Bottom Category tag
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF2E4E30)
+                              : AppTheme.primaryFixed,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              icon,
+                              size: 14,
+                              color: isDark
+                                  ? AppTheme.primaryFixedDim
+                                  : AppTheme.onPrimaryFixedVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              label,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? AppTheme.primaryFixedDim
+                                    : AppTheme.onPrimaryFixedVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showFocusedEntryDialog(
+    BuildContext context,
+    DiaryEntry entry,
+    String petName,
+  ) {
     final styles = _getCategoryStyles(entry.category);
     final accentColor = styles['color'] as Color;
     final label = styles['label'] as String;
-    final icon = styles['icon'] as IconData;
 
     final severity = entry.severity;
     Color badgeColor;
@@ -750,341 +939,176 @@ class _DiaryTabState extends State<DiaryTab> {
         break;
     }
 
-    return GestureDetector(
-      onTap: () => _showFocusedEntryDialog(context, entry, petName),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppTheme.surfaceContainer),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          titlePadding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(width: 4, color: accentColor),
-              Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Montserrat',
+                  fontWeight: FontWeight.bold,
+                  color: accentColor,
+                  fontSize: 16,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(dialogContext).pop(),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Pet & Date info row
+                Row(
                   children: [
-                    // Top Meta row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              _formatDateTime(entry.timestamp),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.secondary,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Container(
-                              width: 4,
-                              height: 4,
-                              decoration: const BoxDecoration(
-                                color: AppTheme.outlineVariant,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              petName,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: badgeColor,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            severity,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: badgeText,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Title
-                    Text(
-                      entry.title,
-                      style: const TextStyle(
-                        fontFamily: 'Montserrat',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: AppTheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-
-                    // Note Description
-                    Text(
-                      entry.note,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14,
-                        color: AppTheme.onSurfaceVariant,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Bottom Category tag
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
+                        horizontal: 10,
+                        vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryFixed,
-                        borderRadius: BorderRadius.circular(20),
+                        color: badgeColor,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            icon,
-                            size: 14,
-                            color: AppTheme.onPrimaryFixedVariant,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            label,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.onPrimaryFixedVariant,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        severity,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: badgeText,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _formatDateTime(entry.timestamp),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.secondary,
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+
+                // Pet Name section
+                Row(
+                  children: [
+                    const Icon(Icons.pets, size: 16, color: AppTheme.primary),
+                    const SizedBox(width: 6),
+                    Text(
+                      petName,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Title
+                Text(
+                  entry.title,
+                  style: const TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: AppTheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Note / Details
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.surfaceContainer),
+                  ),
+                  child: Text(
+                    entry.note,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14,
+                      color: AppTheme.onSurfaceVariant,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+          actions: [
+            TextButton.icon(
+              onPressed: () {
+                // Confirm delete dialog
+                showDialog(
+                  context: dialogContext,
+                  builder: (confirmContext) {
+                    return AlertDialog(
+                      title: const Text('Delete Log?'),
+                      content: const Text(
+                        'Are you sure you want to delete this diary entry? This action cannot be undone.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(confirmContext).pop(),
+                          child: const Text('Cancel'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            // Dispatch delete event on current BLoC using the outer context
+                            context.read<DiaryBloc>().add(
+                              DeleteDiaryEntryEvent(
+                                entry.id,
+                                currentPetId: _selectedPetId,
+                              ),
+                            );
+                            Navigator.of(confirmContext).pop(); // pop confirm
+                            Navigator.of(dialogContext).pop(); // pop details
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.error,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Delete'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+              icon: const Icon(Icons.delete_outline, color: AppTheme.error),
+              label: const Text(
+                'Delete Log',
+                style: TextStyle(
+                  color: AppTheme.error,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
-        ),
-      ),
-    ),
-  );
-}
-
-void _showFocusedEntryDialog(
-    BuildContext context, DiaryEntry entry, String petName) {
-  final styles = _getCategoryStyles(entry.category);
-  final accentColor = styles['color'] as Color;
-  final label = styles['label'] as String;
-
-  final severity = entry.severity;
-  Color badgeColor;
-  Color badgeText;
-  switch (severity.toUpperCase()) {
-    case 'SEVERE':
-      badgeColor = const Color(0xFFFDEDEC);
-      badgeText = const Color(0xFFE74C3C);
-      break;
-    case 'MODERATE':
-      badgeColor = const Color(0xFFFEF9E7);
-      badgeText = const Color(0xFFF39C12);
-      break;
-    case 'MILD':
-    default:
-      badgeColor = const Color(0xFFEBF5FB);
-      badgeText = const Color(0xFF5D9CEC);
-      break;
+        );
+      },
+    );
   }
 
-  showDialog(
-    context: context,
-    builder: (dialogContext) {
-      return AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
-        titlePadding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Montserrat',
-                fontWeight: FontWeight.bold,
-                color: accentColor,
-                fontSize: 16,
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () => Navigator.of(dialogContext).pop(),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Pet & Date info row
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: badgeColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      severity,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: badgeText,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _formatDateTime(entry.timestamp),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.secondary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Pet Name section
-              Row(
-                children: [
-                  const Icon(Icons.pets, size: 16, color: AppTheme.primary),
-                  const SizedBox(width: 6),
-                  Text(
-                    petName,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Title
-              Text(
-                entry.title,
-                style: const TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: AppTheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Note / Details
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.surfaceContainer),
-                ),
-                child: Text(
-                  entry.note,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 14,
-                    color: AppTheme.onSurfaceVariant,
-                    height: 1.5,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
-        actions: [
-          TextButton.icon(
-            onPressed: () {
-              // Confirm delete dialog
-              showDialog(
-                context: dialogContext,
-                builder: (confirmContext) {
-                  return AlertDialog(
-                    title: const Text('Delete Log?'),
-                    content: const Text(
-                      'Are you sure you want to delete this diary entry? This action cannot be undone.',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(confirmContext).pop(),
-                        child: const Text('Cancel'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          // Dispatch delete event on current BLoC using the outer context
-                          context.read<DiaryBloc>().add(
-                                DeleteDiaryEntryEvent(
-                                  entry.id,
-                                  currentPetId: _selectedPetId,
-                                ),
-                              );
-                          Navigator.of(confirmContext).pop(); // pop confirm
-                          Navigator.of(dialogContext).pop(); // pop details
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.error,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text('Delete'),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
-            icon: const Icon(Icons.delete_outline, color: AppTheme.error),
-            label: const Text(
-              'Delete Log',
-              style: TextStyle(
-                color: AppTheme.error,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      );
-    },
-  );
-}
   Widget _buildSeverityOption({
     required String label,
     required bool isSelected,
@@ -1102,7 +1126,9 @@ void _showFocusedEntryDialog(
             color: isSelected ? bgColor : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? color : AppTheme.outlineVariant.withValues(alpha: 0.5),
+              color: isSelected
+                  ? color
+                  : AppTheme.outlineVariant.withValues(alpha: 0.5),
               width: 1.5,
             ),
           ),
@@ -1112,7 +1138,9 @@ void _showFocusedEntryDialog(
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: isSelected ? color : AppTheme.onSurfaceVariant.withValues(alpha: 0.6),
+              color: isSelected
+                  ? color
+                  : AppTheme.onSurfaceVariant.withValues(alpha: 0.6),
             ),
           ),
         ),

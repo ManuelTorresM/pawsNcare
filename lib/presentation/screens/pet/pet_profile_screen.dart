@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../logic/theme/theme_cubit.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../../logic/diary/diary_bloc.dart';
 import '../../../data/models/pet.dart';
@@ -112,60 +115,15 @@ class _PetProfileScreenState extends State<PetProfileScreen>
     );
   }
 
-  void _toggleMedication(Medication med) {
-    final updatedMeds = _pet.medications.map((m) {
-      if (m.id == med.id) {
-        DateTime calculatedNext = m.nextDoseDate;
-        if (m.frequency == 'Every 8h') {
-          calculatedNext = DateTime.now().add(const Duration(hours: 8));
-        } else if (m.frequency == 'Every 12h') {
-          calculatedNext = DateTime.now().add(const Duration(hours: 12));
-        } else if (m.frequency == 'Every 24h') {
-          calculatedNext = DateTime.now().add(const Duration(days: 1));
-        } else if (m.frequency == 'Weekly') {
-          calculatedNext = DateTime.now().add(const Duration(days: 7));
-        } else if (m.frequency == 'Monthly') {
-          calculatedNext = DateTime.now().add(const Duration(days: 30));
-        } else {
-          calculatedNext = m.nextDoseDate.add(const Duration(days: 30));
-        }
-
-        return m.copyWith(
-          nextDoseDate: calculatedNext,
-          administeredDate: DateTime.now(),
-          isCompleted: true,
-        );
-      }
-      return m;
-    }).toList();
-
-    final updatedPet = _pet.copyWith(medications: updatedMeds);
-    context.read<PetBloc>().add(UpdatePet(updatedPet));
-    setState(() {
-      _pet = updatedPet;
-    });
-
-    // Log to diary as well
-    final diaryEntry = DiaryEntry(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      petId: _pet.id,
-      title: 'Med Administered: ${med.name}',
-      category: 'med',
-      note: 'Dose marked completed.',
-      timestamp: DateTime.now(),
-    );
-    context.read<DiaryBloc>().add(AddDiaryEntryEvent(diaryEntry));
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Administered: ${med.name}'),
-        backgroundColor: AppTheme.primary,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeCubit>().state;
+    final textSecondary = isDark
+        ? AppTheme.darkOnSurfaceVariant
+        : AppTheme.secondary;
+    final textPrimary = isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
+    final headerColor = isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
+
     final petState = context.watch<PetBloc>().state;
     if (petState is PetLoaded) {
       final updatedPet = petState.pets.firstWhere(
@@ -181,13 +139,13 @@ class _PetProfileScreenState extends State<PetProfileScreen>
       appBar: AppBar(
         title: Text(
           '${_pet.name}\'s Profile',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: textPrimary),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
+          icon: Icon(Icons.arrow_back, color: headerColor),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
@@ -227,209 +185,258 @@ class _PetProfileScreenState extends State<PetProfileScreen>
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Profile Hero Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Stack(
+      body: NestedScrollView(
+        headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+          return <Widget>[
+            SliverToBoxAdapter(
+              child: Column(
                 children: [
-                  Container(
-                    height: 250,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                  // Profile Hero Section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Stack(
+                      children: [
+                        Container(
+                          height: 250,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: isDark ? 0.3 : 0.1,
+                                ),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: _pet.avatarUrl.startsWith('http')
+                                ? Image.network(
+                                    _pet.avatarUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            Container(
+                                              color: isDark
+                                                  ? const Color(0xFF383634)
+                                                  : AppTheme.primaryContainer,
+                                              child: Icon(
+                                                Icons.pets,
+                                                size: 64,
+                                                color: textSecondary,
+                                              ),
+                                            ),
+                                  )
+                                : Container(
+                                    color: isDark
+                                        ? const Color(0xFF383634)
+                                        : AppTheme.primaryContainer,
+                                    child: Icon(
+                                      Icons.pets,
+                                      size: 64,
+                                      color: textSecondary,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              borderRadius: const BorderRadius.only(
+                                bottomLeft: Radius.circular(24),
+                                bottomRight: Radius.circular(24),
+                              ),
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withValues(alpha: 0.8),
+                                ],
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _pet.name,
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primary.withValues(
+                                      alpha: 0.8,
+                                    ),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    '${_pet.breed} • ${_pet.ageString}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: _pet.avatarUrl.startsWith('http')
-                          ? Image.network(
-                              _pet.avatarUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Container(
-                                    color: AppTheme.primaryContainer,
-                                    child: const Icon(
-                                      Icons.pets,
-                                      size: 64,
-                                      color: AppTheme.secondary,
-                                    ),
-                                  ),
-                            )
-                          : Container(
-                              color: AppTheme.primaryContainer,
-                              child: const Icon(Icons.pets, size: 64),
-                            ),
-                    ),
                   ),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(24),
-                          bottomRight: Radius.circular(24),
+                  const SizedBox(height: 20),
+
+                  // Quick Stats Row
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Row(
+                      children: [
+                        _buildStatCard(
+                          label: 'Age',
+                          value: _pet.ageString,
+                          icon: Icons.cake,
+                          iconColor: const Color(0xFF9E5A44),
                         ),
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.8),
-                          ],
+                        const SizedBox(width: 8),
+                        _buildStatCard(
+                          label: 'Weight',
+                          value: '${_pet.weight.toStringAsFixed(0)}kg',
+                          icon: Icons.scale_outlined,
+                          iconColor: const Color(0xFF1F6156),
                         ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _pet.name,
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppTheme.primary.withValues(alpha: 0.8),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              '${_pet.breed} • ${_pet.ageString}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                        const SizedBox(width: 8),
+                        _buildStatCard(
+                          label: 'Vaccine',
+                          value: _getNextVaccineDate(),
+                          icon: Icons.vaccines,
+                          iconColor: const Color(0xFFE67E22),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildStatCard(
+                          label: 'Details',
+                          value: 'Info',
+                          icon: Icons.assignment_outlined,
+                          iconColor: Colors.white,
+                          isHighlighted: true,
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    PetDetailsScreen(pet: _pet),
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Quick Stats Row
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Row(
-                children: [
-                  _buildStatCard(
-                    label: 'Age',
-                    value: _pet.ageString,
-                    icon: Icons.cake,
-                    iconColor: const Color(0xFF9E5A44),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildStatCard(
-                    label: 'Weight',
-                    value: '${_pet.weight.toStringAsFixed(0)}kg',
-                    icon: Icons.scale_outlined,
-                    iconColor: const Color(0xFF1F6156),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildStatCard(
-                    label: 'Vaccine',
-                    value: _getNextVaccineDate(),
-                    icon: Icons.vaccines,
-                    iconColor: const Color(0xFFE67E22),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildStatCard(
-                    label: 'Details',
-                    value: 'Info',
-                    icon: Icons.assignment_outlined,
-                    iconColor: Colors.white,
-                    isHighlighted: true,
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => PetDetailsScreen(pet: _pet),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Recent Photos Gallery
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.0),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Recent Photos',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 120,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: _pet.photos.length + 1,
-                itemBuilder: (context, index) {
-                  if (index == _pet.photos.length) {
-                    return _buildAddPhotoButton(context);
-                  }
-                  return Container(
-                    margin: const EdgeInsets.only(right: 12),
-                    width: 120,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
+                      ],
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.network(
-                        _pet.photos[index],
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: AppTheme.surfaceContainer,
-                          child: const Icon(
-                            Icons.broken_image,
-                            color: AppTheme.secondary,
-                          ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Recent Photos Gallery
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Recent Photos',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: textPrimary,
                         ),
                       ),
                     ),
-                  );
-                },
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 120,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: _pet.photos.length + 1,
+                      itemBuilder: (context, index) {
+                        if (index == _pet.photos.length) {
+                          return _buildAddPhotoButton(context);
+                        }
+                        return Container(
+                          margin: const EdgeInsets.only(right: 12),
+                          width: 120,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child:
+                                (_pet.photos[index].startsWith('http') ||
+                                    _pet.photos[index].startsWith('https'))
+                                ? Image.network(
+                                    _pet.photos[index],
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            Container(
+                                              color: isDark
+                                                  ? const Color(0xFF383634)
+                                                  : AppTheme.surfaceContainer,
+                                              child: Icon(
+                                                Icons.broken_image,
+                                                color: textSecondary,
+                                              ),
+                                            ),
+                                  )
+                                : Image.file(
+                                    File(_pet.photos[index]),
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            Container(
+                                              color: isDark
+                                                  ? const Color(0xFF383634)
+                                                  : AppTheme.surfaceContainer,
+                                              child: Icon(
+                                                Icons.broken_image,
+                                                color: textSecondary,
+                                              ),
+                                            ),
+                                  ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-
+          ];
+        },
+        body: Column(
+          children: [
             // Tabs navigation
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20),
-              padding: const EdgeInsets.all(
-                4,
-              ), // creates the gap around the white pill
+              padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceContainer, // light grey track
+                color: isDark
+                    ? const Color(0xFF383634)
+                    : AppTheme.surfaceContainer,
                 borderRadius: BorderRadius.circular(999),
               ),
               child: TabBar(
@@ -438,18 +445,19 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                 indicatorPadding: EdgeInsets.zero,
                 indicator: BoxDecoration(
                   borderRadius: BorderRadius.circular(999),
-                  color: Colors.white,
+                  color: isDark ? AppTheme.darkSurface : Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.2 : 0.08,
+                      ),
                       blurRadius: 4,
                       offset: const Offset(0, 1),
                     ),
                   ],
                 ),
-                labelColor: AppTheme.primary, // green text for selected tab
-                unselectedLabelColor:
-                    AppTheme.onSurface, // dark grey/black for unselected
+                labelColor: headerColor,
+                unselectedLabelColor: textPrimary,
                 labelStyle: const TextStyle(
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.bold,
@@ -460,10 +468,8 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
-                dividerColor: Colors.transparent, // removes default underline
-                overlayColor: WidgetStateProperty.all(
-                  Colors.transparent,
-                ), // no ripple
+                dividerColor: Colors.transparent,
+                overlayColor: WidgetStateProperty.all(Colors.transparent),
                 tabs: const [
                   Tab(text: 'Diary'),
                   Tab(text: 'Weight'),
@@ -473,17 +479,13 @@ class _PetProfileScreenState extends State<PetProfileScreen>
             ),
             const SizedBox(height: 16),
 
-            // Tab View Body (bounded height)
-            SizedBox(
-              height: 400,
+            // Tab View Body (takes remaining screen space dynamically)
+            Expanded(
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  // Tab 1: Diary logs of this specific pet
                   _buildDiaryTab(),
-                  // Tab 2: Weight chart and logs
                   _buildWeightTab(),
-                  // Tab 3: Medications status
                   _buildMedsTab(),
                 ],
               ),
@@ -502,22 +504,32 @@ class _PetProfileScreenState extends State<PetProfileScreen>
     bool isHighlighted = false,
     VoidCallback? onTap,
   }) {
+    final isDark = context.read<ThemeCubit>().state;
+    final textSecondary = isDark
+        ? AppTheme.darkOnSurfaceVariant
+        : AppTheme.secondary;
+    final textPrimary = isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
+    final cardBg = isDark ? AppTheme.darkSurface : Colors.white;
+    final headerColor = isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
+
     final cardBody = Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
-        color: isHighlighted ? AppTheme.primary : Colors.white,
+        color: isHighlighted ? headerColor : cardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isHighlighted
-              ? AppTheme.primary
-              : AppTheme.surfaceContainerLow,
+              ? headerColor
+              : (isDark
+                    ? const Color(0xFF383634)
+                    : AppTheme.surfaceContainerLow),
           width: 1,
         ),
         boxShadow: isHighlighted
             ? []
             : [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -526,7 +538,15 @@ class _PetProfileScreenState extends State<PetProfileScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: isHighlighted ? Colors.white : iconColor, size: 24),
+          Icon(
+            icon,
+            color: isHighlighted
+                ? Colors.white
+                : (isDark && iconColor == const Color(0xFF1F6156)
+                      ? AppTheme.primaryFixedDim
+                      : iconColor),
+            size: 24,
+          ),
           const SizedBox(height: 6),
           Text(
             label,
@@ -534,7 +554,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
               fontSize: 12,
               color: isHighlighted
                   ? Colors.white.withValues(alpha: 0.8)
-                  : AppTheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  : textSecondary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -544,7 +564,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 14,
-              color: isHighlighted ? Colors.white : AppTheme.onSurface,
+              color: isHighlighted ? Colors.white : textPrimary,
             ),
           ),
         ],
@@ -555,6 +575,164 @@ class _PetProfileScreenState extends State<PetProfileScreen>
       child: onTap != null
           ? GestureDetector(onTap: onTap, child: cardBody)
           : cardBody,
+    );
+  }
+
+  Widget _buildAddPhotoButton(BuildContext context) {
+    final isDark = context.watch<ThemeCubit>().state;
+    final headerColor = isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
+    final cardBg = isDark
+        ? AppTheme.darkSurface
+        : AppTheme.surfaceContainerLowest;
+
+    return Container(
+      width: 120,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: headerColor.withValues(alpha: 0.4),
+          width: 1.5,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _showAddPhotoModal(context),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_a_photo_outlined, color: headerColor, size: 28),
+            const SizedBox(height: 6),
+            Text(
+              'Add Photo',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: headerColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickPhoto(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: source);
+      if (!mounted) return;
+      if (pickedFile != null) {
+        final updatedPhotos = List<String>.from(_pet.photos)
+          ..add(pickedFile.path);
+        final updatedPet = _pet.copyWith(photos: updatedPhotos);
+
+        context.read<PetBloc>().add(UpdatePet(updatedPet));
+        setState(() {
+          _pet = updatedPet;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Photo added to ${_pet.name}\'s gallery!'),
+            backgroundColor: AppTheme.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error selecting photo: $e')));
+    }
+  }
+
+  void _showAddPhotoModal(BuildContext context) {
+    final isDark = context.read<ThemeCubit>().state;
+    final textPrimary = isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
+    final textSecondary = isDark
+        ? AppTheme.darkOnSurfaceVariant
+        : AppTheme.secondary;
+    final cardBg = isDark ? AppTheme.darkSurface : Colors.white;
+    final headerColor = isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: cardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Select Media Source',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    fontFamily: 'Montserrat',
+                    color: textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: Icon(Icons.photo_library, color: headerColor),
+                  title: Text(
+                    'Choose from Gallery',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      color: textPrimary,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    _pickPhoto(ImageSource.gallery);
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.photo_camera, color: headerColor),
+                  title: Text(
+                    'Open Camera',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      color: textPrimary,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    _pickPhoto(ImageSource.camera);
+                  },
+                ),
+                Divider(
+                  color: isDark
+                      ? const Color(0xFF383634)
+                      : AppTheme.outlineVariant,
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(sheetContext).pop(),
+                  style: TextButton.styleFrom(foregroundColor: textSecondary),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -580,49 +758,182 @@ class _PetProfileScreenState extends State<PetProfileScreen>
     return '${months[next.month - 1]} ${next.day}';
   }
 
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'food':
+        return Icons.restaurant;
+      case 'walk':
+        return Icons.directions_walk;
+      case 'med':
+        return Icons.medication;
+      case 'vet':
+        return Icons.medical_services;
+      case 'hydration':
+        return Icons.water_drop;
+      default:
+        return Icons.notes;
+    }
+  }
+
+  Color _getCategoryColor(String category, bool isDark) {
+    switch (category.toLowerCase()) {
+      case 'food':
+        return const Color(0xFFE67E22);
+      case 'walk':
+        return isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
+      case 'med':
+        return AppTheme.tertiary;
+      case 'vet':
+        return const Color(0xFF9B59B6);
+      case 'hydration':
+        return const Color(0xFF2980B9);
+      default:
+        return isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
+    }
+  }
+
+  Widget _buildMinimalDiaryTile(
+    DiaryEntry entry,
+    bool isDark,
+    Color cardBg,
+    Color textPrimary,
+    Color textSecondary,
+    Color headerColor,
+  ) {
+    final catColor = _getCategoryColor(entry.category, isDark);
+    final catIcon = _getCategoryIcon(entry.category);
+    final now = DateTime.now();
+    final dt = entry.timestamp;
+    final isToday =
+        dt.year == now.year && dt.month == now.month && dt.day == now.day;
+    final timeStr = _formatTime(dt);
+    final dateStr = isToday
+        ? 'Today, $timeStr'
+        : '${dt.day}/${dt.month} • $timeStr';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark
+              ? const Color(0xFF383634)
+              : AppTheme.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Category Avatar Box
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: catColor.withValues(alpha: isDark ? 0.2 : 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(catIcon, color: catColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          // Title & Note info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        entry.title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      dateStr,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+                if (entry.note.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    entry.note,
+                    style: TextStyle(fontSize: 12, color: textSecondary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDiaryTab() {
+    final isDark = context.watch<ThemeCubit>().state;
+    final textSecondary = isDark
+        ? AppTheme.darkOnSurfaceVariant
+        : AppTheme.secondary;
+    final textPrimary = isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
+    final cardBg = isDark
+        ? AppTheme.darkSurface
+        : AppTheme.surfaceContainerLowest;
+    final headerColor = isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
+
     return BlocBuilder<DiaryBloc, DiaryState>(
       builder: (context, state) {
         if (state is DiaryLoaded) {
-          final petEntries = state.entries
-              .where((e) => e.petId == _pet.id)
-              .toList();
+          final petEntries =
+              state.entries.where((e) => e.petId == _pet.id).toList()
+                ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
           if (petEntries.isEmpty) {
-            return const Center(
-              child: Text('No activity logs recorded for this pet.'),
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _buildEmptyMinimalCard(
+                'No activity logs recorded for ${_pet.name}.',
+                isDark,
+                cardBg,
+                textSecondary,
+              ),
             );
           }
 
-          return ListView.builder(
-            itemCount: petEntries.length,
+          return SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemBuilder: (context, index) {
-              final entry = petEntries[index];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: AppTheme.primaryFixed,
-                    child: Icon(Icons.notes, color: AppTheme.primary, size: 20),
-                  ),
-                  title: Text(
-                    entry.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(entry.note),
-                  trailing: Text(
-                    '${entry.timestamp.hour}:${entry.timestamp.minute.toString().padLeft(2, '0')}',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: AppTheme.secondary,
-                    ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 4),
+                ...petEntries.map(
+                  (entry) => _buildMinimalDiaryTile(
+                    entry,
+                    isDark,
+                    cardBg,
+                    textPrimary,
+                    textSecondary,
+                    headerColor,
                   ),
                 ),
-              );
-            },
+                const SizedBox(height: 24),
+              ],
+            ),
           );
         }
-        return const Center(child: CircularProgressIndicator());
+        return Center(child: CircularProgressIndicator(color: headerColor));
       },
     );
   }
@@ -646,6 +957,16 @@ class _PetProfileScreenState extends State<PetProfileScreen>
   }
 
   Widget _buildWeightTab() {
+    final isDark = context.watch<ThemeCubit>().state;
+    final textSecondary = isDark
+        ? AppTheme.darkOnSurfaceVariant
+        : AppTheme.secondary;
+    final textPrimary = isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
+    final cardBg = isDark
+        ? AppTheme.darkSurface
+        : AppTheme.surfaceContainerLowest;
+    final headerColor = isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
+
     final history = _pet.weightHistory;
 
     // Calculate last 6 months (oldest to newest)
@@ -723,33 +1044,38 @@ class _PetProfileScreenState extends State<PetProfileScreen>
     final double chartMinW = finalMinW;
     final double chartMaxW = finalMaxW;
 
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Weight trend card
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceContainerLowest,
+              color: cardBg,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: AppTheme.surfaceContainerLow),
+              border: Border.all(
+                color: isDark
+                    ? const Color(0xFF383634)
+                    : AppTheme.surfaceContainerLow,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.01),
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.01),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: history.isEmpty
-                ? const SizedBox(
+                ? SizedBox(
                     height: 220,
                     child: Center(
                       child: Text(
                         'No weight logs recorded yet.',
                         style: TextStyle(
-                          color: AppTheme.secondary,
+                          color: textSecondary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -766,22 +1092,22 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Weight\nTrend',
                                 style: TextStyle(
                                   fontFamily: 'Montserrat',
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                   height: 1.1,
-                                  color: AppTheme.onSurface,
+                                  color: textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              const Text(
+                              Text(
                                 'Last 6 months monitoring',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: AppTheme.secondary,
+                                  color: textSecondary,
                                 ),
                               ),
                             ],
@@ -794,8 +1120,12 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                               ),
                               decoration: BoxDecoration(
                                 color: trendDiff >= 0
-                                    ? const Color(0xFFE2F5E9)
-                                    : const Color(0xFFFDE8E8),
+                                    ? (isDark
+                                          ? const Color(0xFF2E4E30)
+                                          : const Color(0xFFE2F5E9))
+                                    : (isDark
+                                          ? const Color(0xFF5C2B1D)
+                                          : const Color(0xFFFDE8E8)),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
@@ -804,8 +1134,12 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                   color: trendDiff >= 0
-                                      ? const Color(0xFF386B52)
-                                      : const Color(0xFF9B1C1C),
+                                      ? (isDark
+                                            ? AppTheme.primaryFixedDim
+                                            : const Color(0xFF386B52))
+                                      : (isDark
+                                            ? const Color(0xFFFFB4A3)
+                                            : const Color(0xFF9B1C1C)),
                                 ),
                               ),
                             ),
@@ -814,7 +1148,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                       const SizedBox(height: 20),
                       // Graph area
                       SizedBox(
-                        height: 150,
+                        height: 160,
                         child: Stack(
                           children: [
                             // Horizontal grid lines
@@ -824,7 +1158,9 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                                 4,
                                 (index) => Container(
                                   height: 1,
-                                  color: AppTheme.surfaceContainerLow,
+                                  color: isDark
+                                      ? const Color(0xFF383634)
+                                      : AppTheme.surfaceContainerLow,
                                 ),
                               ),
                             ),
@@ -856,7 +1192,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                                         0.0,
                                         1.0,
                                       );
-                                      const double plotHeight = 90.0;
+                                      const double plotHeight = 70.0;
                                       final double barHeight =
                                           plotHeight *
                                           (0.15 + 0.7 * clampedFactor);
@@ -869,13 +1205,13 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                                               ? FontWeight.bold
                                               : FontWeight.w500,
                                           color: isLatestMonth
-                                              ? AppTheme.primary
-                                              : AppTheme.secondary,
+                                              ? headerColor
+                                              : textSecondary,
                                         ),
                                       );
 
                                       barWidget = SizedBox(
-                                        height: 98,
+                                        height: 76,
                                         child: Stack(
                                           alignment: Alignment.bottomCenter,
                                           clipBehavior: Clip.none,
@@ -886,11 +1222,10 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                                               height: barHeight,
                                               decoration: BoxDecoration(
                                                 color: isLatestMonth
-                                                    ? AppTheme.primary
-                                                    : AppTheme.primary
-                                                          .withValues(
-                                                            alpha: 0.4,
-                                                          ),
+                                                    ? headerColor
+                                                    : headerColor.withValues(
+                                                        alpha: 0.4,
+                                                      ),
                                                 borderRadius:
                                                     BorderRadius.circular(3),
                                               ),
@@ -903,16 +1238,14 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                                                 height: isLatestMonth ? 10 : 8,
                                                 decoration: BoxDecoration(
                                                   color: isLatestMonth
-                                                      ? AppTheme.primary
-                                                      : AppTheme.primary
-                                                            .withValues(
-                                                              alpha: 0.8,
-                                                            ),
+                                                      ? headerColor
+                                                      : headerColor.withValues(
+                                                          alpha: 0.8,
+                                                        ),
                                                   shape: BoxShape.circle,
                                                   border: isLatestMonth
                                                       ? Border.all(
-                                                          color: AppTheme
-                                                              .primary
+                                                          color: headerColor
                                                               .withValues(
                                                                 alpha: 0.2,
                                                               ),
@@ -928,15 +1261,15 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                                         ),
                                       );
                                     } else {
-                                      weightTextWidget = const Text(
+                                      weightTextWidget = Text(
                                         'N/A',
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w500,
-                                          color: AppTheme.secondary,
+                                          color: textSecondary,
                                         ),
                                       );
-                                      barWidget = const SizedBox(height: 98);
+                                      barWidget = const SizedBox(height: 76);
                                     }
 
                                     return Expanded(
@@ -956,8 +1289,8 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                                                   ? FontWeight.bold
                                                   : FontWeight.w500,
                                               color: isLatestMonth
-                                                  ? AppTheme.onSurface
-                                                  : AppTheme.secondary,
+                                                  ? textPrimary
+                                                  : textSecondary,
                                             ),
                                           ),
                                         ],
@@ -979,16 +1312,20 @@ class _PetProfileScreenState extends State<PetProfileScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Weight History Logs',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: textPrimary,
+                ),
               ),
               ElevatedButton.icon(
                 onPressed: _showAddWeightDialog,
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Add Log', style: TextStyle(fontSize: 12)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
+                  backgroundColor: headerColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -1004,34 +1341,416 @@ class _PetProfileScreenState extends State<PetProfileScreen>
           const SizedBox(height: 8),
 
           // Weight Logs List
-          Expanded(
-            child: ListView.builder(
+          if (history.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20.0),
+              child: Center(
+                child: Text(
+                  'No weight history logs recorded.',
+                  style: TextStyle(
+                    fontStyle: FontStyle.italic,
+                    color: textSecondary,
+                  ),
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
               itemCount: history.length,
               itemBuilder: (context, index) {
                 final log = history[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF383634)
+                          : AppTheme.surfaceContainerLow,
+                    ),
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '${log.date.day}/${log.date.month}/${log.date.year} - ${log.note}',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.onSurfaceVariant,
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${log.date.day}/${log.date.month}/${log.date.year}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: textPrimary,
+                            ),
+                          ),
+                          if (log.note.isNotEmpty)
+                            Text(
+                              log.note,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: textSecondary,
+                              ),
+                            ),
+                        ],
                       ),
                       Text(
-                        '${log.weight} kg',
-                        style: const TextStyle(
+                        '${log.weight.toStringAsFixed(1)} kg',
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.primary,
+                          fontSize: 14,
+                          color: headerColor,
                         ),
                       ),
                     ],
                   ),
                 );
               },
+            ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  String _formatTime(DateTime dt) {
+    final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $period';
+  }
+
+  String _getMonthAbbr(int month) {
+    const months = [
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
+    ];
+    return months[(month - 1).clamp(0, 11)];
+  }
+
+  Widget _buildEmptyMinimalCard(
+    String message,
+    bool isDark,
+    Color cardBg,
+    Color textSecondary,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark
+              ? const Color(0xFF383634)
+              : AppTheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(
+          fontStyle: FontStyle.italic,
+          fontSize: 12,
+          color: textSecondary,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMinimalMedTile(
+    Medication med,
+    bool isDark,
+    Color cardBg,
+    Color textPrimary,
+    Color textSecondary,
+    Color headerColor,
+  ) {
+    final date = med.nextDoseDate;
+    final now = DateTime.now();
+    final isToday =
+        date.year == now.year && date.month == now.month && date.day == now.day;
+    final isOverdue = date.isBefore(DateTime(now.year, now.month, now.day));
+
+    final statusText = isToday
+        ? 'Due Today'
+        : (isOverdue ? 'Overdue' : 'Scheduled');
+    final statusColor = isToday
+        ? headerColor
+        : (isOverdue ? AppTheme.error : textSecondary);
+    final statusBg = isToday
+        ? (isDark
+              ? const Color(0xFF2E4E30)
+              : AppTheme.primaryContainer.withValues(alpha: 0.6))
+        : (isOverdue
+              ? AppTheme.errorContainer.withValues(alpha: 0.5)
+              : (isDark
+                    ? const Color(0xFF383634)
+                    : AppTheme.surfaceContainerHigh));
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isToday
+              ? headerColor.withValues(alpha: 0.3)
+              : (isDark ? const Color(0xFF383634) : Colors.transparent),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Date Badge Box
+          Container(
+            width: 48,
+            height: 50,
+            decoration: BoxDecoration(
+              color: isToday
+                  ? AppTheme.primary
+                  : (isDark
+                        ? const Color(0xFF2E4E30)
+                        : AppTheme.primaryContainer.withValues(alpha: 0.5)),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  _getMonthAbbr(date.month),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: isToday ? Colors.white : headerColor,
+                  ),
+                ),
+                Text(
+                  '${date.day}',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: isToday ? Colors.white : textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Title & Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        med.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        statusText,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: statusColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${med.dose.isNotEmpty ? med.dose : '1 Dose'} • ${med.frequency.isNotEmpty ? med.frequency : 'Daily'}',
+                  style: TextStyle(fontSize: 12, color: textSecondary),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Doses today: ${med.dosesToday}/${med.maxDosesToday}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: med.dosesToday >= med.maxDosesToday
+                            ? textSecondary
+                            : headerColor,
+                      ),
+                    ),
+                    Text(
+                      (med.dosesToday > 0 &&
+                              med.administeredDate != null &&
+                              med.administeredDate!.year == now.year &&
+                              med.administeredDate!.month == now.month &&
+                              med.administeredDate!.day == now.day)
+                          ? 'Last: ${_formatTime(med.administeredDate!)}'
+                          : 'Last: None today',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMinimalVaccineTile(
+    Medication v,
+    bool isDark,
+    Color cardBg,
+    Color textPrimary,
+    Color textSecondary,
+    Color headerColor,
+  ) {
+    final date = v.nextDoseDate;
+    final now = DateTime.now();
+    final isToday =
+        date.year == now.year && date.month == now.month && date.day == now.day;
+    final isOverdue = date.isBefore(DateTime(now.year, now.month, now.day));
+
+    final statusText = isToday
+        ? 'Due Today'
+        : (isOverdue ? 'Overdue' : 'Scheduled');
+    final statusColor = isToday
+        ? AppTheme.tertiary
+        : (isOverdue ? AppTheme.error : textSecondary);
+    final statusBg = isToday
+        ? AppTheme.tertiaryContainer.withValues(alpha: 0.6)
+        : (isOverdue
+              ? AppTheme.errorContainer.withValues(alpha: 0.5)
+              : (isDark
+                    ? const Color(0xFF383634)
+                    : AppTheme.surfaceContainerHigh));
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isToday
+              ? AppTheme.tertiary.withValues(alpha: 0.3)
+              : (isDark ? const Color(0xFF383634) : Colors.transparent),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Date Badge Box
+          Container(
+            width: 48,
+            height: 50,
+            decoration: BoxDecoration(
+              color: isToday
+                  ? AppTheme.tertiary
+                  : AppTheme.tertiaryContainer.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  _getMonthAbbr(date.month),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: isToday ? Colors.white : AppTheme.tertiary,
+                  ),
+                ),
+                Text(
+                  '${date.day}',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: isToday ? Colors.white : textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Title & Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        v.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        statusText,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: statusColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  v.dose.isNotEmpty ? v.dose : 'Vaccine Booster',
+                  style: TextStyle(fontSize: 12, color: textSecondary),
+                ),
+              ],
             ),
           ),
         ],
@@ -1040,70 +1759,200 @@ class _PetProfileScreenState extends State<PetProfileScreen>
   }
 
   Widget _buildMedsTab() {
-    final meds = _pet.medications.where((m) => m.type != 'vaccine').toList();
-    
-    return Column(
-      children: [
-        Expanded(
-          child: meds.isEmpty
-              ? const Center(
-                  child: Text(
-                    'No medications set up.',
-                    style: TextStyle(fontStyle: FontStyle.italic, color: AppTheme.secondary),
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: meds.length,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemBuilder: (context, index) {
-                    final med = meds[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: AppTheme.secondaryContainer,
-                          child: Icon(
-                            Icons.healing,
-                            color: AppTheme.secondary,
-                          ),
-                        ),
-                        title: Text(
-                          med.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Dose: ${med.dose.isNotEmpty ? med.dose : '1 Tablet'}${med.route.isNotEmpty ? ' (${med.route})' : ''}',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            Text(
-                              'Frequency: ${med.frequency.isNotEmpty ? med.frequency : 'Daily'}',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            Text(
-                              'Next due: ${med.nextDoseDate.day}/${med.nextDoseDate.month}/${med.nextDoseDate.year}',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        ),
-                        trailing: TextButton(
-                          onPressed: () => _toggleMedication(med),
-                          style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
-                          child: const Text('Administer'),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: SizedBox(
+    final isDark = context.watch<ThemeCubit>().state;
+    final textSecondary = isDark
+        ? AppTheme.darkOnSurfaceVariant
+        : AppTheme.secondary;
+    final textPrimary = isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
+    final cardBg = isDark
+        ? AppTheme.darkSurface
+        : AppTheme.surfaceContainerLowest;
+    final headerColor = isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
+
+    // Upcoming Medications: type != 'vaccine' and not completed
+    final upcomingMeds =
+        _pet.medications
+            .where((m) => m.type != 'vaccine' && !m.isCompleted)
+            .toList()
+          ..sort((a, b) => a.nextDoseDate.compareTo(b.nextDoseDate));
+
+    // Upcoming Vaccines: type == 'vaccine' and unsaved to history and not completed
+    final upcomingVaccines =
+        _pet.medications
+            .where(
+              (m) =>
+                  m.type == 'vaccine' && !m.isSavedToHistory && !m.isCompleted,
+            )
+            .toList()
+          ..sort((a, b) => a.nextDoseDate.compareTo(b.nextDoseDate));
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8),
+
+          // Primary Add Button
+          SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => MedsVaccinesScreen(
+                      pet: _pet,
+                      openAddDialog: true,
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.add, color: Colors.white, size: 20),
+              label: const Text(
+                'Add Medication or Vaccine',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.white,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 1. Upcoming Medications Section
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.medication_outlined, color: headerColor, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Upcoming Medications',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      fontFamily: 'Montserrat',
+                      color: textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF2E4E30)
+                      : AppTheme.primaryContainer.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${upcomingMeds.length}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: headerColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (upcomingMeds.isEmpty)
+            _buildEmptyMinimalCard(
+              'No upcoming medications scheduled.',
+              isDark,
+              cardBg,
+              textSecondary,
+            )
+          else
+            ...upcomingMeds.map(
+              (med) => _buildMinimalMedTile(
+                med,
+                isDark,
+                cardBg,
+                textPrimary,
+                textSecondary,
+                headerColor,
+              ),
+            ),
+
+          const SizedBox(height: 24),
+
+          // 2. Upcoming Vaccines Section
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.vaccines_outlined,
+                    color: AppTheme.tertiary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Upcoming Vaccines',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      fontFamily: 'Montserrat',
+                      color: textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppTheme.tertiaryContainer.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${upcomingVaccines.length}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.tertiary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (upcomingVaccines.isEmpty)
+            _buildEmptyMinimalCard(
+              'No upcoming vaccines scheduled.',
+              isDark,
+              cardBg,
+              textSecondary,
+            )
+          else
+            ...upcomingVaccines.map(
+              (v) => _buildMinimalVaccineTile(
+                v,
+                isDark,
+                cardBg,
+                textPrimary,
+                textSecondary,
+                headerColor,
+              ),
+            ),
+
+          const SizedBox(height: 24),
+
+          // Action Button to Manage All Meds
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -1111,117 +1960,27 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   ),
                 );
               },
-              icon: const Icon(Icons.edit_calendar_outlined, color: Colors.white),
-              label: const Text(
-                'Update Meds',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAddPhotoButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showAddPhotoDialog(context),
-      child: Container(
-        width: 120,
-        margin: const EdgeInsets.only(right: 12),
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.outlineVariant),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.add_a_photo_outlined, color: AppTheme.primary, size: 28),
-            SizedBox(height: 6),
-            Text(
-              'Add Photo',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                color: AppTheme.primary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showAddPhotoDialog(BuildContext context) {
-    final urlController = TextEditingController(
-      text:
-          'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=400',
-    );
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: const Text(
-            'Add New Photo',
-            style: TextStyle(
-              fontFamily: 'Montserrat',
-              fontWeight: FontWeight.bold,
-              color: AppTheme.primary,
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Photo URL',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-              ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: urlController,
-                decoration: const InputDecoration(
-                  hintText: 'Image network address',
+              icon: Icon(Icons.tune, size: 18, color: headerColor),
+              label: Text(
+                'Manage All Meds & Vaccines',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: headerColor,
                 ),
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final newUrl = urlController.text.trim();
-                if (newUrl.isNotEmpty) {
-                  final updatedPhotos = List<String>.from(_pet.photos)
-                    ..add(newUrl);
-                  final updatedPet = _pet.copyWith(photos: updatedPhotos);
-                  context.read<PetBloc>().add(UpdatePet(updatedPet));
-                  Navigator.of(context).pop();
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                side: BorderSide(color: headerColor, width: 1.5),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
-              child: const Text('Add'),
             ),
-          ],
-        );
-      },
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 }

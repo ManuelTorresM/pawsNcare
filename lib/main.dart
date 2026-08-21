@@ -31,27 +31,48 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final repositorySelector = RepositorySelector();
+  State<MyApp> createState() => _MyAppState();
+}
 
+class _MyAppState extends State<MyApp> {
+  late final RepositorySelector _repositorySelector;
+  late final ThemeCubit _themeCubit;
+  late final AuthBloc _authBloc;
+  late final PetBloc _petBloc;
+  late final DiaryBloc _diaryBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _repositorySelector = RepositorySelector();
+    _themeCubit = ThemeCubit();
+    _authBloc = AuthBloc(repositorySelector: _repositorySelector)
+      ..add(AuthCheckRequested());
+    _petBloc = PetBloc(repositorySelector: _repositorySelector);
+    _diaryBloc = DiaryBloc(repositorySelector: _repositorySelector);
+  }
+
+  @override
+  void dispose() {
+    _themeCubit.close();
+    _authBloc.close();
+    _petBloc.close();
+    _diaryBloc.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider<ThemeCubit>(create: (_) => ThemeCubit()),
-        BlocProvider<AuthBloc>(
-          create: (_) =>
-              AuthBloc(repositorySelector: repositorySelector)
-                ..add(AuthCheckRequested()),
-        ),
-        BlocProvider<PetBloc>(
-          create: (_) => PetBloc(repositorySelector: repositorySelector),
-        ),
-        BlocProvider<DiaryBloc>(
-          create: (_) => DiaryBloc(repositorySelector: repositorySelector),
-        ),
+        BlocProvider<ThemeCubit>.value(value: _themeCubit),
+        BlocProvider<AuthBloc>.value(value: _authBloc),
+        BlocProvider<PetBloc>.value(value: _petBloc),
+        BlocProvider<DiaryBloc>.value(value: _diaryBloc),
       ],
       child: BlocBuilder<ThemeCubit, bool>(
         builder: (context, isDarkMode) {
