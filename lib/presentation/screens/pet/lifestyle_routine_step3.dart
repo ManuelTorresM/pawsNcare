@@ -11,6 +11,8 @@ class LifestyleRoutineStep3 extends StatelessWidget {
   final ValueChanged<String> onFoodTypeChanged;
   final TextEditingController feedingNotesController;
   final TextEditingController weightController;
+  final String selectedWeightUnit;
+  final ValueChanged<String> onWeightUnitChanged;
 
   final List<String> selectedBehaviorTags;
   final ValueChanged<String> onBehaviorTagToggled;
@@ -25,6 +27,8 @@ class LifestyleRoutineStep3 extends StatelessWidget {
     required this.onFoodTypeChanged,
     required this.feedingNotesController,
     required this.weightController,
+    required this.selectedWeightUnit,
+    required this.onWeightUnitChanged,
     required this.selectedBehaviorTags,
     required this.onBehaviorTagToggled,
   });
@@ -55,14 +59,80 @@ class LifestyleRoutineStep3 extends StatelessWidget {
         const SizedBox(height: 24),
 
         // Weight Input Section
-        const Text(
-          'Pet Weight',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            color: AppTheme.onSurfaceVariant,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Pet Weight',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: AppTheme.onSurfaceVariant,
+              ),
+            ),
+            Container(
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.surfaceContainer),
+              ),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => onWeightUnitChanged('kg'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selectedWeightUnit == 'kg'
+                            ? AppTheme.primary
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        'kg',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: selectedWeightUnit == 'kg'
+                              ? Colors.white
+                              : AppTheme.secondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => onWeightUnitChanged('lbs'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selectedWeightUnit == 'lbs'
+                            ? AppTheme.primary
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        'lbs',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: selectedWeightUnit == 'lbs'
+                              ? Colors.white
+                              : AppTheme.secondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         TextFormField(
@@ -70,9 +140,11 @@ class LifestyleRoutineStep3 extends StatelessWidget {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           style: const TextStyle(fontFamily: 'Inter'),
           decoration: InputDecoration(
-            hintText: 'e.g. 10.5',
-            suffixText: 'kg',
-            helperText: 'Standard weight range: 0.1 kg - 150.0 kg',
+            hintText: selectedWeightUnit == 'kg' ? 'e.g. 10.5' : 'e.g. 23.0',
+            suffixText: selectedWeightUnit,
+            helperText: selectedWeightUnit == 'kg'
+                ? 'Standard weight range: 0.1 kg - 150.0 kg'
+                : 'Standard weight range: 0.2 lbs - 330.0 lbs',
             helperStyle: TextStyle(
               color: AppTheme.secondary.withValues(alpha: 0.6),
             ),
@@ -195,11 +267,36 @@ class LifestyleRoutineStep3 extends StatelessWidget {
                 TextField(
                   controller: feedingNotesController,
                   maxLines: 3,
-                  style: const TextStyle(fontFamily: 'Inter'),
+                  minLines: 2,
+                  style: const TextStyle(fontFamily: 'Inter', fontSize: 13),
                   decoration: InputDecoration(
                     hintText: 'e.g. 1/2 cup twice a day, morning and evening.',
                     hintStyle: TextStyle(
                       color: AppTheme.secondary.withValues(alpha: 0.5),
+                      fontSize: 12,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppTheme.surfaceContainer,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppTheme.surfaceContainer,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppTheme.primary,
+                        width: 1.5,
+                      ),
                     ),
                   ),
                 ),

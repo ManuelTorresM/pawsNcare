@@ -78,7 +78,7 @@ class Pet extends Equatable {
       breed: breed,
       ageString: ageString,
       birthDate: birthDate,
-      avatarUrl: avatarUrl,
+      avatarUrl: _resolveConsistentAvatarUrl(''),
       status: status,
       weight: weight,
       weightHistory: const [],
@@ -97,6 +97,41 @@ class Pet extends Equatable {
       ownerId: ownerId,
       members: members,
     );
+  }
+
+  /// Returns an image-consistent replica for shared pets.
+  /// Ensures shared members receive valid network image replicas and filters out
+  /// local device file paths that belong exclusively to the owner's local disk.
+  Pet toConsistentImageReplica({required String currentUserId}) {
+    final isOwner = ownerId.isNotEmpty && ownerId == currentUserId;
+    if (isOwner) return this;
+
+    final consistentAvatar = _resolveConsistentAvatarUrl(currentUserId);
+    final consistentPhotos = photos
+        .where(
+          (p) =>
+              p.startsWith('http://') ||
+              p.startsWith('https://') ||
+              p.startsWith('gs://'),
+        )
+        .toList();
+
+    return copyWith(avatarUrl: consistentAvatar, photos: consistentPhotos);
+  }
+
+  String _resolveConsistentAvatarUrl(String currentUserId) {
+    if (avatarUrl.startsWith('http://') ||
+        avatarUrl.startsWith('https://') ||
+        avatarUrl.startsWith('gs://')) {
+      return avatarUrl;
+    }
+    // If avatar is a local file path and user is not owner, return empty string for fallback
+    if (ownerId.isNotEmpty &&
+        ownerId != currentUserId &&
+        avatarUrl.isNotEmpty) {
+      return '';
+    }
+    return avatarUrl;
   }
 
   Map<String, dynamic> toMap() {
@@ -139,13 +174,17 @@ class Pet extends Equatable {
       weight: (map['weight'] as num).toDouble(),
       weightHistory: map['weightHistory'] != null
           ? List<WeightLog>.from(
-              (map['weightHistory'] as List).map((x) => WeightLog.fromMap(x)))
+              (map['weightHistory'] as List).map((x) => WeightLog.fromMap(x)),
+            )
           : const [],
       medications: map['medications'] != null
           ? List<Medication>.from(
-              (map['medications'] as List).map((x) => Medication.fromMap(x)))
+              (map['medications'] as List).map((x) => Medication.fromMap(x)),
+            )
           : const [],
-      photos: map['photos'] != null ? List<String>.from(map['photos']) : const [],
+      photos: map['photos'] != null
+          ? List<String>.from(map['photos'])
+          : const [],
       species: map['species'] ?? 'Dog',
       gender: map['gender'] ?? 'Female',
       neutered: map['neutered'] ?? 'Yes',
@@ -165,7 +204,8 @@ class Pet extends Equatable {
       ownerId: map['ownerId'] ?? '',
       members: map['members'] != null
           ? List<SharedMember>.from(
-              (map['members'] as List).map((x) => SharedMember.fromMap(x)))
+              (map['members'] as List).map((x) => SharedMember.fromMap(x)),
+            )
           : const [],
     );
   }
@@ -224,28 +264,28 @@ class Pet extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        breed,
-        ageString,
-        birthDate,
-        avatarUrl,
-        status,
-        weight,
-        weightHistory,
-        medications,
-        photos,
-        species,
-        gender,
-        neutered,
-        medicalConditions,
-        allergies,
-        activityLevel,
-        dietEnabled,
-        foodType,
-        feedingNotes,
-        behaviorTags,
-        ownerId,
-        members,
-      ];
+    id,
+    name,
+    breed,
+    ageString,
+    birthDate,
+    avatarUrl,
+    status,
+    weight,
+    weightHistory,
+    medications,
+    photos,
+    species,
+    gender,
+    neutered,
+    medicalConditions,
+    allergies,
+    activityLevel,
+    dietEnabled,
+    foodType,
+    feedingNotes,
+    behaviorTags,
+    ownerId,
+    members,
+  ];
 }

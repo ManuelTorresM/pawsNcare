@@ -51,6 +51,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
   String _selectedFoodType = 'Mixed';
   final _feedingNotesController = TextEditingController();
   final _weightController = TextEditingController(text: '0.0');
+  String _selectedWeightUnit = 'kg';
   final List<String> _selectedBehaviorTags = [];
 
   @override
@@ -262,16 +263,20 @@ class _AddPetWizardState extends State<AddPetWizard> {
     // Parse and validate weight
     final weightText = _weightController.text.trim();
     final weightVal = double.tryParse(weightText);
-    if (weightVal == null || weightVal < 0.0 || weightVal > 150.0) {
+    final maxAllowedWeight = _selectedWeightUnit == 'kg' ? 150.0 : 330.0;
+    if (weightVal == null || weightVal < 0.0 || weightVal > maxAllowedWeight) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Please enter a valid weight between 0.0 and 150.0 kg.',
+            'Please enter a valid weight between 0.0 and ${maxAllowedWeight.toStringAsFixed(1)} $_selectedWeightUnit.',
           ),
         ),
       );
       return;
     }
+
+    final weightInKg =
+        _selectedWeightUnit == 'lbs' ? weightVal / 2.20462 : weightVal;
 
     // Calculate age string
     final birth =
@@ -320,13 +325,14 @@ class _AddPetWizardState extends State<AddPetWizard> {
       birthDate: birth,
       avatarUrl: _selectedAvatar,
       status: years == 0 ? 'Puppy' : 'Healthy',
-      weight: weightVal,
+      weight: weightInKg,
       weightHistory: weightVal == 0.0
           ? const []
           : [
               WeightLog(
                 id: 'w_$petId',
                 weight: weightVal,
+                unit: _selectedWeightUnit,
                 date: DateTime.now(),
                 note: 'Initial Weight',
               ),
@@ -664,6 +670,9 @@ class _AddPetWizardState extends State<AddPetWizard> {
             });
           },
           weightController: _weightController,
+          selectedWeightUnit: _selectedWeightUnit,
+          onWeightUnitChanged:
+              (unit) => setState(() => _selectedWeightUnit = unit),
         );
       default:
         return const SizedBox.shrink();

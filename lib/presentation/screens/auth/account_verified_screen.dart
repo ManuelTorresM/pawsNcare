@@ -3,8 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../logic/auth/auth_bloc.dart';
 import '../../../logic/theme/theme_cubit.dart';
 import '../../theme/app_theme.dart';
+import '../pet/add_pet_wizard.dart';
 
-class AccountVerifiedScreen extends StatelessWidget {
+class AccountVerifiedScreen extends StatefulWidget {
   final String name;
   final String email;
   final String password;
@@ -15,6 +16,13 @@ class AccountVerifiedScreen extends StatelessWidget {
     required this.email,
     required this.password,
   });
+
+  @override
+  State<AccountVerifiedScreen> createState() => _AccountVerifiedScreenState();
+}
+
+class _AccountVerifiedScreenState extends State<AccountVerifiedScreen> {
+  bool _shouldLaunchAddPet = false;
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +38,11 @@ class AccountVerifiedScreen extends StatelessWidget {
         listener: (context, state) {
           if (state is Authenticated) {
             Navigator.of(context).popUntil((route) => route.isFirst);
+            if (_shouldLaunchAddPet) {
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const AddPetWizard()));
+            }
           } else if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -92,7 +105,7 @@ class AccountVerifiedScreen extends StatelessWidget {
                 const SizedBox(height: 12),
 
                 Text(
-                  'Congratulations $name! Your account has been verified and registered successfully. Welcome to Paws & Care.',
+                  'Congratulations ${widget.name}! Your account has been verified and registered successfully. Welcome to Paws & Care.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'Inter',
@@ -103,49 +116,114 @@ class AccountVerifiedScreen extends StatelessWidget {
                 ),
                 const Spacer(),
 
-                // Submit Registration / Enter App CTA Button
+                // Action Buttons
                 BlocBuilder<AuthBloc, AuthState>(
                   builder: (context, state) {
                     final isLoading = state is AuthLoading;
-                    return SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: isLoading
-                            ? null
-                            : () {
-                                context.read<AuthBloc>().add(
-                                  LoginSubmitted(email, password),
-                                );
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation(
-                                    Colors.white,
-                                  ),
-                                ),
-                              )
-                            : const Text(
-                                'Go to Dashboard',
-                                style: TextStyle(
-                                  fontFamily: 'Montserrat',
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
+                    return Column(
+                      children: [
+                        // Button 1: Add Your First Pet (Primary CTA)
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: isLoading
+                                ? null
+                                : () {
+                                    setState(() {
+                                      _shouldLaunchAddPet = true;
+                                    });
+                                    context.read<AuthBloc>().add(
+                                      LoginSubmitted(
+                                        widget.email,
+                                        widget.password,
+                                      ),
+                                    );
+                                  },
+                            icon: isLoading && _shouldLaunchAddPet
+                                ? const SizedBox(
+                                    height: 18,
+                                    width: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : const Icon(Icons.pets, size: 20),
+                            label: Text(
+                              isLoading && _shouldLaunchAddPet
+                                  ? 'Signing in...'
+                                  : 'Add Your First Pet',
+                              style: const TextStyle(
+                                fontFamily: 'Montserrat',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
                               ),
-                      ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Button 2: Go to Dashboard (Secondary CTA)
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: isLoading
+                                ? null
+                                : () {
+                                    setState(() {
+                                      _shouldLaunchAddPet = false;
+                                    });
+                                    context.read<AuthBloc>().add(
+                                      LoginSubmitted(
+                                        widget.email,
+                                        widget.password,
+                                      ),
+                                    );
+                                  },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.primary,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              side: const BorderSide(
+                                color: AppTheme.primary,
+                                width: 1.5,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: isLoading && !_shouldLaunchAddPet
+                                ? const SizedBox(
+                                    height: 18,
+                                    width: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation(
+                                        AppTheme.primary,
+                                      ),
+                                    ),
+                                  )
+                                : const Text(
+                                    'Go to Dashboard',
+                                    style: TextStyle(
+                                      fontFamily: 'Montserrat',
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),

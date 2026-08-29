@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../../logic/diary/diary_bloc.dart';
+import '../../../logic/notifications/global_notification_service.dart';
 import '../../theme/app_theme.dart';
 import 'home_tab.dart';
 import '../diary/diary_screen.dart';
@@ -124,14 +125,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
                 actions: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none, color: AppTheme.secondary),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("No new notifications"),
-                          backgroundColor: AppTheme.primary,
-                        ),
+                  ListenableBuilder(
+                    listenable: GlobalNotificationService(),
+                    builder: (context, _) {
+                      final unread = GlobalNotificationService().unreadCount;
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.notifications_none,
+                              color: AppTheme.primary,
+                            ),
+                            onPressed: () => GlobalNotificationService()
+                                .showNotificationCenter(context),
+                          ),
+                          if (unread > 0)
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: AppTheme.tertiary,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                child: Text(
+                                  '$unread',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                        ],
                       );
                     },
                   ),

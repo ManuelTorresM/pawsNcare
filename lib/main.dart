@@ -11,22 +11,15 @@ import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/dashboard/dashboard_screen.dart';
 import 'firebase_options.dart';
 
+import 'presentation/widgets/global_notification_overlay.dart';
+import 'logic/notifications/global_notification_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Try to initialize Firebase using local configurations.
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } catch (e) {
-    debugPrint("Firebase initialization failed/skipped: $e");
-    // Ensure we force local mock mode if Firebase is not configured yet
-    final dbSource = await RepositorySelector.getDbSource();
-    if (dbSource == 'firebase') {
-      await RepositorySelector.setDbSource('mock');
-    }
-  }
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await RepositorySelector.setDbSource('firebase');
+  await GlobalNotificationService().init();
 
   runApp(const MyApp());
 }
@@ -54,6 +47,12 @@ class _MyAppState extends State<MyApp> {
       ..add(AuthCheckRequested());
     _petBloc = PetBloc(repositorySelector: _repositorySelector);
     _diaryBloc = DiaryBloc(repositorySelector: _repositorySelector);
+
+    _petBloc.stream.listen((state) {
+      if (state is PetLoaded) {
+        GlobalNotificationService().syncPetEvents(state.pets);
+      }
+    });
   }
 
   @override
@@ -82,6 +81,11 @@ class _MyAppState extends State<MyApp> {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            builder: (context, child) {
+              return GlobalNotificationOverlay(
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
             home: BlocBuilder<AuthBloc, AuthState>(
               builder: (context, state) {
                 if (state is Authenticated) {

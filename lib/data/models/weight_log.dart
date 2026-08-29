@@ -5,12 +5,14 @@ class WeightLog extends Equatable {
   final double weight;
   final DateTime date;
   final String note;
+  final String unit;
 
   const WeightLog({
     required this.id,
     required this.weight,
     required this.date,
     this.note = '',
+    this.unit = 'kg',
   });
 
   Map<String, dynamic> toMap() {
@@ -19,6 +21,7 @@ class WeightLog extends Equatable {
       'weight': weight,
       'date': date.toIso8601String(),
       'note': note,
+      'unit': unit,
     };
   }
 
@@ -28,9 +31,10 @@ class WeightLog extends Equatable {
       weight: (map['weight'] as num).toDouble(),
       date: DateTime.parse(map['date']),
       note: map['note'] ?? '',
+      unit: map['unit'] ?? 'kg',
     );
   }
 
   @override
-  List<Object?> get props => [id, weight, date, note];
+  List<Object?> get props => [id, weight, date, note, unit];
 }

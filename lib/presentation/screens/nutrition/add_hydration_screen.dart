@@ -15,14 +15,12 @@ class _AddHydrationScreenState extends State<AddHydrationScreen> {
   final List<String> _selectedPets = ['All Pets'];
   String _selectedFrequency = '2h'; // '2h', '4h', '6h', 'custom'
   final _customFrequencyController = TextEditingController();
-
-  bool _isNightActive = true;
-  TimeOfDay _nightStart = const TimeOfDay(hour: 22, minute: 0);
-  TimeOfDay _nightEnd = const TimeOfDay(hour: 7, minute: 0);
+  final _notesController = TextEditingController();
 
   @override
   void dispose() {
     _customFrequencyController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -50,26 +48,6 @@ class _AddHydrationScreenState extends State<AddHydrationScreen> {
     });
   }
 
-  Future<void> _selectNightStart() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _nightStart,
-    );
-    if (picked != null) {
-      setState(() => _nightStart = picked);
-    }
-  }
-
-  Future<void> _selectNightEnd() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _nightEnd,
-    );
-    if (picked != null) {
-      setState(() => _nightEnd = picked);
-    }
-  }
-
   void _saveReminder() {
     String label = '';
     if (_selectedFrequency == '2h') {
@@ -91,6 +69,7 @@ class _AddHydrationScreenState extends State<AddHydrationScreen> {
       subtitle: 'Daily Reminder',
       targetPets: List.from(_selectedPets),
       type: 'hydration',
+      notes: _notesController.text.trim(),
     );
 
     Navigator.of(context).pop(newItem);
@@ -245,185 +224,51 @@ class _AddHydrationScreenState extends State<AddHydrationScreen> {
                         _buildCustomFrequencyCard(),
                       ],
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 24),
 
-                    // Night Settings Section Card
+                    // Additional Notes Card
                     Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: AppTheme.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: AppTheme.surfaceContainer),
                       ),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.nights_stay,
-                                    color: AppTheme.primary,
-                                    size: 28,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: const [
-                                      Text(
-                                        'Inactive during night',
-                                        style: TextStyle(
-                                          fontFamily: 'Inter',
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                      Text(
-                                        'Stop reminders while you sleep',
-                                        style: TextStyle(
-                                          fontFamily: 'Inter',
-                                          fontSize: 11,
-                                          color: AppTheme.onSurfaceVariant,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              Switch(
-                                value: _isNightActive,
-                                activeThumbColor: AppTheme.primary,
-                                onChanged: (val) =>
-                                    setState(() => _isNightActive = val),
-                              ),
-                            ],
-                          ),
-                          if (_isNightActive) ...[
-                            const SizedBox(height: 16),
-                            const Divider(),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: _selectNightStart,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'Night Period Start',
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 11,
-                                            color: AppTheme.onSurfaceVariant,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 10,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color:
-                                                AppTheme.surfaceContainerLowest,
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                            border: Border.all(
-                                              color: AppTheme.surfaceContainer,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text(
-                                                _nightStart.format(context),
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              const Icon(
-                                                Icons.access_time,
-                                                size: 16,
-                                                color: AppTheme.secondary,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 10.0,
-                                  ),
-                                  child: Icon(
-                                    Icons.arrow_forward,
-                                    color: AppTheme.secondary,
-                                  ),
-                                ),
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: _selectNightEnd,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'Night Period End',
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 11,
-                                            color: AppTheme.onSurfaceVariant,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 10,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color:
-                                                AppTheme.surfaceContainerLowest,
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                            border: Border.all(
-                                              color: AppTheme.surfaceContainer,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text(
-                                                _nightEnd.format(context),
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              const Icon(
-                                                Icons.access_time,
-                                                size: 16,
-                                                color: AppTheme.secondary,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
+                          const Text(
+                            'ADDITIONAL NOTES',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                              color: AppTheme.primary,
+                              letterSpacing: 1.0,
                             ),
-                          ],
+                          ),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _notesController,
+                            maxLines: 2,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: AppTheme.onSurface,
+                            ),
+                            decoration: InputDecoration(
+                              hintText:
+                                  'e.g. Refill water fountain with fresh filtered water...',
+                              hintStyle: TextStyle(
+                                color: AppTheme.onSurfaceVariant.withValues(
+                                  alpha: 0.7,
+                                ),
+                                fontSize: 12,
+                              ),
+                              border: InputBorder.none,
+                            ),
+                          ),
                         ],
                       ),
                     ),

@@ -12,6 +12,7 @@ import '../../../data/models/diary_entry.dart';
 import '../../theme/app_theme.dart';
 import 'pet_details_screen.dart';
 import 'meds_vaccines_screen.dart';
+import 'pet_album_screen.dart';
 
 class PetProfileScreen extends StatefulWidget {
   final Pet pet;
@@ -25,6 +26,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late Pet _pet;
+  String _selectedWeightUnit = 'kg';
 
   @override
   void initState() {
@@ -39,77 +41,564 @@ class _PetProfileScreenState extends State<PetProfileScreen>
     super.dispose();
   }
 
-  void _showAddWeightDialog() {
-    final weightController = TextEditingController();
-    final noteController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Log New Weight'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+  Widget _buildBentoDialogCard({
+    required String label,
+    required Color accentColor,
+    required Widget child,
+  }) {
+    final isDark = context.read<ThemeCubit>().state;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkSurface : AppTheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? const Color(0xFF383634) : AppTheme.surfaceContainer,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              TextField(
-                controller: weightController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  hintText: 'Weight (kg)',
-                  prefixIcon: Icon(Icons.monitor_weight),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: accentColor,
+                  shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: noteController,
-                decoration: const InputDecoration(
-                  hintText: 'Notes (e.g. Vet check, morning)',
-                  prefixIcon: Icon(Icons.notes),
+              const SizedBox(width: 8),
+              Text(
+                label.toUpperCase(),
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  letterSpacing: 0.6,
+                  color: accentColor,
                 ),
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final weightValue = double.tryParse(weightController.text);
-                if (weightValue == null) return;
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
+    );
+  }
 
-                final newLog = WeightLog(
-                  id: DateTime.now().millisecondsSinceEpoch.toString(),
-                  weight: weightValue,
-                  date: DateTime.now(),
-                  note: noteController.text.isEmpty
-                      ? 'At Home'
-                      : noteController.text,
-                );
+  void _showAddWeightDialog() {
+    final weightController = TextEditingController();
+    final noteController = TextEditingController();
+    String dialogUnit = _selectedWeightUnit;
+    String? validationError;
 
-                final updatedHistory = List<WeightLog>.from(_pet.weightHistory)
-                  ..insert(0, newLog);
-                final updatedPet = _pet.copyWith(
-                  weight: weightValue,
-                  weightHistory: updatedHistory,
-                );
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            final isDark = context.read<ThemeCubit>().state;
+            final dialogBg = isDark
+                ? AppTheme.darkBackground
+                : AppTheme.background;
+            final textPrimary = isDark
+                ? AppTheme.darkOnSurface
+                : AppTheme.onSurface;
+            final textSecondary = isDark
+                ? AppTheme.darkOnSurfaceVariant
+                : AppTheme.secondary;
 
-                context.read<PetBloc>().add(UpdatePet(updatedPet));
-                setState(() {
-                  _pet = updatedPet;
-                });
-                Navigator.of(context).pop();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28),
               ),
-              child: const Text(
-                'Save Log',
-                style: TextStyle(color: Colors.white),
+              backgroundColor: dialogBg,
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 24,
               ),
-            ),
-          ],
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header Row
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryFixed.withValues(
+                                alpha: 0.3,
+                              ),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.scale_outlined,
+                              color: AppTheme.primary,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Log New Weight',
+                                  style: TextStyle(
+                                    fontFamily: 'Montserrat',
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                    color: textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Track ${_pet.name}\'s physical growth & health',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 12,
+                                    color: textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            icon: Icon(
+                              Icons.close,
+                              color: textSecondary,
+                              size: 20,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Validation Error Box (if any)
+                      if (validationError != null) ...[
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.red.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: Colors.red,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  validationError!,
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      // Bento Card 1: Unit & Weight Entry
+                      _buildBentoDialogCard(
+                        label: 'Weight Measurement',
+                        accentColor: AppTheme.primary,
+                        child: Column(
+                          children: [
+                            // Unit Selector Toggle Pill
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? AppTheme.darkSurface
+                                    : AppTheme.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: isDark
+                                      ? const Color(0xFF383634)
+                                      : AppTheme.surfaceContainer,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () => setDialogState(() {
+                                        dialogUnit = 'kg';
+                                        validationError = null;
+                                      }),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 180,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 10,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: dialogUnit == 'kg'
+                                              ? AppTheme.primary
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          boxShadow: dialogUnit == 'kg'
+                                              ? [
+                                                  BoxShadow(
+                                                    color: AppTheme.primary
+                                                        .withValues(alpha: 0.3),
+                                                    blurRadius: 6,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ]
+                                              : [],
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            'Kilograms (kg)',
+                                            style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                              color: dialogUnit == 'kg'
+                                                  ? Colors.white
+                                                  : textSecondary,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () => setDialogState(() {
+                                        dialogUnit = 'lbs';
+                                        validationError = null;
+                                      }),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 180,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 10,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: dialogUnit == 'lbs'
+                                              ? AppTheme.primary
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          boxShadow: dialogUnit == 'lbs'
+                                              ? [
+                                                  BoxShadow(
+                                                    color: AppTheme.primary
+                                                        .withValues(alpha: 0.3),
+                                                    blurRadius: 6,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ]
+                                              : [],
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            'Pounds (lbs)',
+                                            style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                              color: dialogUnit == 'lbs'
+                                                  ? Colors.white
+                                                  : textSecondary,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            // Weight Input Field
+                            TextField(
+                              controller: weightController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              style: TextStyle(
+                                fontFamily: 'Montserrat',
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: textPrimary,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: '0.0',
+                                hintStyle: TextStyle(
+                                  color: textSecondary.withValues(alpha: 0.5),
+                                  fontWeight: FontWeight.normal,
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.monitor_weight_outlined,
+                                  color: AppTheme.primary,
+                                ),
+                                suffixText: dialogUnit,
+                                suffixStyle: const TextStyle(
+                                  fontFamily: 'Montserrat',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: AppTheme.primary,
+                                ),
+                                filled: true,
+                                fillColor: isDark
+                                    ? AppTheme.darkSurface
+                                    : AppTheme.surfaceContainerLow,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide(
+                                    color: isDark
+                                        ? const Color(0xFF383634)
+                                        : AppTheme.surfaceContainer,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide(
+                                    color: isDark
+                                        ? const Color(0xFF383634)
+                                        : AppTheme.surfaceContainer,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: const BorderSide(
+                                    color: AppTheme.primary,
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+                              onChanged: (_) {
+                                if (validationError != null) {
+                                  setDialogState(() => validationError = null);
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Bento Card 2: Notes / Context
+                      _buildBentoDialogCard(
+                        label: 'Notes & Details',
+                        accentColor: AppTheme.secondary,
+                        child: TextField(
+                          controller: noteController,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 14,
+                            color: textPrimary,
+                          ),
+                          decoration: InputDecoration(
+                            hintText:
+                                'e.g. Morning baseline, vet visit, post-walk',
+                            hintStyle: TextStyle(
+                              color: textSecondary.withValues(alpha: 0.6),
+                              fontSize: 13,
+                            ),
+                            prefixIcon: const Icon(
+                              Icons.sticky_note_2_outlined,
+                              color: AppTheme.secondary,
+                            ),
+                            filled: true,
+                            fillColor: isDark
+                                ? AppTheme.darkSurface
+                                : AppTheme.surfaceContainerLow,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(
+                                color: isDark
+                                    ? const Color(0xFF383634)
+                                    : AppTheme.surfaceContainer,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(
+                                color: isDark
+                                    ? const Color(0xFF383634)
+                                    : AppTheme.surfaceContainer,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: AppTheme.secondary,
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Action Buttons Row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                foregroundColor: textSecondary,
+                                side: BorderSide(
+                                  color: isDark
+                                      ? const Color(0xFF383634)
+                                      : AppTheme.surfaceContainer,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                final weightValue = double.tryParse(
+                                  weightController.text.trim(),
+                                );
+                                if (weightValue == null || weightValue <= 0) {
+                                  setDialogState(() {
+                                    validationError =
+                                        'Please enter a valid weight number above 0';
+                                  });
+                                  return;
+                                }
+
+                                final maxVal = dialogUnit == 'kg'
+                                    ? 150.0
+                                    : 330.0;
+                                if (weightValue > maxVal) {
+                                  setDialogState(() {
+                                    validationError =
+                                        'Weight exceeds standard range (Max $maxVal $dialogUnit)';
+                                  });
+                                  return;
+                                }
+
+                                final newLog = WeightLog(
+                                  id: DateTime.now().millisecondsSinceEpoch
+                                      .toString(),
+                                  weight: weightValue,
+                                  unit: dialogUnit,
+                                  date: DateTime.now(),
+                                  note: noteController.text.trim().isEmpty
+                                      ? 'At Home'
+                                      : noteController.text.trim(),
+                                );
+
+                                final updatedHistory = List<WeightLog>.from(
+                                  _pet.weightHistory,
+                                )..insert(0, newLog);
+
+                                final weightInKg = dialogUnit == 'lbs'
+                                    ? weightValue / 2.20462
+                                    : weightValue;
+
+                                final updatedPet = _pet.copyWith(
+                                  weight: weightInKg,
+                                  weightHistory: updatedHistory,
+                                );
+
+                                context.read<PetBloc>().add(
+                                  UpdatePet(updatedPet),
+                                );
+                                setState(() {
+                                  _pet = updatedPet;
+                                  _selectedWeightUnit = dialogUnit;
+                                });
+                                Navigator.of(dialogContext).pop();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Logged ${weightValue.toStringAsFixed(1)} $dialogUnit for ${_pet.name}!',
+                                    ),
+                                    backgroundColor: AppTheme.primary,
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.check, size: 18),
+                              label: const Text(
+                                'Save Log',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -317,7 +806,9 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                         const SizedBox(width: 8),
                         _buildStatCard(
                           label: 'Weight',
-                          value: '${_pet.weight.toStringAsFixed(0)}kg',
+                          value: _selectedWeightUnit == 'lbs'
+                              ? '${(_pet.weight * 2.20462).toStringAsFixed(1)} lbs'
+                              : '${_pet.weight.toStringAsFixed(1)} kg',
                           icon: Icons.scale_outlined,
                           iconColor: const Color(0xFF1F6156),
                         ),
@@ -352,16 +843,43 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   // Recent Photos Gallery
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Recent Photos',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: textPrimary,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Recent Photos',
+                          style: TextStyle(
+                            fontFamily: 'Montserrat',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: textPrimary,
+                          ),
                         ),
-                      ),
+                        TextButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    PetAlbumScreen(initialPetFilter: _pet.name),
+                              ),
+                            );
+                          },
+                          icon: Icon(
+                            Icons.photo_library_outlined,
+                            size: 18,
+                            color: headerColor,
+                          ),
+                          label: Text(
+                            'Album',
+                            style: TextStyle(
+                              fontFamily: 'Montserrat',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: headerColor,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -375,47 +893,50 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                         if (index == _pet.photos.length) {
                           return _buildAddPhotoButton(context);
                         }
-                        return Container(
-                          margin: const EdgeInsets.only(right: 12),
-                          width: 120,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child:
-                                (_pet.photos[index].startsWith('http') ||
-                                    _pet.photos[index].startsWith('https'))
-                                ? Image.network(
-                                    _pet.photos[index],
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            Container(
-                                              color: isDark
-                                                  ? const Color(0xFF383634)
-                                                  : AppTheme.surfaceContainer,
-                                              child: Icon(
-                                                Icons.broken_image,
-                                                color: textSecondary,
+                        return GestureDetector(
+                          onTap: () => _openPhotoViewer(context, index),
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 12),
+                            width: 120,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child:
+                                  (_pet.photos[index].startsWith('http') ||
+                                      _pet.photos[index].startsWith('https'))
+                                  ? Image.network(
+                                      _pet.photos[index],
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              Container(
+                                                color: isDark
+                                                    ? const Color(0xFF383634)
+                                                    : AppTheme.surfaceContainer,
+                                                child: Icon(
+                                                  Icons.broken_image,
+                                                  color: textSecondary,
+                                                ),
                                               ),
-                                            ),
-                                  )
-                                : Image.file(
-                                    File(_pet.photos[index]),
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            Container(
-                                              color: isDark
-                                                  ? const Color(0xFF383634)
-                                                  : AppTheme.surfaceContainer,
-                                              child: Icon(
-                                                Icons.broken_image,
-                                                color: textSecondary,
+                                    )
+                                  : Image.file(
+                                      File(_pet.photos[index]),
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              Container(
+                                                color: isDark
+                                                    ? const Color(0xFF383634)
+                                                    : AppTheme.surfaceContainer,
+                                                child: Icon(
+                                                  Icons.broken_image,
+                                                  color: textSecondary,
+                                                ),
                                               ),
-                                            ),
-                                  ),
+                                    ),
+                            ),
                           ),
                         );
                       },
@@ -646,6 +1167,166 @@ class _PetProfileScreenState extends State<PetProfileScreen>
         context,
       ).showSnackBar(SnackBar(content: Text('Error selecting photo: $e')));
     }
+  }
+
+  void _openPhotoViewer(BuildContext context, int index) {
+    if (index < 0 || index >= _pet.photos.length) return;
+    final photoUrl = _pet.photos[index];
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.95),
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: InteractiveViewer(
+                      child: photoUrl.startsWith('http') ||
+                              photoUrl.startsWith('https')
+                          ? Image.network(
+                              photoUrl,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                height: 300,
+                                color: AppTheme.surfaceContainerLow,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.broken_image,
+                                    size: 48,
+                                    color: AppTheme.secondary,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : Image.file(
+                              File(photoUrl),
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                height: 300,
+                                color: AppTheme.surfaceContainerLow,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.broken_image,
+                                    size: 48,
+                                    color: AppTheme.secondary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(dialogContext).pop();
+                          _confirmDeletePhoto(index);
+                        },
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Color(0xFFFFB4A3),
+                          size: 18,
+                        ),
+                        label: const Text(
+                          'Delete Photo',
+                          style: TextStyle(color: Color(0xFFFFB4A3)),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: const Color(0xFFFFB4A3).withValues(alpha: 0.5),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmDeletePhoto(int index) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'Delete Photo?',
+            style: TextStyle(
+              fontFamily: 'Montserrat',
+              fontWeight: FontWeight.bold,
+              color: AppTheme.primary,
+            ),
+          ),
+          content: const Text(
+            'Are you sure you want to remove this photo from your pet profile?',
+            style: TextStyle(fontFamily: 'Inter'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                final updatedPhotos = List<String>.from(_pet.photos)
+                  ..removeAt(index);
+                final updatedPet = _pet.copyWith(photos: updatedPhotos);
+
+                context.read<PetBloc>().add(UpdatePet(updatedPet));
+                setState(() {
+                  _pet = updatedPet;
+                });
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Photo deleted successfully.'),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.error,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showAddPhotoModal(BuildContext context) {
@@ -1320,21 +2001,98 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   color: textPrimary,
                 ),
               ),
-              ElevatedButton.icon(
-                onPressed: _showAddWeightDialog,
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add Log', style: TextStyle(fontSize: 12)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: headerColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
+              Row(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppTheme.darkSurface
+                          : AppTheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark
+                            ? const Color(0xFF383634)
+                            : AppTheme.surfaceContainer,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () =>
+                              setState(() => _selectedWeightUnit = 'kg'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _selectedWeightUnit == 'kg'
+                                  ? AppTheme.primary
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              'kg',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: _selectedWeightUnit == 'kg'
+                                    ? Colors.white
+                                    : textSecondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () =>
+                              setState(() => _selectedWeightUnit = 'lbs'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _selectedWeightUnit == 'lbs'
+                                  ? AppTheme.primary
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              'lbs',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: _selectedWeightUnit == 'lbs'
+                                    ? Colors.white
+                                    : textSecondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: _showAddWeightDialog,
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text(
+                      'Add Log',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: headerColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
@@ -1361,6 +2119,17 @@ class _PetProfileScreenState extends State<PetProfileScreen>
               itemCount: history.length,
               itemBuilder: (context, index) {
                 final log = history[index];
+                double displayWeightVal;
+                if (_selectedWeightUnit == 'lbs') {
+                  displayWeightVal = log.unit == 'lbs'
+                      ? log.weight
+                      : log.weight * 2.20462;
+                } else {
+                  displayWeightVal = log.unit == 'lbs'
+                      ? log.weight / 2.20462
+                      : log.weight;
+                }
+
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(12),
@@ -1398,7 +2167,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                         ],
                       ),
                       Text(
-                        '${log.weight.toStringAsFixed(1)} kg',
+                        '${displayWeightVal.toStringAsFixed(1)} $_selectedWeightUnit',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,

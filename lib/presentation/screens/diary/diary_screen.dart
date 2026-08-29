@@ -131,6 +131,7 @@ class _DiaryTabState extends State<DiaryTab> {
     String petId = petState.pets.first.id;
     String category = 'walk';
     String severity = 'MILD';
+    String? validationError;
 
     showDialog(
       context: context,
@@ -154,6 +155,44 @@ class _DiaryTabState extends State<DiaryTab> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (validationError != null) ...[
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.red.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: Colors.red,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                validationError!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
                     // Pet selection
                     const Text(
                       'Select Pet',
@@ -216,7 +255,6 @@ class _DiaryTabState extends State<DiaryTab> {
                         if (val != null) {
                           setDialogState(() {
                             category = val;
-                            // Set recommended default severity based on category
                             if (val == 'vet') {
                               severity = 'SEVERE';
                             } else if (val == 'food' || val == 'med') {
@@ -272,7 +310,7 @@ class _DiaryTabState extends State<DiaryTab> {
 
                     // Title
                     const Text(
-                      'Title',
+                      'Title *',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
@@ -281,15 +319,25 @@ class _DiaryTabState extends State<DiaryTab> {
                     const SizedBox(height: 4),
                     TextField(
                       controller: titleController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'Morning walk, New kibble test, etc.',
+                        errorText:
+                            validationError != null &&
+                                titleController.text.trim().isEmpty
+                            ? 'Title is required'
+                            : null,
                       ),
+                      onChanged: (_) {
+                        if (validationError != null) {
+                          setDialogState(() => validationError = null);
+                        }
+                      },
                     ),
                     const SizedBox(height: 12),
 
                     // Note
                     const Text(
-                      'Notes',
+                      'Notes *',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
@@ -299,9 +347,19 @@ class _DiaryTabState extends State<DiaryTab> {
                     TextField(
                       controller: noteController,
                       maxLines: 3,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'Write down behavioral notes or details...',
+                        errorText:
+                            validationError != null &&
+                                noteController.text.trim().isEmpty
+                            ? 'Notes are required'
+                            : null,
                       ),
+                      onChanged: (_) {
+                        if (validationError != null) {
+                          setDialogState(() => validationError = null);
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -315,19 +373,37 @@ class _DiaryTabState extends State<DiaryTab> {
                   onPressed: () {
                     final title = titleController.text.trim();
                     final note = noteController.text.trim();
-                    if (title.isNotEmpty && note.isNotEmpty) {
-                      final entry = DiaryEntry(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        petId: petId,
-                        title: title,
-                        category: category,
-                        note: note,
-                        timestamp: DateTime.now(),
-                        severity: severity,
-                      );
-                      context.read<DiaryBloc>().add(AddDiaryEntryEvent(entry));
-                      Navigator.of(context).pop();
+
+                    final List<String> missingFields = [];
+                    if (petId.isEmpty) missingFields.add('Target Pet');
+                    if (title.isEmpty) missingFields.add('Title');
+                    if (note.isEmpty) missingFields.add('Notes');
+
+                    if (missingFields.isNotEmpty) {
+                      setDialogState(() {
+                        validationError =
+                            'Missing required fields: ${missingFields.join(', ')}';
+                      });
+                      return;
                     }
+
+                    final entry = DiaryEntry(
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      petId: petId,
+                      title: title,
+                      category: category,
+                      note: note,
+                      timestamp: DateTime.now(),
+                      severity: severity,
+                    );
+                    context.read<DiaryBloc>().add(AddDiaryEntryEvent(entry));
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Diary log saved successfully!'),
+                        backgroundColor: AppTheme.primary,
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primary,

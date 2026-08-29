@@ -1,17 +1,17 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/config/app_config.dart';
 import 'base_repository.dart';
-import 'mock_repository.dart';
 import 'firebase_repository.dart';
+import 'demo_repository.dart';
 
 class RepositorySelector {
   static const String _key = 'pawsncare_db_source';
-  
-  final MockRepository _mockRepository = MockRepository();
+
   final FirebaseRepository _firebaseRepository = FirebaseRepository();
+  final DemoRepository _demoRepository = DemoRepository();
 
   static Future<String> getDbSource() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_key) ?? 'mock';
+    return AppConfig.isDemoMode ? 'demo' : 'firebase';
   }
 
   static Future<void> setDbSource(String source) async {
@@ -20,10 +20,9 @@ class RepositorySelector {
   }
 
   Future<BaseRepository> getActiveRepository() async {
-    final source = await getDbSource();
-    if (source == 'firebase') {
-      return _firebaseRepository;
+    if (AppConfig.isDemoMode) {
+      return _demoRepository;
     }
-    return _mockRepository;
+    return _firebaseRepository;
   }
 }

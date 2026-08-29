@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../logic/theme/theme_cubit.dart';
 import '../../../logic/pet/pet_bloc.dart';
+import '../../../data/models/pet.dart';
 import '../../../data/models/medication.dart';
 import '../../theme/app_theme.dart';
+import '../pet/pet_profile_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -160,6 +162,113 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
+  bool _hasEventsOnDate(DateTime date, List<Pet> pets) {
+    for (final pet in pets) {
+      for (final med in pet.medications) {
+        if (_isMedicationScheduledOn(med, date)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  void _onAddEventPressed(BuildContext context, PetState petState) {
+    if (petState is PetLoaded && petState.pets.isNotEmpty) {
+      if (petState.pets.length == 1) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PetProfileScreen(pet: petState.pets.first),
+          ),
+        );
+      } else {
+        showModalBottomSheet(
+          context: context,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          builder: (modalContext) {
+            return Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Select Pet for Event',
+                    style: TextStyle(
+                      fontFamily: 'Montserrat',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Choose a pet profile to add or manage scheduled events',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      color: AppTheme.secondary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ...petState.pets.map((pet) {
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      leading: CircleAvatar(
+                        backgroundColor: AppTheme.primaryFixed.withValues(
+                          alpha: 0.3,
+                        ),
+                        child: Text(
+                          pet.name.substring(0, 1).toUpperCase(),
+                          style: const TextStyle(
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        pet.name,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Text('${pet.breed} • ${pet.species}'),
+                      trailing: const Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: AppTheme.secondary,
+                      ),
+                      onTap: () {
+                        Navigator.of(modalContext).pop();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => PetProfileScreen(pet: pet),
+                          ),
+                        );
+                      },
+                    );
+                  }),
+                ],
+              ),
+            );
+          },
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No registered pets found. Add a pet first.'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeCubit>().state;
@@ -272,12 +381,41 @@ class _CalendarScreenState extends State<CalendarScreen> {
         // Header
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Text(
-            'Calendar & Schedules',
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: 22,
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Calendar & Schedules',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => _onAddEventPressed(context, petState),
+                icon: const Icon(Icons.add_circle_outline, size: 16),
+                label: const Text(
+                  'Add Event',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ],
           ),
         ),
 
@@ -387,6 +525,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       DateTime.now().month == date.month &&
                       DateTime.now().day == date.day;
 
+                  final petsList = petState is PetLoaded
+                      ? petState.pets
+                      : <Pet>[];
+                  final hasEvents = _hasEventsOnDate(date, petsList);
+
                   return GestureDetector(
                     onTap: () {
                       setState(() {
@@ -406,15 +549,36 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             ? Border.all(color: headerColor, width: 1.5)
                             : null,
                       ),
-                      child: Text(
-                        day.toString(),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                          color: isSelected
-                              ? Colors.white
-                              : (isToday ? headerColor : textPrimary),
-                        ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            day.toString(),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: isSelected
+                                  ? Colors.white
+                                  : (isToday ? headerColor : textPrimary),
+                            ),
+                          ),
+                          if (hasEvents) ...[
+                            const SizedBox(height: 2),
+                            Container(
+                              width: 4,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isSelected
+                                    ? Colors.white
+                                    : (isToday
+                                          ? headerColor
+                                          : AppTheme.tertiary),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   );
@@ -453,6 +617,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         style: TextStyle(
                           fontStyle: FontStyle.italic,
                           color: textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: () => _onAddEventPressed(context, petState),
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Add Event to Pet Profile'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ],

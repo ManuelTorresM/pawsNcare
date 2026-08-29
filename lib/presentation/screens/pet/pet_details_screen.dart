@@ -9,6 +9,7 @@ import '../../theme/app_theme.dart';
 import 'medical_history_screen.dart';
 import 'share_ownership_screen.dart';
 import 'invitation_received_screen.dart';
+import '../../../data/repositories/firebase_repository.dart';
 
 class PetDetailsScreen extends StatefulWidget {
   final Pet pet;
@@ -235,8 +236,20 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                                     source: ImageSource.camera,
                                                   );
                                               if (file != null) {
+                                                messenger.showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text('Uploading avatar to Cloud Storage...'),
+                                                    duration: Duration(seconds: 2),
+                                                  ),
+                                                );
+                                                final storagePath =
+                                                    'pets/${widget.pet.id}/avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
+                                                final url = await FirebaseRepository().uploadImage(
+                                                  File(file.path),
+                                                  storagePath,
+                                                );
                                                 setDialogState(() {
-                                                  selectedAvatarUrl = file.path;
+                                                  selectedAvatarUrl = url ?? file.path;
                                                 });
                                               }
                                             } catch (e) {
@@ -514,6 +527,9 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
   // ---------------------------------------------------------------------------
   void _showEditHealthProfileDialog() {
     List<String> selectedConditions = List<String>.from(_pet.medicalConditions);
+    if (selectedConditions.isEmpty) {
+      selectedConditions = ['none'];
+    }
     List<String> selectedAllergies = List<String>.from(_pet.allergies);
 
     // Custom Condition State
@@ -553,6 +569,9 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                     selectedConditions.remove(lower);
                   } else {
                     selectedConditions.add(lower);
+                  }
+                  if (selectedConditions.isEmpty) {
+                    selectedConditions = ['none'];
                   }
                 }
               });
@@ -1168,7 +1187,11 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                               TextField(
                                 controller: notesCtrl,
                                 maxLines: 3,
-                                style: const TextStyle(fontFamily: 'Inter'),
+                                minLines: 2,
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 13,
+                                ),
                                 decoration: InputDecoration(
                                   hintText:
                                       'e.g. 1/2 cup twice a day, morning and evening.',
@@ -1177,6 +1200,29 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                       alpha: 0.5,
                                     ),
                                     fontSize: 12,
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 12,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: AppTheme.surfaceContainer,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: AppTheme.surfaceContainer,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: AppTheme.primary,
+                                      width: 1.5,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -1458,79 +1504,57 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Side info cards (Age & Edit)
+                  // Side info card (Age)
                   Expanded(
                     flex: 3,
                     child: Column(
                       children: [
                         // Age Card
-                        Container(
-                          height: 112,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: AppTheme.tertiaryFixed.withValues(
-                              alpha: 0.1,
-                            ),
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text(
-                                'Age',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppTheme.tertiary,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                        Expanded(
+                          child: Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: AppTheme.tertiaryFixed.withValues(
+                                alpha: 0.4,
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '$ageYears',
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontFamily: 'Montserrat',
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.tertiary,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                ageYears == 1 ? 'Year' : 'Years',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppTheme.tertiary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        // Edit Header Button
-                        Container(
-                          height: 56,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.primary.withValues(alpha: 0.2),
-                                blurRadius: 8,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
                               borderRadius: BorderRadius.circular(24),
-                              onTap: _showEditPetProfileDialog,
-                              child: const Icon(
-                                Icons.edit,
-                                color: Colors.white,
+                              border: Border.all(
+                                color: AppTheme.tertiaryFixed.withValues(
+                                  alpha: 0.3,
+                                ),
                               ),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  'Age',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppTheme.tertiary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$ageYears',
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    fontFamily: 'Montserrat',
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.tertiary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  ageYears == 1 ? 'Year' : 'Years',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: AppTheme.tertiary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -1543,14 +1567,34 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
             const SizedBox(height: 28),
 
             // Section 1: Basic Info
-            const Text(
-              'Basic Information',
-              style: TextStyle(
-                fontFamily: 'Montserrat',
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: AppTheme.primary,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Basic Information',
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: AppTheme.primary,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _showEditPetProfileDialog,
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    size: 18,
+                    color: AppTheme.primary,
+                  ),
+                  label: const Text(
+                    'Edit',
+                    style: TextStyle(
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
 
@@ -1605,7 +1649,8 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                 TextButton.icon(
                   onPressed: _showEditHealthProfileDialog,
                   icon: const Icon(
-                    Icons.medical_services_outlined,
+                    //Icons.medical_services_outlined,
+                    Icons.edit_outlined,
                     size: 18,
                     color: AppTheme.primary,
                   ),
@@ -1779,7 +1824,8 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                 TextButton.icon(
                   onPressed: _showEditLifestyleDialog,
                   icon: const Icon(
-                    Icons.favorite_border,
+                    //Icons.favorite_border,
+                    Icons.edit_outlined,
                     size: 18,
                     color: AppTheme.primary,
                   ),
@@ -1977,29 +2023,33 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
   }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppTheme.onSurfaceVariant,
-                fontWeight: FontWeight.w500,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primary,
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primary,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        const SizedBox(width: 12),
         Icon(icon, color: AppTheme.primary),
       ],
     );

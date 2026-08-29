@@ -57,6 +57,23 @@ class _AddMealScreenState extends State<AddMealScreen> {
     final picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            timePickerTheme: const TimePickerThemeData(
+              padding: EdgeInsets.all(12),
+              dialTextStyle: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          child: Transform.scale(
+            scale: 1.25,
+            child: child!,
+          ),
+        );
+      },
     );
     if (picked != null) {
       setState(() => _selectedTime = picked);
@@ -81,6 +98,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
       subtitle: subtitle,
       targetPets: List.from(_selectedPets),
       type: 'feeding',
+      notes: _notesController.text.trim(),
     );
 
     Navigator.of(context).pop(newItem);
@@ -313,15 +331,23 @@ class _AddMealScreenState extends State<AddMealScreen> {
                     // Additional Notes (Optional)
                     _buildBentoInputCard(
                       label: 'Additional Notes (Optional)',
-                      accentColor: AppTheme.surfaceContainer,
+                      accentColor: AppTheme.primary,
                       child: TextField(
                         controller: _notesController,
                         maxLines: 2,
-                        style: const TextStyle(fontFamily: 'Inter'),
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.onSurface,
+                        ),
                         decoration: InputDecoration(
                           hintText: 'Mix with supplement or warm water...',
                           hintStyle: TextStyle(
-                            color: AppTheme.secondary.withValues(alpha: 0.4),
+                            color: AppTheme.onSurfaceVariant.withValues(
+                              alpha: 0.7,
+                            ),
+                            fontSize: 12,
                           ),
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,

@@ -27,15 +27,23 @@ class MemoryItem {
 }
 
 class PetAlbumScreen extends StatefulWidget {
-  const PetAlbumScreen({super.key});
+  final String? initialPetFilter;
+
+  const PetAlbumScreen({super.key, this.initialPetFilter});
 
   @override
   State<PetAlbumScreen> createState() => _PetAlbumScreenState();
 }
 
 class _PetAlbumScreenState extends State<PetAlbumScreen> {
-  String _selectedFilter = 'all'; // 'all', 'luna', 'oliver', 'bella', etc.
+  late String _selectedFilter;
   String _selectedTab = 'all'; // 'all', 'video', 'favorite'
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedFilter = widget.initialPetFilter?.toLowerCase() ?? 'all';
+  }
 
   // Standard template memories
   final List<MemoryItem> _memories = [];
@@ -82,7 +90,10 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                 ),
                 const SizedBox(height: 20),
                 ListTile(
-                  leading: const Icon(Icons.photo_library, color: AppTheme.primary),
+                  leading: const Icon(
+                    Icons.photo_library,
+                    color: AppTheme.primary,
+                  ),
                   title: const Text('Choose from Gallery'),
                   onTap: () {
                     Navigator.of(sheetContext).pop();
@@ -90,7 +101,10 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.photo_camera, color: AppTheme.primary),
+                  leading: const Icon(
+                    Icons.photo_camera,
+                    color: AppTheme.primary,
+                  ),
                   title: const Text('Open Camera'),
                   onTap: () {
                     Navigator.of(sheetContext).pop();
@@ -124,9 +138,9 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking media: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error picking media: $e')));
     }
   }
 
@@ -175,9 +189,14 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                         child: Image.file(
                           File(filePath),
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const Center(
-                            child: Icon(Icons.broken_image, color: AppTheme.secondary, size: 40),
-                          ),
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Center(
+                                child: Icon(
+                                  Icons.broken_image,
+                                  color: AppTheme.secondary,
+                                  size: 40,
+                                ),
+                              ),
                         ),
                       ),
                     ),
@@ -312,22 +331,27 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(16),
                         child: InteractiveViewer(
-                          child: memory.imageUrl.startsWith('http') || memory.imageUrl.startsWith('https')
+                          child:
+                              memory.imageUrl.startsWith('http') ||
+                                  memory.imageUrl.startsWith('https')
                               ? Image.network(
                                   memory.imageUrl,
                                   fit: BoxFit.contain,
-                                  loadingBuilder: (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Container(
-                                      height: 300,
-                                      color: AppTheme.surfaceContainerLow,
-                                      child: const Center(
-                                        child: CircularProgressIndicator(
-                                          color: AppTheme.primary,
-                                        ),
-                                      ),
-                                    );
-                                  },
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                        if (loadingProgress == null) {
+                                          return child;
+                                        }
+                                        return Container(
+                                          height: 300,
+                                          color: AppTheme.surfaceContainerLow,
+                                          child: const Center(
+                                            child: CircularProgressIndicator(
+                                              color: AppTheme.primary,
+                                            ),
+                                          ),
+                                        );
+                                      },
                                   errorBuilder: (context, error, stackTrace) =>
                                       Container(
                                         height: 300,
@@ -431,6 +455,31 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                               ),
                             ),
                           ),
+                          const SizedBox(width: 16),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              _confirmDeleteMemory(context, memory);
+                            },
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Color(0xFFFFB4A3),
+                              size: 18,
+                            ),
+                            label: const Text(
+                              'Delete',
+                              style: TextStyle(color: Color(0xFFFFB4A3)),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: const Color(
+                                  0xFFFFB4A3,
+                                ).withValues(alpha: 0.5),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -453,6 +502,68 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
               ),
             );
           },
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteMemory(BuildContext context, MemoryItem memory) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'Delete Photo Memory?',
+            style: TextStyle(
+              fontFamily: 'Montserrat',
+              fontWeight: FontWeight.bold,
+              color: AppTheme.primary,
+            ),
+          ),
+          content: const Text(
+            'Are you sure you want to delete this photo memory? This action cannot be undone.',
+            style: TextStyle(fontFamily: 'Inter'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                Navigator.of(context).pop();
+
+                setState(() {
+                  _memories.removeWhere((m) => m.id == memory.id);
+                });
+
+                final petState = context.read<PetBloc>().state;
+                if (petState is PetLoaded) {
+                  for (final pet in petState.pets) {
+                    if (pet.photos.contains(memory.imageUrl)) {
+                      final updatedPhotos = List<String>.from(pet.photos)
+                        ..remove(memory.imageUrl);
+                      final updatedPet = pet.copyWith(photos: updatedPhotos);
+                      context.read<PetBloc>().add(UpdatePet(updatedPet));
+                    }
+                  }
+                }
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Memory deleted successfully.')),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.error,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
         );
       },
     );
@@ -848,9 +959,12 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                   image: DecorationImage(
-                    image: (item.imageUrl.startsWith('http') || item.imageUrl.startsWith('https')
-                        ? NetworkImage(item.imageUrl)
-                        : FileImage(File(item.imageUrl))) as ImageProvider,
+                    image:
+                        (item.imageUrl.startsWith('http') ||
+                                    item.imageUrl.startsWith('https')
+                                ? NetworkImage(item.imageUrl)
+                                : FileImage(File(item.imageUrl)))
+                            as ImageProvider,
                     fit: BoxFit.cover,
                   ),
                 ),

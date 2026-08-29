@@ -61,9 +61,9 @@ class _InvitationReceivedScreenState
       _pet = widget.pet ??
           Pet(
             id: '',
-            name: 'Companion',
-            breed: 'Mixed',
-            ageString: 'Companion',
+            name: '',
+            breed: '',
+            ageString: '',
             birthDate: DateTime.now(),
             avatarUrl: '',
             status: 'Healthy',
@@ -73,7 +73,7 @@ class _InvitationReceivedScreenState
           SharedMember(
             id: '',
             email: '',
-            name: 'User',
+            name: '',
             role: PetRole.coOwner,
             joinedAt: DateTime.now(),
           );
@@ -187,6 +187,27 @@ class _InvitationReceivedScreenState
           'Log clinical notes & health alerts',
         ];
     }
+  }
+
+  String get _inviterDisplay {
+    if (widget.petInvitation != null &&
+        widget.petInvitation!.ownerName.isNotEmpty) {
+      return widget.petInvitation!.ownerName;
+    }
+    if (_pet.members.isNotEmpty) {
+      final ownerMember = _pet.members.firstWhere(
+        (m) => m.role == PetRole.owner || m.id == _pet.ownerId,
+        orElse: () => _pet.members.firstWhere(
+          (m) => m.status == 'Active' && m.role == PetRole.owner,
+          orElse: () => _pet.members.first,
+        ),
+      );
+      if (ownerMember.name.isNotEmpty && ownerMember.name != 'User') {
+        return ownerMember.name;
+      }
+      if (ownerMember.email.isNotEmpty) return ownerMember.email;
+    }
+    return 'Pet Owner';
   }
 
   @override
@@ -312,7 +333,7 @@ class _InvitationReceivedScreenState
                         height: 1.4,
                       ),
                       children: [
-                        const TextSpan(text: 'An owner has invited you to join as '),
+                        TextSpan(text: '$_inviterDisplay has invited you to join as '),
                         WidgetSpan(
                           alignment: PlaceholderAlignment.middle,
                           child: RoleBadge(role: _invitation.role, isCompact: true),
@@ -509,7 +530,7 @@ class _InvitationReceivedScreenState
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _invitation.email,
+                                _inviterDisplay,
                                 style: const TextStyle(
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.bold,

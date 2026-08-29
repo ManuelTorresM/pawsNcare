@@ -4,6 +4,7 @@ import '../../../logic/pet/pet_bloc.dart';
 import '../../../data/models/pet.dart';
 import '../../../data/models/medication.dart';
 import '../../theme/app_theme.dart';
+import '../../../logic/theme/theme_cubit.dart';
 import 'medical_history_screen.dart';
 
 class MedsVaccinesScreen extends StatefulWidget {
@@ -753,6 +754,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
     DateTime startDate = DateTime.now();
     DateTime? endDate;
     bool reminder = true;
+    String? validationError;
 
     showDialog(
       context: context,
@@ -776,9 +778,47 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (validationError != null) ...[
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.red.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: Colors.red,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                validationError!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
                     // 1. Medication Name
                     const Text(
-                      'Medication Name',
+                      'Medication Name *',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
@@ -787,9 +827,19 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                     const SizedBox(height: 4),
                     TextField(
                       controller: nameController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'e.g. Apoquel, Heartworm pill',
+                        errorText:
+                            validationError != null &&
+                                nameController.text.trim().isEmpty
+                            ? 'Medication Name is required'
+                            : null,
                       ),
+                      onChanged: (_) {
+                        if (validationError != null) {
+                          setDialogState(() => validationError = null);
+                        }
+                      },
                     ),
                     const SizedBox(height: 12),
 
@@ -1040,57 +1090,51 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                 ElevatedButton(
                   onPressed: () {
                     final medName = nameController.text.trim();
-                    if (medName.isNotEmpty) {
-                      final doseAmountText =
-                          doseAmountController.text.trim().isNotEmpty
-                          ? doseAmountController.text.trim()
-                          : '1';
-                      final finalDoseStr = '$doseAmountText $doseUnit';
-
-                      DateTime calculatedNext = startDate;
-                      if (frequency == 'Every 8h') {
-                        calculatedNext = startDate.add(
-                          const Duration(hours: 8),
-                        );
-                      } else if (frequency == 'Every 12h') {
-                        calculatedNext = startDate.add(
-                          const Duration(hours: 12),
-                        );
-                      } else if (frequency == 'Every 24h') {
-                        calculatedNext = startDate.add(const Duration(days: 1));
-                      } else if (frequency == 'Weekly') {
-                        calculatedNext = startDate.add(const Duration(days: 7));
-                      } else if (frequency == 'Monthly') {
-                        calculatedNext = startDate.add(
-                          const Duration(days: 30),
-                        );
-                      }
-
-                      final newMed = Medication(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        name: medName,
-                        dose: finalDoseStr,
-                        frequency: frequency,
-                        startDate: startDate,
-                        endDate: endDate,
-                        nextDoseDate: calculatedNext,
-                        administeredDate: startDate,
-                        type: frequency == 'One-time'
-                            ? 'as_needed'
-                            : 'heartworm',
-                        remindersEnabled: reminder,
-                        hasStartTime: false,
-                      );
-
-                      final updatedMeds = List<Medication>.from(
-                        _pet.medications,
-                      )..add(newMed);
-                      final updatedPet = _pet.copyWith(
-                        medications: updatedMeds,
-                      );
-                      parentContext.read<PetBloc>().add(UpdatePet(updatedPet));
-                      Navigator.of(dialogContext).pop();
+                    if (medName.isEmpty) {
+                      setDialogState(() {
+                        validationError =
+                            'Medication Name is required. Please enter a name.';
+                      });
+                      return;
                     }
+                    final doseAmountText =
+                        doseAmountController.text.trim().isNotEmpty
+                        ? doseAmountController.text.trim()
+                        : '1';
+                    final finalDoseStr = '$doseAmountText $doseUnit';
+
+                    DateTime calculatedNext = startDate;
+                    if (frequency == 'Every 8h') {
+                      calculatedNext = startDate.add(const Duration(hours: 8));
+                    } else if (frequency == 'Every 12h') {
+                      calculatedNext = startDate.add(const Duration(hours: 12));
+                    } else if (frequency == 'Every 24h') {
+                      calculatedNext = startDate.add(const Duration(days: 1));
+                    } else if (frequency == 'Weekly') {
+                      calculatedNext = startDate.add(const Duration(days: 7));
+                    } else if (frequency == 'Monthly') {
+                      calculatedNext = startDate.add(const Duration(days: 30));
+                    }
+
+                    final newMed = Medication(
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      name: medName,
+                      dose: finalDoseStr,
+                      frequency: frequency,
+                      startDate: startDate,
+                      endDate: endDate,
+                      nextDoseDate: calculatedNext,
+                      administeredDate: startDate,
+                      type: frequency == 'One-time' ? 'as_needed' : 'heartworm',
+                      remindersEnabled: reminder,
+                      hasStartTime: false,
+                    );
+
+                    final updatedMeds = List<Medication>.from(_pet.medications)
+                      ..add(newMed);
+                    final updatedPet = _pet.copyWith(medications: updatedMeds);
+                    parentContext.read<PetBloc>().add(UpdatePet(updatedPet));
+                    Navigator.of(dialogContext).pop();
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primary,
@@ -1114,6 +1158,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
     final customDoseController = TextEditingController();
     String dateType = 'Administered'; // 'Administered' or 'Scheduled'
     DateTime selectedDate = DateTime.now();
+    String? validationError;
 
     final predefinedVaccines = [
       'Rabies',
@@ -1140,35 +1185,147 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
           builder: (dialogContext, setDialogState) {
             final isOtherVaccine = selectedVaccine == 'Other';
             final isOtherDose = selectedDoseNumber == 'Other';
+            final isDark = parentContext.read<ThemeCubit>().state;
+            final dialogBg = isDark
+                ? AppTheme.darkBackground
+                : AppTheme.background;
+            final textPrimary = isDark
+                ? AppTheme.darkOnSurface
+                : AppTheme.onSurface;
+            final textSecondary = isDark
+                ? AppTheme.darkOnSurfaceVariant
+                : AppTheme.secondary;
 
-            return AlertDialog(
+            return Dialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
               ),
-              title: const Text(
-                'Add Vaccine',
-                style: TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primary,
-                ),
+              backgroundColor: dialogBg,
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 24,
               ),
-              content: SingleChildScrollView(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 1. Name
-                    const Text(
-                      'Vaccine Name',
+                    // Header Row
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryFixed.withValues(alpha: 0.3),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.vaccines_outlined,
+                            color: AppTheme.primary,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Log Vaccine',
+                                style: TextStyle(
+                                  fontFamily: 'Montserrat',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: textPrimary,
+                                ),
+                              ),
+                              Text(
+                                'Add entry to Vaccination Schedule',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 12,
+                                  color: textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    if (validationError != null) ...[
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: Colors.red.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: Colors.red,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                validationError!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    // Vaccine Name *
+                    Text(
+                      'VACCINE NAME *',
                       style: TextStyle(
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontSize: 11,
+                        letterSpacing: 0.5,
+                        color: textSecondary,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       initialValue: selectedVaccine,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        color: textPrimary,
+                        fontSize: 14,
+                      ),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: isDark
+                            ? AppTheme.darkSurface
+                            : AppTheme.surfaceContainerLow,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? const Color(0xFF383634)
+                                : AppTheme.surfaceContainer,
+                          ),
+                        ),
+                      ),
                       items: predefinedVaccines
                           .map(
                             (v) => DropdownMenuItem(value: v, child: Text(v)),
@@ -1176,7 +1333,10 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                           .toList(),
                       onChanged: (val) {
                         if (val != null) {
-                          setDialogState(() => selectedVaccine = val);
+                          setDialogState(() {
+                            selectedVaccine = val;
+                            validationError = null;
+                          });
                         }
                       },
                     ),
@@ -1184,58 +1344,157 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                       const SizedBox(height: 8),
                       TextField(
                         controller: nameController,
-                        decoration: const InputDecoration(
-                          hintText: 'Enter vaccine name...',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          color: textPrimary,
                         ),
+                        decoration: InputDecoration(
+                          hintText: 'Enter custom vaccine name...',
+                          hintStyle: TextStyle(
+                            color: textSecondary.withValues(alpha: 0.6),
+                          ),
+                          filled: true,
+                          fillColor: isDark
+                              ? AppTheme.darkSurface
+                              : AppTheme.surfaceContainerLow,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: isDark
+                                  ? const Color(0xFF383634)
+                                  : AppTheme.surfaceContainer,
+                            ),
+                          ),
+                          errorText:
+                              validationError != null &&
+                                  nameController.text.trim().isEmpty
+                              ? 'Vaccine Name is required'
+                              : null,
+                        ),
+                        onChanged: (_) {
+                          if (validationError != null) {
+                            setDialogState(() => validationError = null);
+                          }
+                        },
                       ),
                     ],
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
 
-                    // 2. Manufacturer / Laboratory (Optional)
-                    const Text(
-                      'Manufacturer / Laboratory (Optional)',
+                    // Manufacturer / Lab (Optional)
+                    Text(
+                      'MANUFACTURER / LABORATORY (OPTIONAL)',
                       style: TextStyle(
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontSize: 11,
+                        letterSpacing: 0.5,
+                        color: textSecondary,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     TextField(
                       controller: manufacturerController,
-                      decoration: const InputDecoration(
-                        hintText: 'e.g. Zoetis, Merck, Boehringer',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // 3. Batch Number (Optional)
-                    const Text(
-                      'Batch Number (Optional)',
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontFamily: 'Inter',
+                        color: textPrimary,
+                        fontSize: 13,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'e.g. Zoetis, Merck, Boehringer',
+                        hintStyle: TextStyle(
+                          color: textSecondary.withValues(alpha: 0.6),
+                          fontSize: 12,
+                        ),
+                        filled: true,
+                        fillColor: isDark
+                            ? AppTheme.darkSurface
+                            : AppTheme.surfaceContainerLow,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? const Color(0xFF383634)
+                                : AppTheme.surfaceContainer,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 14),
+
+                    // Batch / Lot Number (Optional)
+                    Text(
+                      'BATCH / LOT NUMBER (OPTIONAL)',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        letterSpacing: 0.5,
+                        color: textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
                     TextField(
                       controller: batchController,
-                      decoration: const InputDecoration(
-                        hintText: 'e.g. B-987654',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // 4. Number of Dose (1st, reinforcement, annual, etc)
-                    const Text(
-                      'Dose Number / Type',
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontFamily: 'Inter',
+                        color: textPrimary,
+                        fontSize: 13,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'e.g. B-987654',
+                        hintStyle: TextStyle(
+                          color: textSecondary.withValues(alpha: 0.6),
+                          fontSize: 12,
+                        ),
+                        filled: true,
+                        fillColor: isDark
+                            ? AppTheme.darkSurface
+                            : AppTheme.surfaceContainerLow,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? const Color(0xFF383634)
+                                : AppTheme.surfaceContainer,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 14),
+
+                    // Dose Type
+                    Text(
+                      'DOSE TYPE / NUMBER',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        letterSpacing: 0.5,
+                        color: textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       initialValue: selectedDoseNumber,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        color: textPrimary,
+                        fontSize: 14,
+                      ),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: isDark
+                            ? AppTheme.darkSurface
+                            : AppTheme.surfaceContainerLow,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? const Color(0xFF383634)
+                                : AppTheme.surfaceContainer,
+                          ),
+                        ),
+                      ),
                       items: predefinedDoses
                           .map(
                             (d) => DropdownMenuItem(value: d, child: Text(d)),
@@ -1243,7 +1502,10 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                           .toList(),
                       onChanged: (val) {
                         if (val != null) {
-                          setDialogState(() => selectedDoseNumber = val);
+                          setDialogState(() {
+                            selectedDoseNumber = val;
+                            validationError = null;
+                          });
                         }
                       },
                     ),
@@ -1251,71 +1513,131 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                       const SizedBox(height: 8),
                       TextField(
                         controller: customDoseController,
-                        decoration: const InputDecoration(
-                          hintText: 'e.g. 2nd Dose, Booster #2...',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          color: textPrimary,
+                          fontSize: 13,
                         ),
+                        decoration: InputDecoration(
+                          hintText: 'e.g. 2nd Booster',
+                          hintStyle: TextStyle(
+                            color: textSecondary.withValues(alpha: 0.6),
+                            fontSize: 12,
+                          ),
+                          filled: true,
+                          fillColor: isDark
+                              ? AppTheme.darkSurface
+                              : AppTheme.surfaceContainerLow,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: isDark
+                                  ? const Color(0xFF383634)
+                                  : AppTheme.surfaceContainer,
+                            ),
+                          ),
+                          errorText:
+                              validationError != null &&
+                                  customDoseController.text.trim().isEmpty
+                              ? 'Dose Type / Number is required'
+                              : null,
+                        ),
+                        onChanged: (_) {
+                          if (validationError != null) {
+                            setDialogState(() => validationError = null);
+                          }
+                        },
                       ),
                     ],
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
 
-                    // Date Mode Selection
-                    const Text(
-                      'Date Status',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 8,
+                    // Date & Status Toggle
+                    Row(
                       children: [
-                        ChoiceChip(
-                          label: const Text(
-                            'Administered',
-                            style: TextStyle(fontSize: 11),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'STATUS',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                  letterSpacing: 0.5,
+                                  color: textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  ChoiceChip(
+                                    label: const Text(
+                                      'Administered',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    selected: dateType == 'Administered',
+                                    selectedColor: AppTheme.primary,
+                                    labelStyle: TextStyle(
+                                      color: dateType == 'Administered'
+                                          ? Colors.white
+                                          : textSecondary,
+                                    ),
+                                    onSelected: (val) {
+                                      if (val) {
+                                        setDialogState(
+                                          () => dateType = 'Administered',
+                                        );
+                                      }
+                                    },
+                                  ),
+                                  const SizedBox(width: 6),
+                                  ChoiceChip(
+                                    label: const Text(
+                                      'Scheduled',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    selected: dateType == 'Scheduled',
+                                    selectedColor: AppTheme.primary,
+                                    labelStyle: TextStyle(
+                                      color: dateType == 'Scheduled'
+                                          ? Colors.white
+                                          : textSecondary,
+                                    ),
+                                    onSelected: (val) {
+                                      if (val) {
+                                        setDialogState(
+                                          () => dateType = 'Scheduled',
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                          selected: dateType == 'Administered',
-                          selectedColor: AppTheme.primaryFixed,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setDialogState(() {
-                                dateType = 'Administered';
-                                selectedDate = DateTime.now();
-                              });
-                            }
-                          },
-                        ),
-                        ChoiceChip(
-                          label: const Text(
-                            'Schedule Date',
-                            style: TextStyle(fontSize: 11),
-                          ),
-                          selected: dateType == 'Scheduled',
-                          selectedColor: AppTheme.primaryFixed,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setDialogState(() {
-                                dateType = 'Scheduled';
-                                selectedDate = DateTime.now().add(
-                                  const Duration(days: 7),
-                                );
-                              });
-                            }
-                          },
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 14),
 
-                    // Date Picker Button
+                    // Date Picker
                     Text(
                       dateType == 'Administered'
-                          ? 'Administration Date'
-                          : 'Schedule Date',
-                      style: const TextStyle(
+                          ? 'ADMINISTRATION DATE'
+                          : 'SCHEDULED DATE',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontSize: 11,
+                        letterSpacing: 0.5,
+                        color: textSecondary,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -1340,82 +1662,151 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                           setDialogState(() => selectedDate = picked);
                         }
                       },
-                      icon: const Icon(Icons.calendar_today, size: 16),
-                      label: Text(_formatDate(selectedDate)),
+                      icon: const Icon(
+                        Icons.calendar_today,
+                        size: 16,
+                        color: AppTheme.primary,
+                      ),
+                      label: Text(
+                        _formatDate(selectedDate),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
+                    const SizedBox(height: 24),
+
+                    // Action Buttons Row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              foregroundColor: textSecondary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              final vaccineName = isOtherVaccine
+                                  ? nameController.text.trim()
+                                  : selectedVaccine;
+                              final doseLabel = isOtherDose
+                                  ? customDoseController.text.trim()
+                                  : selectedDoseNumber;
+
+                              if (vaccineName.isEmpty) {
+                                setDialogState(() {
+                                  validationError =
+                                      'Vaccine Name is required. Please enter a name.';
+                                });
+                                return;
+                              }
+
+                              if (isOtherDose && doseLabel.isEmpty) {
+                                setDialogState(() {
+                                  validationError =
+                                      'Dose Type / Number is required when "Other" is selected.';
+                                });
+                                return;
+                              }
+                              final mfrText = manufacturerController.text
+                                  .trim();
+                              final batchText = batchController.text.trim();
+
+                              String lotInfo = '';
+                              if (mfrText.isNotEmpty && batchText.isNotEmpty) {
+                                lotInfo = '$mfrText (#$batchText)';
+                              } else if (batchText.isNotEmpty) {
+                                lotInfo = '#$batchText';
+                              } else if (mfrText.isNotEmpty) {
+                                lotInfo = mfrText;
+                              }
+
+                              final isAlreadyAdministered =
+                                  dateType == 'Administered';
+
+                              final newVaccine = Medication(
+                                id: DateTime.now().millisecondsSinceEpoch
+                                    .toString(),
+                                name: vaccineName,
+                                dose: doseLabel.isNotEmpty
+                                    ? doseLabel
+                                    : '1st Dose',
+                                frequency: doseLabel.isNotEmpty
+                                    ? doseLabel
+                                    : 'Annual',
+                                startDate: selectedDate,
+                                nextDoseDate: isAlreadyAdministered
+                                    ? selectedDate.add(
+                                        const Duration(days: 365),
+                                      )
+                                    : selectedDate,
+                                administeredDate: isAlreadyAdministered
+                                    ? selectedDate
+                                    : null,
+                                type: 'vaccine',
+                                lotNumber: lotInfo,
+                                isCompleted: isAlreadyAdministered,
+                                remindersEnabled: true,
+                                hasStartTime: false,
+                              );
+
+                              final updatedMeds = List<Medication>.from(
+                                _pet.medications,
+                              )..add(newVaccine);
+                              final updatedPet = _pet.copyWith(
+                                medications: updatedMeds,
+                              );
+                              parentContext.read<PetBloc>().add(
+                                UpdatePet(updatedPet),
+                              );
+                              Navigator.of(dialogContext).pop();
+                            },
+                            icon: const Icon(Icons.check, size: 18),
+                            label: const Text(
+                              'Save Record',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final vaccineName = isOtherVaccine
-                        ? nameController.text.trim()
-                        : selectedVaccine;
-                    final doseLabel = isOtherDose
-                        ? customDoseController.text.trim()
-                        : selectedDoseNumber;
-
-                    if (vaccineName.isNotEmpty) {
-                      final mfrText = manufacturerController.text.trim();
-                      final batchText = batchController.text.trim();
-
-                      String lotInfo = '';
-                      if (mfrText.isNotEmpty && batchText.isNotEmpty) {
-                        lotInfo = '$mfrText (#$batchText)';
-                      } else if (batchText.isNotEmpty) {
-                        lotInfo = '#$batchText';
-                      } else if (mfrText.isNotEmpty) {
-                        lotInfo = mfrText;
-                      }
-
-                      final isAlreadyAdministered = dateType == 'Administered';
-
-                      final newVaccine = Medication(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        name: vaccineName,
-                        dose: doseLabel.isNotEmpty ? doseLabel : '1st Dose',
-                        frequency: doseLabel.isNotEmpty ? doseLabel : 'Annual',
-                        startDate: selectedDate,
-                        nextDoseDate: isAlreadyAdministered
-                            ? selectedDate.add(const Duration(days: 365))
-                            : selectedDate,
-                        administeredDate: isAlreadyAdministered
-                            ? selectedDate
-                            : null,
-                        type: 'vaccine',
-                        lotNumber: lotInfo,
-                        isCompleted: isAlreadyAdministered,
-                        remindersEnabled: true,
-                        hasStartTime: false,
-                      );
-
-                      final updatedMeds = List<Medication>.from(
-                        _pet.medications,
-                      )..add(newVaccine);
-                      final updatedPet = _pet.copyWith(
-                        medications: updatedMeds,
-                      );
-                      parentContext.read<PetBloc>().add(UpdatePet(updatedPet));
-                      Navigator.of(dialogContext).pop();
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Add'),
-                ),
-              ],
             );
           },
         );
@@ -1942,15 +2333,43 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
 
                 // Vaccination Section
                 Row(
-                  children: const [
-                    Icon(Icons.vaccines, color: AppTheme.primary, size: 24),
-                    SizedBox(width: 8),
-                    Text(
-                      'Vaccination Schedule',
-                      style: TextStyle(
-                        fontFamily: 'Montserrat',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.vaccines, color: AppTheme.primary, size: 24),
+                        SizedBox(width: 8),
+                        Text(
+                          'Vaccination Schedule',
+                          style: TextStyle(
+                            fontFamily: 'Montserrat',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                MedicalHistoryScreen(pet: _pet),
+                          ),
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.history,
+                        size: 18,
+                        color: AppTheme.primary,
+                      ),
+                      label: const Text(
+                        'History',
+                        style: TextStyle(
+                          color: AppTheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],

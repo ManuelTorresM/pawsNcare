@@ -1,3 +1,4 @@
+import 'dart:io';
 import '../models/pet.dart';
 import '../models/diary_entry.dart';
 
@@ -13,6 +14,9 @@ abstract class BaseRepository {
   Future<void> updateUserName(String newName);
   Future<void> sendEmailVerification();
   Future<void> sendPasswordResetEmail(String email);
+
+  // Storage Operations
+  Future<String?> uploadImage(File file, String storagePath);
 
   // Pet Operations
   Future<List<Pet>> getPets();

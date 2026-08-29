@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/models/pet.dart';
+import '../../../data/models/medication.dart';
 import '../../../data/models/pet_invitation.dart';
 import '../../../data/models/shared_member.dart';
 import '../../../data/repositories/firebase_repository.dart';
@@ -40,36 +41,390 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   void _showSafetyGuide() {
+    final parentContext = context;
+    final isDark = parentContext.read<ThemeCubit>().state;
+    final dialogBg = isDark ? AppTheme.darkBackground : AppTheme.background;
+    final cardBg = isDark
+        ? AppTheme.darkSurface
+        : AppTheme.surfaceContainerLowest;
+    final borderCol = isDark
+        ? const Color(0xFF383634)
+        : AppTheme.surfaceContainer;
+    final textPrimary = isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
+    final textSecondary = isDark
+        ? AppTheme.darkOnSurfaceVariant
+        : AppTheme.secondary;
+
     showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.ac_unit, color: AppTheme.tertiary),
-              SizedBox(width: 8),
-              Text('Winter Pet Safety Guide'),
-            ],
-          ),
-          content: const SingleChildScrollView(
-            child: Text(
-              'As temperatures drop, pay close attention to your pets\' paws. '
-              'Ice, salt, and snow can accumulate between toes and cause cracking, bleeding, or chemical burns from de-icers.\n\n'
-              'Tips:\n'
-              '1. Wipe paws with warm water after walks.\n'
-              '2. Apply pet-safe paw balm before going outside.\n'
-              '3. Avoid salted pathways or use dog booties if tolerated.\n'
-              '4. Keep winter walks short on extremely cold days.',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
+      context: parentContext,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setModalState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              backgroundColor: dialogBg,
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 24,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Top Bar in Dialog
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
+                        color: isDark ? AppTheme.darkSurface : AppTheme.surface,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.ac_unit,
+                                  color: AppTheme.primary,
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Winter Safety',
+                                  style: TextStyle(
+                                    fontFamily: 'Montserrat',
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                    color: textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            IconButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(),
+                              icon: Icon(
+                                Icons.close,
+                                color: textSecondary,
+                                size: 20,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1),
+
+                      Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Hero Banner
+                            Container(
+                              width: double.infinity,
+                              height: 180,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                gradient: LinearGradient(
+                                  colors: isDark
+                                      ? const [
+                                          Color(0xFF1E293B),
+                                          Color(0xFF0F172A),
+                                        ]
+                                      : const [
+                                          AppTheme.primary,
+                                          Color(0xFF2E4E30),
+                                        ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                              child: Stack(
+                                children: [
+                                  Positioned(
+                                    right: -20,
+                                    bottom: -20,
+                                    child: Icon(
+                                      Icons.pets,
+                                      size: 140,
+                                      color: Colors.white.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(20.0),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.primaryFixed,
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'Seasonal Guide',
+                                            style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppTheme
+                                                  .onPrimaryFixedVariant,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        const Text(
+                                          'Cold Weather Care',
+                                          style: TextStyle(
+                                            fontFamily: 'Montserrat',
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Keep your furry family members safe, warm, and happy during winter.',
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 12,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.9,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+
+                            // 4 Winter Safety Cards (Vertical Stack)
+                            _buildSafetyTipCard(
+                              icon: Icons.pets,
+                              iconColor: AppTheme.primary,
+                              iconBg: AppTheme.primaryFixed,
+                              title: 'Paws Protection',
+                              desc:
+                                  'Sidewalk salt and chemical de-icers can cause severe irritation to paw pads and are toxic if ingested during grooming. Always wipe your pet\'s paws with a warm, damp cloth immediately after returning from a walk.',
+                              cardBg: cardBg,
+                              borderCol: borderCol,
+                              textPrimary: textPrimary,
+                              textSecondary: textSecondary,
+                            ),
+                            const SizedBox(height: 12),
+
+                            _buildSafetyTipCard(
+                              icon: Icons.device_thermostat,
+                              iconColor: AppTheme.tertiary,
+                              iconBg: AppTheme.tertiaryFixed,
+                              title: 'Temperature Check',
+                              desc:
+                                  'A general rule: if it\'s too cold for you, it\'s too cold for them. Short-haired breeds, puppies, and senior dogs are especially vulnerable. Limit outdoor time when temperatures drop below freezing.',
+                              cardBg: cardBg,
+                              borderCol: borderCol,
+                              textPrimary: textPrimary,
+                              textSecondary: textSecondary,
+                            ),
+                            const SizedBox(height: 12),
+
+                            _buildSafetyTipCard(
+                              icon: Icons.warning_amber_rounded,
+                              iconColor: AppTheme.error,
+                              iconBg: AppTheme.errorContainer,
+                              title: 'Antifreeze Alert',
+                              desc:
+                                  'Ethylene glycol, common in antifreeze, is highly toxic to pets but has a sweet taste that attracts them. Even a small amount can be fatal. Clean up any spills in your garage or driveway immediately and consider using pet-safe propylene glycol alternatives. If you suspect ingestion, contact emergency veterinary care instantly.',
+                              cardBg: cardBg,
+                              borderCol: borderCol,
+                              textPrimary: textPrimary,
+                              textSecondary: textSecondary,
+                            ),
+                            const SizedBox(height: 12),
+
+                            _buildSafetyTipCard(
+                              icon: Icons.checkroom,
+                              iconColor: AppTheme.secondary,
+                              iconBg: AppTheme.secondaryContainer,
+                              title: 'Winter Gear',
+                              desc:
+                                  'Protective clothing isn\'t just a fashion statement—it\'s essential medical prevention for many breeds. Insulated coats protect the core, while booties prevent ice buildup between toes and shield against harsh chemicals.',
+                              cardBg: cardBg,
+                              borderCol: borderCol,
+                              textPrimary: textPrimary,
+                              textSecondary: textSecondary,
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Emergency Assistance
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppTheme.tertiaryContainer.withValues(
+                                  alpha: 0.2,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: AppTheme.tertiaryContainer.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: const BoxDecoration(
+                                      color: AppTheme.tertiary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.local_hospital_outlined,
+                                      color: Colors.white,
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Emergency Assistance',
+                                    style: TextStyle(
+                                      fontFamily: 'Montserrat',
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      color: textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'If you suspect frostbite, antifreeze ingestion, or hypothermia.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 12,
+                                      color: textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton.icon(
+                                      onPressed: () {
+                                        ScaffoldMessenger.of(
+                                          parentContext,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Calling Emergency Local Vet...',
+                                            ),
+                                            backgroundColor: AppTheme.tertiary,
+                                          ),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.call, size: 16),
+                                      label: const Text('Call Local Vet'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppTheme.tertiary,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _buildSafetyTipCard({
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBg,
+    required String title,
+    required String desc,
+    required Color cardBg,
+    required Color borderCol,
+    required Color textPrimary,
+    required Color textSecondary,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderCol),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  desc,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    height: 1.4,
+                    color: textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -101,9 +456,16 @@ class _HomeTabState extends State<HomeTab> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: BlocBuilder<AuthBloc, AuthState>(
                 builder: (context, state) {
-                  String name = 'Marco';
-                  if (state is Authenticated) {
+                  String name = 'Pet Parent';
+                  if (state is Authenticated && state.name.isNotEmpty) {
                     name = state.name;
+                  } else {
+                    final currentUser = FirebaseAuth.instance.currentUser;
+                    if (currentUser?.displayName?.isNotEmpty == true) {
+                      name = currentUser!.displayName!;
+                    } else if (currentUser?.email?.isNotEmpty == true) {
+                      name = currentUser!.email!.split('@').first;
+                    }
                   }
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,207 +494,299 @@ class _HomeTabState extends State<HomeTab> {
               child: Column(
                 children: [
                   // Health Card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF2E4E30).withValues(alpha: 0.5)
-                          : AppTheme.primaryFixed.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border(
-                        left: BorderSide(color: headerColor, width: 4),
-                      ),
-                    ),
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          right: -10,
-                          bottom: -10,
-                          child: Icon(
-                            Icons.shield,
-                            size: 80,
-                            color: headerColor.withValues(alpha: 0.08),
+                  BlocBuilder<PetBloc, PetState>(
+                    builder: (context, petState) {
+                      String healthTitle = 'All pets healthy';
+                      String healthSubtitle = 'Medical sync up to date';
+
+                      if (petState is PetLoaded) {
+                        if (petState.pets.isEmpty) {
+                          healthTitle = 'No pets registered';
+                          healthSubtitle = 'Add your first pet to sync health profile';
+                        } else {
+                          final hasAttention = petState.pets.any(
+                            (p) => p.status == 'Check Diary',
+                          );
+                          if (hasAttention) {
+                            healthTitle = 'Attention needed';
+                            healthSubtitle = 'Check diary entries for updates';
+                          }
+                        }
+                      }
+
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF2E4E30).withValues(alpha: 0.5)
+                              : AppTheme.primaryFixed.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border(
+                            left: BorderSide(color: headerColor, width: 4),
                           ),
                         ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Stack(
                           children: [
-                            Row(
+                            Positioned(
+                              right: -10,
+                              bottom: -10,
+                              child: Icon(
+                                Icons.shield,
+                                size: 80,
+                                color: headerColor.withValues(alpha: 0.08),
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(
-                                  Icons.verified_user,
-                                  color: headerColor,
-                                  size: 20,
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.verified_user,
+                                      color: headerColor,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'HEALTH STATUS',
+                                      style: theme.textTheme.labelSmall?.copyWith(
+                                        color: headerColor,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(height: 12),
                                 Text(
-                                  'HEALTH STATUS',
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: headerColor,
+                                  healthTitle,
+                                  style: TextStyle(
+                                    fontSize: 22,
                                     fontWeight: FontWeight.bold,
+                                    color: headerColor,
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'All pets good',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: headerColor,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Last medical sync: 2 hours ago',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Quick Stats Cards Row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: widget.onNavigateToCalendar,
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: cardBg,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(
-                                    alpha: isDark ? 0.2 : 0.02,
-                                  ),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? const Color(0xFF383634)
-                                        : AppTheme.secondaryContainer,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Icon(
-                                    Icons.calendar_month,
+                                const SizedBox(height: 4),
+                                Text(
+                                  healthSubtitle,
+                                  style: TextStyle(
+                                    fontSize: 13,
                                     color: textSecondary,
                                   ),
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '2 appts',
-                                        style: theme.textTheme.labelLarge
-                                            ?.copyWith(
-                                              fontSize: 14,
-                                              color: textPrimary,
-                                            ),
-                                      ),
-                                      Text(
-                                        'Fri 10 AM',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: textSecondary,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
                               ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Quick Stats Cards Row (Dynamic & Functional)
+                  BlocBuilder<PetBloc, PetState>(
+                    builder: (context, petState) {
+                      int totalUpcomingAppts = 0;
+                      String nextApptTimeStr = 'No schedule';
+                      int pendingTasksCount = 0;
+                      String pendingTaskDesc = 'All up to date';
+
+                      if (petState is PetLoaded && petState.pets.isNotEmpty) {
+                        final List<Medication> allUpcoming = [];
+                        final List<Medication> allPendingVaccines = [];
+
+                        for (var p in petState.pets) {
+                          allUpcoming.addAll(
+                            p.medications.where((m) => !m.isCompleted),
+                          );
+                          allPendingVaccines.addAll(
+                            p.medications.where(
+                              (m) => m.type == 'vaccine' && !m.isSavedToHistory,
+                            ),
+                          );
+                        }
+
+                        allUpcoming.sort(
+                          (a, b) => a.nextDoseDate.compareTo(b.nextDoseDate),
+                        );
+
+                        totalUpcomingAppts = allUpcoming.length;
+                        if (allUpcoming.isNotEmpty) {
+                          final nextDate = allUpcoming.first.nextDoseDate;
+                          final now = DateTime.now();
+                          const months = [
+                            'Jan',
+                            'Feb',
+                            'Mar',
+                            'Apr',
+                            'May',
+                            'Jun',
+                            'Jul',
+                            'Aug',
+                            'Sep',
+                            'Oct',
+                            'Nov',
+                            'Dec',
+                          ];
+                          if (nextDate.year == now.year &&
+                              nextDate.month == now.month &&
+                              nextDate.day == now.day) {
+                            nextApptTimeStr = 'Today';
+                          } else {
+                            nextApptTimeStr =
+                                '${months[nextDate.month - 1]} ${nextDate.day}';
+                          }
+                        }
+
+                        pendingTasksCount = allPendingVaccines.length;
+                        if (allPendingVaccines.isNotEmpty) {
+                          pendingTaskDesc =
+                              '${allPendingVaccines.first.name} log';
+                        } else {
+                          pendingTaskDesc =
+                              '${petState.pets.first.name} routine';
+                        }
+                      }
+
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: widget.onNavigateToCalendar,
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: cardBg,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: isDark ? 0.2 : 0.02,
+                                      ),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? const Color(0xFF383634)
+                                            : AppTheme.secondaryContainer,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        Icons.calendar_month,
+                                        color: textSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            totalUpcomingAppts > 0
+                                                ? '$totalUpcomingAppts appt${totalUpcomingAppts == 1 ? '' : 's'}'
+                                                : '0 appts',
+                                            style: theme.textTheme.labelLarge
+                                                ?.copyWith(
+                                                  fontSize: 14,
+                                                  color: textPrimary,
+                                                ),
+                                          ),
+                                          Text(
+                                            nextApptTimeStr,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: textSecondary,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: widget.onNavigateToDiary,
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: cardBg,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(
-                                    alpha: isDark ? 0.2 : 0.02,
-                                  ),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: widget.onNavigateToDiary,
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: cardBg,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: isDark ? 0.2 : 0.02,
+                                      ),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? const Color(0xFF2E4E30)
-                                        : AppTheme.tertiaryFixed,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Icon(
-                                    Icons.event_note,
-                                    color: isDark
-                                        ? AppTheme.primaryFixedDim
-                                        : AppTheme.onTertiaryFixedVariant,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '1 task pending',
-                                        style: theme.textTheme.labelLarge
-                                            ?.copyWith(
-                                              fontSize: 14,
-                                              color: textPrimary,
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? const Color(0xFF2E4E30)
+                                            : AppTheme.tertiaryFixed,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        Icons.event_note,
+                                        color: isDark
+                                            ? AppTheme.primaryFixedDim
+                                            : AppTheme.onTertiaryFixedVariant,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            pendingTasksCount > 0
+                                                ? '$pendingTasksCount task${pendingTasksCount == 1 ? '' : 's'} pending'
+                                                : '0 tasks pending',
+                                            style: theme.textTheme.labelLarge
+                                                ?.copyWith(
+                                                  fontSize: 14,
+                                                  color: textPrimary,
+                                                ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          Text(
+                                            pendingTaskDesc,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: textSecondary,
                                             ),
-                                        overflow: TextOverflow.ellipsis,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
                                       ),
-                                      Text(
-                                        'Luna vaccine log',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: textSecondary,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    ],
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),
@@ -858,55 +1312,144 @@ class _HomeTabState extends State<HomeTab> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
-                padding: const EdgeInsets.all(24),
+                clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF353432) : AppTheme.secondary,
                   borderRadius: BorderRadius.circular(24),
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? const [Color(0xFF1E293B), Color(0xFF0F172A)]
+                        : const [Color(0xFF0284C7), Color(0xFF0369A1)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (isDark ? Colors.black : const Color(0xFF0284C7))
+                          .withValues(alpha: 0.2),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
                 child: Stack(
                   children: [
+                    // Background Glow Decorative Circles
                     Positioned(
-                      right: -10,
-                      bottom: -20,
-                      child: Icon(
-                        Icons.ac_unit,
-                        size: 100,
-                        color: Colors.white.withValues(alpha: 0.08),
+                      right: -30,
+                      top: -30,
+                      child: Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.08),
+                        ),
                       ),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Winter Pet Safety Guide',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Learn how to protect your pets\' paws from salt and ice this season with our professional tips.',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.white.withValues(alpha: 0.8),
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        ElevatedButton(
-                          onPressed: _showSafetyGuide,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primary,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
+                    Positioned(
+                      right: 10,
+                      bottom: -25,
+                      child: Icon(
+                        Icons.ac_unit,
+                        size: 130,
+                        color: Colors.white.withValues(alpha: 0.12),
+                      ),
+                    ),
+
+                    // Card Content
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Top Category Badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.18),
                               borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.ac_unit,
+                                  size: 12,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  'SEASONAL ADVISORY',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          child: const Text('Read More'),
-                        ),
-                      ],
+                          const SizedBox(height: 14),
+
+                          const Text(
+                            'Winter Pet Safety Guide',
+                            style: TextStyle(
+                              fontFamily: 'Montserrat',
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              height: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Learn how to protect your pet\'s sensitive paws from salt, ice, and cold weather with our quick guide.',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 13,
+                              color: Colors.white.withValues(alpha: 0.85),
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          ElevatedButton.icon(
+                            onPressed: _showSafetyGuide,
+                            icon: const Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 16,
+                            ),
+                            label: const Text('Read Safety Tips'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: isDark
+                                  ? const Color(0xFF0F172A)
+                                  : const Color(0xFF0284C7),
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              textStyle: const TextStyle(
+                                fontFamily: 'Montserrat',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

@@ -175,9 +175,11 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
 
     final invId = 'inv_${DateTime.now().millisecondsSinceEpoch}';
     final currentUser = FirebaseAuth.instance.currentUser;
-    final inviterName = currentUser?.displayName?.isNotEmpty == true
+    final inviterName = (currentUser?.displayName?.isNotEmpty == true)
         ? currentUser!.displayName!
-        : (currentUser?.email?.split('@').first ?? 'Companion Owner');
+        : (currentUser?.email?.isNotEmpty == true
+              ? currentUser!.email!
+              : 'Pet Owner');
 
     final invitation = PetInvitation(
       id: invId,
@@ -185,8 +187,9 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
       petName: _pet.name,
       petBreed: _pet.breed,
       petAvatarUrl: _pet.avatarUrl,
-      ownerId:
-          _pet.ownerId.isNotEmpty ? _pet.ownerId : (currentUser?.uid ?? ''),
+      ownerId: _pet.ownerId.isNotEmpty
+          ? _pet.ownerId
+          : (currentUser?.uid ?? ''),
       ownerName: inviterName,
       recipientEmail: matchedUser['email'] ?? email,
       recipientUsername: matchedUser['username'] ?? email.split('@').first,
@@ -448,8 +451,9 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
                         if (barcode.rawValue != null &&
                             barcode.rawValue!.isNotEmpty) {
                           hasDetected = true;
-                          final scannedCode =
-                              barcode.rawValue!.replaceAll('@', '').trim();
+                          final scannedCode = barcode.rawValue!
+                              .replaceAll('@', '')
+                              .trim();
                           _emailController.text = scannedCode;
                           controller.dispose();
                           Navigator.pop(dialogContext);

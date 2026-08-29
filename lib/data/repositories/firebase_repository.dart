@@ -1,5 +1,8 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/pet.dart';
 import '../models/pet_invitation.dart';
@@ -11,6 +14,49 @@ import 'base_repository.dart';
 class FirebaseRepository implements BaseRepository {
   final fb.FirebaseAuth _auth = fb.FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  @override
+  Future<String?> uploadImage(File file, String storagePath) async {
+    final storageInstances = [
+      FirebaseStorage.instance,
+      FirebaseStorage.instanceFor(bucket: 'gs://paws-n-care.appspot.com'),
+      FirebaseStorage.instanceFor(
+        bucket: 'gs://paws-n-care.firebasestorage.app',
+      ),
+    ];
+
+    Object? lastError;
+    StackTrace? lastStack;
+
+    for (final storage in storageInstances) {
+      try {
+        debugPrint(
+          '[FirebaseStorage] Trying upload with bucket "${storage.bucket}" for file: ${file.path}',
+        );
+        final ref = storage.ref().child(storagePath);
+        final uploadTask = await ref.putFile(file);
+        final downloadUrl = await uploadTask.ref.getDownloadURL();
+        debugPrint(
+          '[FirebaseStorage] Upload successful! Download URL: $downloadUrl',
+        );
+        return downloadUrl;
+      } catch (e, stack) {
+        lastError = e;
+        lastStack = stack;
+        debugPrint(
+          '[FirebaseStorage] Bucket "${storage.bucket}" attempt failed: $e',
+        );
+      }
+    }
+
+    debugPrint(
+      '[FirebaseStorage] ERROR: All storage bucket attempts failed!\n'
+      'Last error: $lastError\n$lastStack\n'
+      'IMPORTANT: If you receive a 404 / object-not-found error, please open Firebase Console '
+      '(https://console.firebase.google.com/project/paws-n-care/storage) and click "Get Started" to initialize Cloud Storage for your project!',
+    );
+    throw lastError ?? Exception('Firebase Storage upload failed');
+  }
 
   String? get _uid => _auth.currentUser?.uid;
 
@@ -180,7 +226,7 @@ class FirebaseRepository implements BaseRepository {
           if (member.status == 'Pending') {
             petMap[pet.id] = pet.toPendingReplica();
           } else if (member.status == 'Active') {
-            petMap[pet.id] = pet;
+            petMap[pet.id] = pet.toConsistentImageReplica(currentUserId: uid);
           }
         }
       }

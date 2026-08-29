@@ -5,6 +5,7 @@ import '../../../logic/pet/pet_bloc.dart';
 import '../../../logic/diary/diary_bloc.dart';
 import '../../../logic/theme/theme_cubit.dart';
 import '../../../data/repositories/repository_selector.dart';
+import '../../../logic/notifications/global_notification_service.dart';
 import '../../theme/app_theme.dart';
 
 import '../profile/profile_details_screen.dart';
@@ -17,7 +18,9 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  String _activeDb = 'mock';
+  // TODO: Remove this when Demo mode is no longer needed
+  static const bool isDemoModeEnabled = false;
+  String _activeDb = 'firebase';
   bool _medsNotifications = true;
   bool _vaccinesNotifications = true;
   bool _feedingNotifications = false;
@@ -98,10 +101,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => ProfileDetailsScreen(
-                        name: name,
-                        email: email,
-                      ),
+                      builder: (_) =>
+                          ProfileDetailsScreen(name: name, email: email),
                     ),
                   );
                 },
@@ -112,104 +113,106 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: cardBg,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                child: Row(
-                  children: [
-                    Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: 32,
-                          backgroundColor: AppTheme.primaryContainer,
-                          backgroundImage: const NetworkImage(
-                            'https://lh3.googleusercontent.com/aida-public/AB6AXuBVmzVQ6tXgL8wUyrhW01rg5PG8buMnmSCeWMY5Q1uxZFHHOCyaK3SQnW91Iju-_SLGZ-9CuaIGrS3Hk-0dnEQhbAOyfT_wpUfVn74Vd1plaCxaNvuu9qBmlt-96BkGXCYnXvaT9O2WnRIPn90-pPE4vXP9wnRt5UXGlwTyTOLwu7B9LrGZG0-mAunb-B-ZZJshFbabnpKyiLiXFpU7uyIJoqkJJSOLAL60eu-0kC_dKa2bZG8rLZkb_qUQkB8WkVKomI0nv9xMm4o',
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: AppTheme.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.edit,
-                              color: Colors.white,
-                              size: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
+                    children: [
+                      Stack(
                         children: [
-                          Text(
-                            name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                          CircleAvatar(
+                            radius: 32,
+                            backgroundColor: AppTheme.primaryContainer,
+                            backgroundImage: const NetworkImage(
+                              'https://lh3.googleusercontent.com/aida-public/AB6AXuBVmzVQ6tXgL8wUyrhW01rg5PG8buMnmSCeWMY5Q1uxZFHHOCyaK3SQnW91Iju-_SLGZ-9CuaIGrS3Hk-0dnEQhbAOyfT_wpUfVn74Vd1plaCxaNvuu9qBmlt-96BkGXCYnXvaT9O2WnRIPn90-pPE4vXP9wnRt5UXGlwTyTOLwu7B9LrGZG0-mAunb-B-ZZJshFbabnpKyiLiXFpU7uyIJoqkJJSOLAL60eu-0kC_dKa2bZG8rLZkb_qUQkB8WkVKomI0nv9xMm4o',
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            email,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: textSecondary,
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: AppTheme.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.edit,
+                                color: Colors.white,
+                                size: 12,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    Icon(Icons.chevron_right, color: textSecondary),
-                  ],
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              email,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right, color: textSecondary),
+                    ],
+                  ),
                 ),
-              ),
-            );
+              );
             },
           ),
           const SizedBox(height: 24),
 
-          // Database Storage Section
-          _buildSectionHeader('Database Storage', textSecondary),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: cardBg,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: RadioGroup<String>(
-              groupValue: _activeDb,
-              onChanged: _toggleDbSource,
-              child: Column(
-                children: [
-                  RadioListTile<String>(
-                    title: const Text('Mock Database (Local Persistence)'),
-                    subtitle: Text(
-                      'Runs instantly without credentials.',
-                      style: TextStyle(fontSize: 12, color: textSecondary),
+          // Database Storage Section (Shown ONLY when DEMO mode is manually enabled)
+          if (isDemoModeEnabled) ...[
+            _buildSectionHeader('Database Storage', textSecondary),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: RadioGroup<String>(
+                groupValue: _activeDb,
+                onChanged: _toggleDbSource,
+                child: Column(
+                  children: [
+                    RadioListTile<String>(
+                      title: const Text('Mock Database (Local Persistence)'),
+                      subtitle: Text(
+                        'Runs instantly without credentials.',
+                        style: TextStyle(fontSize: 12, color: textSecondary),
+                      ),
+                      value: 'mock',
+                      activeColor: AppTheme.primary,
                     ),
-                    value: 'mock',
-                    activeColor: AppTheme.primary,
-                  ),
-                  Divider(height: 1, color: dividerColor),
-                  RadioListTile<String>(
-                    title: const Text('Firebase Firestore Database'),
-                    subtitle: Text(
-                      'Connects to real cloud services.',
-                      style: TextStyle(fontSize: 12, color: textSecondary),
+                    Divider(height: 1, color: dividerColor),
+                    RadioListTile<String>(
+                      title: const Text('Firebase Firestore Database'),
+                      subtitle: Text(
+                        'Connects to real cloud services.',
+                        style: TextStyle(fontSize: 12, color: textSecondary),
+                      ),
+                      value: 'firebase',
+                      activeColor: AppTheme.primary,
                     ),
-                    value: 'firebase',
-                    activeColor: AppTheme.primary,
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
+          ],
 
           // Notifications Toggles Section
           _buildSectionHeader('Notifications', textSecondary),
@@ -286,6 +289,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: _quietHoursEnabled,
                   onChanged: (val) {
                     setState(() => _quietHoursEnabled = val);
+                    GlobalNotificationService().setQuietHours(
+                      enabled: val,
+                      start: _quietStart,
+                      end: _quietEnd,
+                    );
                   },
                 ),
                 if (_quietHoursEnabled) ...[
@@ -317,9 +325,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       final picked = await showTimePicker(
                                         context: context,
                                         initialTime: _quietStart,
+                                        builder: (context, child) {
+                                          return Theme(
+                                            data: Theme.of(context).copyWith(
+                                              timePickerTheme:
+                                                  const TimePickerThemeData(
+                                                    dialTextStyle: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                            ),
+                                            child: Transform.scale(
+                                              scale: 1.15,
+                                              child: child!,
+                                            ),
+                                          );
+                                        },
                                       );
                                       if (picked != null) {
                                         setState(() => _quietStart = picked);
+                                        GlobalNotificationService()
+                                            .setQuietHours(
+                                              enabled: _quietHoursEnabled,
+                                              start: picked,
+                                              end: _quietEnd,
+                                            );
                                       }
                                     },
                                     icon: const Icon(
@@ -358,9 +390,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       final picked = await showTimePicker(
                                         context: context,
                                         initialTime: _quietEnd,
+                                        builder: (context, child) {
+                                          return Theme(
+                                            data: Theme.of(context).copyWith(
+                                              timePickerTheme:
+                                                  const TimePickerThemeData(
+                                                    dialTextStyle: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                            ),
+                                            child: Transform.scale(
+                                              scale: 1.15,
+                                              child: child!,
+                                            ),
+                                          );
+                                        },
                                       );
                                       if (picked != null) {
                                         setState(() => _quietEnd = picked);
+                                        GlobalNotificationService()
+                                            .setQuietHours(
+                                              enabled: _quietHoursEnabled,
+                                              start: _quietStart,
+                                              end: picked,
+                                            );
                                       }
                                     },
                                     icon: const Icon(
