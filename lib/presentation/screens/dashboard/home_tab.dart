@@ -272,84 +272,117 @@ class _HomeTabState extends State<HomeTab> {
                             ),
                             const SizedBox(height: 20),
 
-                            // Emergency Assistance
+                            // Simple Advertisement: Call your local vet
                             Container(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
                               decoration: BoxDecoration(
-                                color: AppTheme.tertiaryContainer.withValues(
-                                  alpha: 0.2,
+                                gradient: LinearGradient(
+                                  colors: isDark
+                                      ? [
+                                          const Color(0xFF2E221E),
+                                          const Color(0xFF231916),
+                                        ]
+                                      : [
+                                          const Color(0xFFFFF3EE),
+                                          const Color(0xFFFFEAE2),
+                                        ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: AppTheme.tertiaryContainer.withValues(
-                                    alpha: 0.5,
+                                  color: AppTheme.tertiary.withValues(
+                                    alpha: isDark ? 0.35 : 0.3,
                                   ),
                                 ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.tertiary.withValues(
+                                      alpha: isDark ? 0.15 : 0.08,
+                                    ),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
-                              child: Column(
+                              child: Row(
                                 children: [
                                   Container(
                                     padding: const EdgeInsets.all(10),
-                                    decoration: const BoxDecoration(
+                                    decoration: BoxDecoration(
                                       color: AppTheme.tertiary,
                                       shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppTheme.tertiary.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
                                     ),
                                     child: const Icon(
-                                      Icons.local_hospital_outlined,
+                                      Icons.phone_in_talk_rounded,
                                       color: Colors.white,
-                                      size: 22,
+                                      size: 20,
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Emergency Assistance',
-                                    style: TextStyle(
-                                      fontFamily: 'Montserrat',
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                      color: textPrimary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'If you suspect frostbite, antifreeze ingestion, or hypothermia.',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 12,
-                                      color: textSecondary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 14),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: ElevatedButton.icon(
-                                      onPressed: () {
-                                        ScaffoldMessenger.of(
-                                          parentContext,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Calling Emergency Local Vet...',
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              'Call Your Local Vet',
+                                              style: TextStyle(
+                                                fontFamily: 'Montserrat',
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                                color: textPrimary,
+                                              ),
                                             ),
-                                            backgroundColor: AppTheme.tertiary,
-                                          ),
-                                        );
-                                      },
-                                      icon: const Icon(Icons.call, size: 16),
-                                      label: const Text('Call Local Vet'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppTheme.tertiary,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 12,
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: AppTheme.tertiary,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: const Text(
+                                                'AD',
+                                                style: TextStyle(
+                                                  fontFamily: 'Inter',
+                                                  fontSize: 8,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            20,
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          'In case of emergency, contact your nearest veterinarian clinic immediately.',
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 11,
+                                            color: textSecondary,
                                           ),
                                         ),
-                                      ),
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -502,7 +535,8 @@ class _HomeTabState extends State<HomeTab> {
                       if (petState is PetLoaded) {
                         if (petState.pets.isEmpty) {
                           healthTitle = 'No pets registered';
-                          healthSubtitle = 'Add your first pet to sync health profile';
+                          healthSubtitle =
+                              'Add your first pet to sync health profile';
                         } else {
                           final hasAttention = petState.pets.any(
                             (p) => p.status == 'Check Diary',
@@ -550,10 +584,11 @@ class _HomeTabState extends State<HomeTab> {
                                     const SizedBox(width: 8),
                                     Text(
                                       'HEALTH STATUS',
-                                      style: theme.textTheme.labelSmall?.copyWith(
-                                        color: headerColor,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                            color: headerColor,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                     ),
                                   ],
                                 ),
