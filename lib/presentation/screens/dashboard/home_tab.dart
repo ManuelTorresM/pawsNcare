@@ -4,16 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/models/pet.dart';
 import '../../../data/models/medication.dart';
-import '../../../data/models/pet_invitation.dart';
-import '../../../data/models/shared_member.dart';
-import '../../../data/repositories/firebase_repository.dart';
 import '../../../logic/theme/theme_cubit.dart';
 import '../../../logic/auth/auth_bloc.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/accent_left_card.dart';
+import '../../widgets/memory_image_card.dart';
+import '../../widgets/dashboard/home_invitation_banner.dart';
 import '../pet/pet_profile_screen.dart';
 import '../pet/add_pet_wizard.dart';
-import '../pet/invitation_received_screen.dart';
 import '../nutrition/nutrition_screen.dart';
 import '../pet/pet_album_screen.dart';
 
@@ -548,18 +547,13 @@ class _HomeTabState extends State<HomeTab> {
                         }
                       }
 
-                      return Container(
-                        width: double.infinity,
+                      return AccentLeftCard(
+                        accentColor: headerColor,
+                        backgroundColor: isDark
+                            ? const Color(0xFF2E4E30).withValues(alpha: 0.5)
+                            : AppTheme.primaryFixed.withValues(alpha: 0.3),
+                        margin: EdgeInsets.zero,
                         padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? const Color(0xFF2E4E30).withValues(alpha: 0.5)
-                              : AppTheme.primaryFixed.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border(
-                            left: BorderSide(color: headerColor, width: 4),
-                          ),
-                        ),
                         child: Stack(
                           children: [
                             Positioned(
@@ -621,34 +615,51 @@ class _HomeTabState extends State<HomeTab> {
                   // Quick Stats Cards Row (Dynamic & Functional)
                   BlocBuilder<PetBloc, PetState>(
                     builder: (context, petState) {
-                      int totalUpcomingAppts = 0;
-                      String nextApptTimeStr = 'No schedule';
-                      int pendingTasksCount = 0;
-                      String pendingTaskDesc = 'All up to date';
+                      int monthEventsAheadCount = 0;
+                      String nextEventSubtitle = 'No schedule';
+                      int expiredTasksCount = 0;
+                      String expiredTaskSubtitle = 'All up to date';
 
                       if (petState is PetLoaded && petState.pets.isNotEmpty) {
-                        final List<Medication> allUpcoming = [];
-                        final List<Medication> allPendingVaccines = [];
+                        final now = DateTime.now();
+                        final List<Medication> upcomingMonthEvents = [];
+                        final List<Medication> expiredTasks = [];
 
                         for (var p in petState.pets) {
-                          allUpcoming.addAll(
-                            p.medications.where((m) => !m.isCompleted),
-                          );
-                          allPendingVaccines.addAll(
-                            p.medications.where(
-                              (m) => m.type == 'vaccine' && !m.isSavedToHistory,
-                            ),
-                          );
+                          for (var m in p.medications) {
+                            if (!m.isCompleted) {
+                              if (m.nextDoseDate.isBefore(now)) {
+                                // Expired task without completion
+                                expiredTasks.add(m);
+                              } else {
+                                // Upcoming event in the month ahead
+                                final endOfMonth = DateTime(
+                                  now.year,
+                                  now.month + 1,
+                                  0,
+                                  23,
+                                  59,
+                                  59,
+                                );
+                                if (m.nextDoseDate.isBefore(endOfMonth) ||
+                                    m.nextDoseDate.difference(now).inDays <=
+                                        30) {
+                                  upcomingMonthEvents.add(m);
+                                }
+                              }
+                            }
+                          }
                         }
 
-                        allUpcoming.sort(
+                        // 1. Month Events Ahead
+                        upcomingMonthEvents.sort(
                           (a, b) => a.nextDoseDate.compareTo(b.nextDoseDate),
                         );
+                        monthEventsAheadCount = upcomingMonthEvents.length;
 
-                        totalUpcomingAppts = allUpcoming.length;
-                        if (allUpcoming.isNotEmpty) {
-                          final nextDate = allUpcoming.first.nextDoseDate;
-                          final now = DateTime.now();
+                        if (upcomingMonthEvents.isNotEmpty) {
+                          final nextDate =
+                              upcomingMonthEvents.first.nextDoseDate;
                           const months = [
                             'Jan',
                             'Feb',
@@ -666,20 +677,24 @@ class _HomeTabState extends State<HomeTab> {
                           if (nextDate.year == now.year &&
                               nextDate.month == now.month &&
                               nextDate.day == now.day) {
-                            nextApptTimeStr = 'Today';
+                            nextEventSubtitle = 'Next: Today';
                           } else {
-                            nextApptTimeStr =
-                                '${months[nextDate.month - 1]} ${nextDate.day}';
+                            nextEventSubtitle =
+                                'Next: ${months[nextDate.month - 1]} ${nextDate.day}';
                           }
                         }
 
-                        pendingTasksCount = allPendingVaccines.length;
-                        if (allPendingVaccines.isNotEmpty) {
-                          pendingTaskDesc =
-                              '${allPendingVaccines.first.name} log';
+                        // 2. Expired Tasks (without completion)
+                        expiredTasks.sort(
+                          (a, b) => a.nextDoseDate.compareTo(b.nextDoseDate),
+                        );
+                        expiredTasksCount = expiredTasks.length;
+
+                        if (expiredTasks.isNotEmpty) {
+                          expiredTaskSubtitle =
+                              'Overdue: ${expiredTasks.first.name}';
                         } else {
-                          pendingTaskDesc =
-                              '${petState.pets.first.name} routine';
+                          expiredTaskSubtitle = 'All up to date';
                         }
                       }
 
@@ -725,9 +740,9 @@ class _HomeTabState extends State<HomeTab> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            totalUpcomingAppts > 0
-                                                ? '$totalUpcomingAppts appt${totalUpcomingAppts == 1 ? '' : 's'}'
-                                                : '0 appts',
+                                            monthEventsAheadCount > 0
+                                                ? '$monthEventsAheadCount event${monthEventsAheadCount == 1 ? '' : 's'}'
+                                                : '0 events',
                                             style: theme.textTheme.labelLarge
                                                 ?.copyWith(
                                                   fontSize: 14,
@@ -735,7 +750,7 @@ class _HomeTabState extends State<HomeTab> {
                                                 ),
                                           ),
                                           Text(
-                                            nextApptTimeStr,
+                                            nextEventSubtitle,
                                             style: TextStyle(
                                               fontSize: 11,
                                               color: textSecondary,
@@ -774,16 +789,27 @@ class _HomeTabState extends State<HomeTab> {
                                     Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: isDark
-                                            ? const Color(0xFF2E4E30)
-                                            : AppTheme.tertiaryFixed,
+                                        color: expiredTasksCount > 0
+                                            ? (isDark
+                                                  ? const Color(0xFF5C2B29)
+                                                  : const Color(0xFFFFDAD6))
+                                            : (isDark
+                                                  ? const Color(0xFF2E4E30)
+                                                  : AppTheme.tertiaryFixed),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Icon(
-                                        Icons.event_note,
-                                        color: isDark
-                                            ? AppTheme.primaryFixedDim
-                                            : AppTheme.onTertiaryFixedVariant,
+                                        expiredTasksCount > 0
+                                            ? Icons.warning_amber_rounded
+                                            : Icons.event_note,
+                                        color: expiredTasksCount > 0
+                                            ? (isDark
+                                                  ? const Color(0xFFFFB4A3)
+                                                  : const Color(0xFF410E0B))
+                                            : (isDark
+                                                  ? AppTheme.primaryFixedDim
+                                                  : AppTheme
+                                                        .onTertiaryFixedVariant),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -793,18 +819,26 @@ class _HomeTabState extends State<HomeTab> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            pendingTasksCount > 0
-                                                ? '$pendingTasksCount task${pendingTasksCount == 1 ? '' : 's'} pending'
-                                                : '0 tasks pending',
+                                            expiredTasksCount > 0
+                                                ? '$expiredTasksCount expired'
+                                                : '0 pending',
                                             style: theme.textTheme.labelLarge
                                                 ?.copyWith(
                                                   fontSize: 14,
-                                                  color: textPrimary,
+                                                  color: expiredTasksCount > 0
+                                                      ? (isDark
+                                                            ? const Color(
+                                                                0xFFFFB4A3,
+                                                              )
+                                                            : const Color(
+                                                                0xFFB3261E,
+                                                              ))
+                                                      : textPrimary,
                                                 ),
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                           Text(
-                                            pendingTaskDesc,
+                                            expiredTaskSubtitle,
                                             style: TextStyle(
                                               fontSize: 11,
                                               color: textSecondary,
@@ -831,77 +865,63 @@ class _HomeTabState extends State<HomeTab> {
             // Quick Link: Nutrition & Hydration Card
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: GestureDetector(
+              child: AccentLeftCard(
+                accentColor: isDark
+                    ? AppTheme.foodConceptDark
+                    : AppTheme.foodConcept,
+                backgroundColor: cardBg,
+                margin: EdgeInsets.zero,
+                padding: const EdgeInsets.all(16),
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const NutritionScreen()),
                   );
                 },
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: BorderRadius.circular(16),
-                    border: const Border(
-                      left: BorderSide(
-                        color: AppTheme.tertiaryContainer,
-                        width: 4,
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color:
+                            (isDark
+                                    ? AppTheme.foodConceptDark
+                                    : AppTheme.foodConcept)
+                                .withValues(alpha: isDark ? 0.25 : 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.restaurant,
+                        color: isDark
+                            ? AppTheme.foodConceptDark
+                            : AppTheme.foodConcept,
                       ),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(
-                          alpha: isDark ? 0.2 : 0.02,
-                        ),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? const Color(0xFF2E4E30)
-                              : AppTheme.tertiaryFixed,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.restaurant,
-                          color: isDark
-                              ? AppTheme.primaryFixedDim
-                              : AppTheme.onTertiaryFixedVariant,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Nutrition & Hydration',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: textPrimary,
-                              ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Nutrition & Hydration',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: textPrimary,
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Manage meals and logs',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: textSecondary,
-                              ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Manage meals and logs',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: textSecondary,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      Icon(Icons.chevron_right, color: textSecondary),
-                    ],
-                  ),
+                    ),
+                    Icon(Icons.chevron_right, color: textSecondary),
+                  ],
                 ),
               ),
             ),
@@ -1024,8 +1044,11 @@ class _HomeTabState extends State<HomeTab> {
                                       alpha: 0.6,
                                     );
                             }
-
-                            return GestureDetector(
+                            return AccentLeftCard(
+                              accentColor: statusColor,
+                              backgroundColor: cardBg,
+                              margin: EdgeInsets.zero,
+                              padding: const EdgeInsets.all(12.0),
                               onTap: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
@@ -1033,155 +1056,135 @@ class _HomeTabState extends State<HomeTab> {
                                   ),
                                 );
                               },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: cardBg,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border(
-                                    left: BorderSide(
-                                      color: statusColor,
-                                      width: 4,
-                                    ),
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: isDark ? 0.2 : 0.02,
-                                      ),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
-                                    children: [
-                                      Expanded(
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                          child:
-                                              pet.avatarUrl.startsWith(
-                                                    'http',
-                                                  ) ||
-                                                  pet.avatarUrl.startsWith(
-                                                    'https',
-                                                  )
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: pet.avatarUrl.startsWith('assets/')
+                                          ? Image.asset(
+                                              pet.avatarUrl,
+                                              fit: BoxFit.cover,
+                                            )
+                                          : (pet.avatarUrl.startsWith('http') ||
+                                                  pet.avatarUrl.startsWith('https')
                                               ? Image.network(
                                                   pet.avatarUrl,
                                                   fit: BoxFit.cover,
                                                   errorBuilder: (_, _, _) =>
                                                       Container(
+                                                    color: isDark
+                                                        ? const Color(
+                                                            0xFF383634,
+                                                          )
+                                                        : AppTheme.primaryFixed
+                                                            .withValues(
+                                                              alpha: 0.3,
+                                                            ),
+                                                    child: const Icon(
+                                                      Icons.pets,
+                                                      size: 32,
+                                                      color: AppTheme.primary,
+                                                    ),
+                                                  ),
+                                                )
+                                              : (pet.avatarUrl.isNotEmpty &&
+                                                      File(
+                                                        pet.avatarUrl,
+                                                      ).existsSync()
+                                                  ? Image.file(
+                                                      File(pet.avatarUrl),
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (_, _, _) =>
+                                                          Container(
                                                         color: isDark
                                                             ? const Color(
                                                                 0xFF383634,
                                                               )
                                                             : AppTheme
-                                                                  .surfaceContainer,
-                                                        child: Icon(
+                                                                .primaryFixed
+                                                                .withValues(
+                                                                  alpha: 0.3,
+                                                                ),
+                                                        child: const Icon(
                                                           Icons.pets,
-                                                          color: textSecondary,
+                                                          size: 32,
+                                                          color: AppTheme
+                                                              .primary,
                                                         ),
                                                       ),
-                                                )
-                                              : (pet.avatarUrl.isNotEmpty
-                                                    ? Image.file(
-                                                        File(pet.avatarUrl),
-                                                        fit: BoxFit.cover,
-                                                        errorBuilder:
-                                                            (
-                                                              _,
-                                                              _,
-                                                              _,
-                                                            ) => Container(
-                                                              color: isDark
-                                                                  ? const Color(
-                                                                      0xFF383634,
-                                                                    )
-                                                                  : AppTheme
-                                                                        .surfaceContainer,
-                                                              child: Icon(
-                                                                Icons.pets,
-                                                                color:
-                                                                    textSecondary,
+                                                    )
+                                                  : Container(
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF383634,
+                                                            )
+                                                          : AppTheme.primaryFixed
+                                                              .withValues(
+                                                                alpha: 0.3,
                                                               ),
-                                                            ),
-                                                      )
-                                                    : Container(
-                                                        color: isDark
-                                                            ? const Color(
-                                                                0xFF383634,
-                                                              )
-                                                            : AppTheme
-                                                                  .surfaceContainer,
-                                                        child: Icon(
-                                                          Icons.pets,
-                                                          color: textSecondary,
-                                                        ),
-                                                      )),
+                                                      child: const Icon(
+                                                        Icons.pets,
+                                                        size: 32,
+                                                        color: AppTheme.primary,
+                                                      ),
+                                                    ))),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              pet.name,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                                color: textPrimary,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            Text(
+                                              pet.breed,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: textSecondary,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      const SizedBox(height: 12),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  pet.name,
-                                                  style: theme
-                                                      .textTheme
-                                                      .labelLarge
-                                                      ?.copyWith(
-                                                        color: textPrimary,
-                                                      ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                                Text(
-                                                  pet.breed,
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    color: textSecondary,
-                                                  ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              ],
-                                            ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: statusBgColor,
+                                          borderRadius: BorderRadius.circular(
+                                            4,
                                           ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 6,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: statusBgColor,
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              pet.status,
-                                              style: TextStyle(
-                                                fontSize: 9,
-                                                fontWeight: FontWeight.bold,
-                                                color: statusColor,
-                                              ),
-                                            ),
+                                        ),
+                                        child: Text(
+                                          pet.status,
+                                          style: TextStyle(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                            color: statusColor,
                                           ),
-                                        ],
+                                        ),
                                       ),
                                     ],
                                   ),
-                                ),
+                                ],
                               ),
                             );
                           },
@@ -1240,14 +1243,11 @@ class _HomeTabState extends State<HomeTab> {
                           ),
                         ),
 
-                        // Invitation Received Card (Appears ONLY if an invitation was made)
-                        _buildInvitationReceivedCard(
-                          context,
-                          state.pets,
-                          isDark,
-                          textPrimary,
-                          textSecondary,
-                          cardBg,
+                        // Invitation Received Banner
+                        HomeInvitationBanner(
+                          allPets: state.pets,
+                          isDark: isDark,
+                          textSecondary: textSecondary,
                         ),
                       ],
                     );
@@ -1295,19 +1295,22 @@ class _HomeTabState extends State<HomeTab> {
             ),
             const SizedBox(height: 12),
 
-            // Horizontal scrolling memories
+            // Horizontal scrolling memories (Max 5 most recent memories)
             BlocBuilder<PetBloc, PetState>(
               builder: (context, state) {
-                final List<String> allPhotos = [];
+                final List<MapEntry<String, Pet>> memoryEntries = [];
                 if (state is PetLoaded) {
                   for (final pet in state.pets) {
-                    allPhotos.addAll(pet.photos);
+                    for (final photo in pet.photos) {
+                      memoryEntries.add(MapEntry(photo, pet));
+                    }
                   }
                 }
 
-                final recentPhotos = allPhotos.reversed.toList();
+                // Newest memories appear first (on the left)
+                final limitedMemories = memoryEntries.take(5).toList();
 
-                if (recentPhotos.isEmpty) {
+                if (limitedMemories.isEmpty) {
                   return Container(
                     height: 100,
                     margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -1331,11 +1334,25 @@ class _HomeTabState extends State<HomeTab> {
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: recentPhotos.length,
+                    itemCount: limitedMemories.length,
                     separatorBuilder: (context, index) =>
                         const SizedBox(width: 12),
                     itemBuilder: (context, index) {
-                      return _buildMemoryImage(recentPhotos[index]);
+                      final memory = limitedMemories[index];
+                      final photoUrl = memory.key;
+                      final ownerPet = memory.value;
+
+                      return MemoryImageCard(
+                        url: photoUrl,
+                        width: 140,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => PetProfileScreen(pet: ownerPet),
+                            ),
+                          );
+                        },
+                      );
                     },
                   ),
                 );
@@ -1490,227 +1507,6 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMemoryImage(String url) {
-    return Container(
-      width: 140,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: url.startsWith('http') || url.startsWith('https')
-            ? Image.network(
-                url,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  color: AppTheme.surfaceContainer,
-                  child: const Icon(Icons.photo, color: AppTheme.secondary),
-                ),
-              )
-            : Image.file(
-                File(url),
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  color: AppTheme.surfaceContainer,
-                  child: const Icon(Icons.photo, color: AppTheme.secondary),
-                ),
-              ),
-      ),
-    );
-  }
-
-  Widget _buildInvitationReceivedCard(
-    BuildContext context,
-    List<Pet> allPets,
-    bool isDark,
-    Color textPrimary,
-    Color textSecondary,
-    Color cardBg,
-  ) {
-    return FutureBuilder<List<PetInvitation>>(
-      future: FirebaseRepository().getPendingInvitationsForCurrentUser(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          // Fallback check on pet.members for local/mock pending members
-          Pet? pendingPet;
-          SharedMember? pendingInvite;
-          final user = FirebaseAuth.instance.currentUser;
-          final userEmail = user?.email ?? '';
-          final userId = user?.uid ?? '';
-
-          for (final pet in allPets) {
-            for (final member in pet.members) {
-              if (member.status == 'Pending') {
-                if (member.id == userId ||
-                    (userEmail.isNotEmpty &&
-                        member.email.toLowerCase() ==
-                            userEmail.toLowerCase())) {
-                  pendingPet = pet;
-                  pendingInvite = member;
-                  break;
-                }
-              }
-            }
-            if (pendingPet != null) break;
-          }
-
-          if (pendingPet == null || pendingInvite == null) {
-            return const SizedBox.shrink();
-          }
-
-          return _renderInvitationCardWidget(
-            context: context,
-            petName: pendingPet.name,
-            roleName: pendingInvite.role.displayName,
-            isDark: isDark,
-            textSecondary: textSecondary,
-            onTap: () async {
-              await Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => InvitationReceivedScreen(
-                    pet: pendingPet,
-                    invitation: pendingInvite,
-                  ),
-                ),
-              );
-              if (context.mounted) {
-                context.read<PetBloc>().add(LoadPets());
-              }
-            },
-          );
-        }
-
-        final topInvitation = snapshot.data!.first;
-
-        return _renderInvitationCardWidget(
-          context: context,
-          petName: topInvitation.petName,
-          roleName: topInvitation.role.displayName,
-          isDark: isDark,
-          textSecondary: textSecondary,
-          onTap: () async {
-            await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    InvitationReceivedScreen(petInvitation: topInvitation),
-              ),
-            );
-            if (context.mounted) {
-              context.read<PetBloc>().add(LoadPets());
-            }
-          },
-        );
-      },
-    );
-  }
-
-  Widget _renderInvitationCardWidget({
-    required BuildContext context,
-    required String petName,
-    required String roleName,
-    required bool isDark,
-    required Color textSecondary,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(top: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF5C2B1D).withValues(alpha: 0.5)
-            : AppTheme.tertiaryFixed.withValues(alpha: 0.25),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.tertiary, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppTheme.tertiary,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.mark_email_unread,
-                color: Colors.white,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Text(
-                        'Invitation Received',
-                        style: TextStyle(
-                          fontFamily: 'Montserrat',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: AppTheme.tertiary,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.tertiary,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          'NEW',
-                          style: TextStyle(
-                            fontFamily: 'Montserrat',
-                            fontWeight: FontWeight.bold,
-                            fontSize: 9,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Share care of $petName as $roleName',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12,
-                      color: textSecondary,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: AppTheme.tertiary),
           ],
         ),
       ),

@@ -51,10 +51,13 @@ class CreatePetStep1 extends StatelessWidget {
                       radius: 64,
                       backgroundColor: AppTheme.secondaryContainer,
                       backgroundImage:
-                          selectedAvatar.startsWith('http') ||
-                              selectedAvatar.startsWith('https')
-                          ? NetworkImage(selectedAvatar) as ImageProvider
-                          : FileImage(File(selectedAvatar)) as ImageProvider,
+                          selectedAvatar.startsWith('assets/')
+                          ? AssetImage(selectedAvatar) as ImageProvider
+                          : (selectedAvatar.startsWith('http') ||
+                                      selectedAvatar.startsWith('https')
+                                  ? NetworkImage(selectedAvatar)
+                                  : FileImage(File(selectedAvatar)))
+                              as ImageProvider,
                     ),
                     const CircleAvatar(
                       radius: 18,
@@ -215,68 +218,7 @@ class CreatePetStep1 extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 12),
 
-        // Asymmetric Suggestion Card (Collie image card)
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppTheme.primaryFixedDim.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.primaryFixedDim.withValues(alpha: 0.3),
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  'https://lh3.googleusercontent.com/aida-public/AB6AXuCUJTjOkcgom3y9eaGx5QDFMWOjaIXt0muqzbfsVfi5NAzenR8DmNAhQG0CzZTo9aDGmFAYLBe1e8YCr6wNDHdlDS3Cg-ONgCf6q-oa3A1gz42lkrD39l1SHBtOkskyYKWpCXGh-A0uOPYIXgIDyNTOHQybgKNYmUfRttzmnClTMx5Tp8W5wxYYYM29q4G5CpBNWj4zO6QoZR1gRuRYebTpWxIboMV-Lh6xC15wbBdZmrRZgsnqw7jVFgPcb9NE5Yb9E9HF2QxIZNM',
-                  width: 64,
-                  height: 64,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    width: 64,
-                    height: 64,
-                    color: AppTheme.surfaceContainer,
-                    child: const Icon(
-                      Icons.help_outline,
-                      color: AppTheme.secondary,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Not sure?',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primary,
-                        fontSize: 13,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Try browsing our library of popular breeds for common traits.',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 12,
-                        color: AppTheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
         const SizedBox(height: 24),
 
         // Gender Selection Chips

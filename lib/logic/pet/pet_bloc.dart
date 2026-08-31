@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../data/models/pet.dart';
 import '../../data/repositories/repository_selector.dart';
+import '../../data/services/local_media_service.dart';
 
 // Events
 abstract class PetEvent extends Equatable {
@@ -85,12 +86,40 @@ class PetBloc extends Bloc<PetEvent, PetState> {
     on<SearchPets>(_onSearchPets);
   }
 
+  Future<List<Pet>> _enrichWithLocalMedia(List<Pet> pets) async {
+    final enriched = <Pet>[];
+    for (final pet in pets) {
+      final localAvatar = await LocalMediaService.getLocalAvatar(pet.id);
+      final localPhotos = await LocalMediaService.getLocalPhotos(pet.id);
+
+      final avatarToUse = (localAvatar != null && localAvatar.isNotEmpty)
+          ? localAvatar
+          : pet.avatarUrl;
+
+      final combinedPhotos = List<String>.from(pet.photos);
+      for (final p in localPhotos) {
+        if (!combinedPhotos.contains(p)) {
+          combinedPhotos.add(p);
+        }
+      }
+
+      enriched.add(
+        pet.copyWith(
+          avatarUrl: avatarToUse,
+          photos: combinedPhotos,
+        ),
+      );
+    }
+    return enriched;
+  }
+
   Future<void> _onLoadPets(LoadPets event, Emitter<PetState> emit) async {
     emit(PetLoading());
     try {
       final repo = await repositorySelector.getActiveRepository();
       final pets = await repo.getPets();
-      emit(PetLoaded(pets: pets, filteredPets: pets));
+      final enrichedPets = await _enrichWithLocalMedia(pets);
+      emit(PetLoaded(pets: enrichedPets, filteredPets: enrichedPets));
     } catch (e) {
       emit(PetError(e.toString()));
     }
@@ -98,10 +127,24 @@ class PetBloc extends Bloc<PetEvent, PetState> {
 
   Future<void> _onAddPet(AddPet event, Emitter<PetState> emit) async {
     try {
+      if (event.pet.avatarUrl.isNotEmpty) {
+        await LocalMediaService.saveLocalAvatar(
+          event.pet.id,
+          event.pet.avatarUrl,
+        );
+      }
+      if (event.pet.photos.isNotEmpty) {
+        await LocalMediaService.saveLocalPhotos(
+          event.pet.id,
+          event.pet.photos,
+        );
+      }
+
       final repo = await repositorySelector.getActiveRepository();
       await repo.addPet(event.pet);
       final pets = await repo.getPets();
-      emit(PetLoaded(pets: pets, filteredPets: pets));
+      final enrichedPets = await _enrichWithLocalMedia(pets);
+      emit(PetLoaded(pets: enrichedPets, filteredPets: enrichedPets));
     } catch (e) {
       emit(PetError(e.toString()));
     }
@@ -109,10 +152,24 @@ class PetBloc extends Bloc<PetEvent, PetState> {
 
   Future<void> _onUpdatePet(UpdatePet event, Emitter<PetState> emit) async {
     try {
+      if (event.pet.avatarUrl.isNotEmpty) {
+        await LocalMediaService.saveLocalAvatar(
+          event.pet.id,
+          event.pet.avatarUrl,
+        );
+      }
+      if (event.pet.photos.isNotEmpty) {
+        await LocalMediaService.saveLocalPhotos(
+          event.pet.id,
+          event.pet.photos,
+        );
+      }
+
       final repo = await repositorySelector.getActiveRepository();
       await repo.updatePet(event.pet);
       final pets = await repo.getPets();
-      emit(PetLoaded(pets: pets, filteredPets: pets));
+      final enrichedPets = await _enrichWithLocalMedia(pets);
+      emit(PetLoaded(pets: enrichedPets, filteredPets: enrichedPets));
     } catch (e) {
       emit(PetError(e.toString()));
     }
@@ -123,7 +180,8 @@ class PetBloc extends Bloc<PetEvent, PetState> {
       final repo = await repositorySelector.getActiveRepository();
       await repo.deletePet(event.petId);
       final pets = await repo.getPets();
-      emit(PetLoaded(pets: pets, filteredPets: pets));
+      final enrichedPets = await _enrichWithLocalMedia(pets);
+      emit(PetLoaded(pets: enrichedPets, filteredPets: enrichedPets));
     } catch (e) {
       emit(PetError(e.toString()));
     }

@@ -12,6 +12,7 @@ import '../../../data/repositories/firebase_repository.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/role_badge.dart';
+import '../../widgets/accent_left_card.dart';
 
 class ShareOwnershipScreen extends StatefulWidget {
   final Pet pet;
@@ -48,7 +49,7 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
 
   Future<void> _onSearchChanged() async {
     final query = _emailController.text.trim().toLowerCase();
-    if (query.length < 5) {
+    if (query.length < 2) {
       setState(() {
         _searchResults = [];
         _isSearching = false;
@@ -66,6 +67,8 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
         final data = doc.data();
         final name = (data['name'] ?? '').toString();
         final email = (data['email'] ?? '').toString();
+        final uid = doc.id;
+        final numericId = (uid.hashCode.abs() % 90000000 + 10000000).toString();
         final username =
             (data['username'] ??
                     (email.isNotEmpty ? email.split('@').first : ''))
@@ -73,7 +76,8 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
 
         if (name.toLowerCase().contains(query) ||
             email.toLowerCase().contains(query) ||
-            username.toLowerCase().contains(query)) {
+            username.toLowerCase().contains(query) ||
+            numericId.contains(query)) {
           final parts = name.trim().split(' ');
           final initials = parts.isNotEmpty && parts.first.isNotEmpty
               ? (parts.length > 1 && parts.last.isNotEmpty
@@ -87,6 +91,7 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
                 : (username.isNotEmpty ? username : email),
             'email': email,
             'username': username,
+            'numericId': numericId,
             'initials': initials,
           });
         }
@@ -234,10 +239,10 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
 
   void _showQrCodeModal() {
     final user = FirebaseAuth.instance.currentUser;
-    final userEmail = user?.email ?? '';
-    final username = user?.displayName?.isNotEmpty == true
-        ? user!.displayName!.toLowerCase().replaceAll(' ', '_')
-        : (userEmail.isNotEmpty ? userEmail.split('@').first : 'paws_user');
+    final uid = user?.uid ?? '10000001';
+    final numericId = (uid.hashCode.abs() % 90000000 + 10000000).toString();
+    final qrDeepLink =
+        'https://pawsncare.app/share?userId=$numericId&petId=${_pet.id}';
 
     showModalBottomSheet(
       context: context,
@@ -273,7 +278,7 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Contains your unique username for companion sharing',
+                'Scannable by phone camera or in-app scanner',
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 12,
@@ -303,7 +308,7 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
                       width: 180,
                       height: 180,
                       child: QrImageView(
-                        data: '@$username',
+                        data: qrDeepLink,
                         version: QrVersions.auto,
                         size: 180.0,
                         eyeStyle: const QrEyeStyle(
@@ -327,11 +332,11 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        '@$username',
+                        'ID: $numericId',
                         style: const TextStyle(
                           fontFamily: 'Montserrat',
                           fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                          fontSize: 14,
                           color: AppTheme.primary,
                         ),
                       ),
@@ -341,17 +346,17 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Action buttons: Use My Username / Scan QR Code
+              // Action buttons: Use My ID / Scan QR Code
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () {
-                        _emailController.text = username;
+                        _emailController.text = numericId;
                         Navigator.pop(bottomSheetContext);
                       },
                       icon: const Icon(Icons.copy, size: 16),
-                      label: const Text('Use Username'),
+                      label: Text('Use ID: $numericId'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -451,16 +456,22 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
                         if (barcode.rawValue != null &&
                             barcode.rawValue!.isNotEmpty) {
                           hasDetected = true;
-                          final scannedCode = barcode.rawValue!
-                              .replaceAll('@', '')
-                              .trim();
-                          _emailController.text = scannedCode;
+                          final rawValue = barcode.rawValue!.trim();
+                          final uri = Uri.tryParse(rawValue);
+                          final scannedId =
+                              uri?.queryParameters['userId'] ??
+                              rawValue.replaceAll(RegExp(r'[^0-9]'), '');
+
+                          final displayId = scannedId.isNotEmpty
+                              ? scannedId
+                              : rawValue;
+                          _emailController.text = displayId;
                           controller.dispose();
                           Navigator.pop(dialogContext);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               backgroundColor: AppTheme.primary,
-                              content: Text('Scanned user QR: @$scannedCode'),
+                              content: Text('Scanned User ID: $displayId'),
                             ),
                           );
                           break;
@@ -516,79 +527,64 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
       cardDescription = 'If you want to give your Pet to another person.';
     }
 
-    return GestureDetector(
+    return AccentLeftCard(
+      accentColor: isSelected ? role.color : Colors.transparent,
+      borderWidth: 5.0,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      backgroundColor: isSelected
+          ? role.backgroundColor
+          : AppTheme.surfaceContainerLow,
       onTap: () {
         setState(() {
           _selectedRole = role;
         });
       },
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? role.backgroundColor
-              : AppTheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? role.color : AppTheme.surfaceContainer,
-            width: isSelected ? 2 : 1,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: role.color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(role.icon, color: role.color, size: 20),
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: role.color.withValues(alpha: 0.15),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: role.color.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(role.icon, color: role.color, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        cardTitle,
-                        style: TextStyle(
-                          fontFamily: 'Montserrat',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: isSelected ? role.color : AppTheme.onSurface,
-                        ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      cardTitle,
+                      style: TextStyle(
+                        fontFamily: 'Montserrat',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: isSelected ? role.color : AppTheme.onSurface,
                       ),
-                      if (isSelected)
-                        Icon(Icons.check_circle, color: role.color, size: 18),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    cardDescription,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 11,
-                      color: AppTheme.onSurfaceVariant,
                     ),
+                    if (isSelected)
+                      Icon(Icons.check_circle, color: role.color, size: 18),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  cardDescription,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    color: AppTheme.onSurfaceVariant,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -698,7 +694,7 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Search by Email or Username',
+                    'Search by ID, Email, or Name',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.bold,
@@ -709,9 +705,9 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
+                    keyboardType: TextInputType.text,
                     decoration: InputDecoration(
-                      hintText: 'jane.doe@example.com',
+                      hintText: 'e.g. 84920156 or jane.doe@example.com',
                       prefixIcon: const Icon(Icons.search, size: 20),
                       suffixIcon: IconButton(
                         icon: const Icon(Icons.qr_code_scanner, size: 20),
@@ -802,7 +798,7 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
                                         ),
                                       ),
                                       subtitle: Text(
-                                        '@${user['username']} • ${user['email']}',
+                                        'ID: ${user['numericId']} • ${user['email']}',
                                         style: const TextStyle(
                                           fontFamily: 'Inter',
                                           fontSize: 11,

@@ -4,6 +4,7 @@ import '../../../logic/pet/pet_bloc.dart';
 import '../../../data/models/pet.dart';
 import '../../../data/models/medication.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/accent_left_card.dart';
 import '../../../logic/theme/theme_cubit.dart';
 import 'medical_history_screen.dart';
 
@@ -157,13 +158,29 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
-                title: const Text(
-                  'Edit Vaccine',
-                  style: TextStyle(
-                    fontFamily: 'Montserrat',
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primary,
-                  ),
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Edit Vaccine',
+                      style: TextStyle(
+                        fontFamily: 'Montserrat',
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: AppTheme.error,
+                      ),
+                      tooltip: 'Delete',
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                        _showDeleteConfirmDialog(parentContext, item);
+                      },
+                    ),
+                  ],
                 ),
                 content: SingleChildScrollView(
                   child: Column(
@@ -472,13 +489,29 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              title: const Text(
-                'Edit Medication',
-                style: TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primary,
-                ),
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Edit Medication',
+                    style: TextStyle(
+                      fontFamily: 'Montserrat',
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: AppTheme.error,
+                    ),
+                    tooltip: 'Delete',
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                      _showDeleteConfirmDialog(parentContext, item);
+                    },
+                  ),
+                ],
               ),
               content: SingleChildScrollView(
                 child: Column(
@@ -1907,8 +1940,12 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
           _pet = updatedPet;
         }
 
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
         final activeMeds =
-            _pet.medications.where((m) => m.type != 'vaccine').toList()
+            _pet.medications
+                .where((m) => m.type != 'vaccine' && m.type != 'event')
+                .toList()
               ..sort((a, b) => a.nextDoseDate.compareTo(b.nextDoseDate));
 
         final vaccines =
@@ -2069,262 +2106,231 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                       final isAsNeeded = med.type == 'as_needed';
                       final isCompletedToday =
                           med.dosesToday >= med.maxDosesToday;
-                      final accentColor = isAsNeeded
-                          ? AppTheme.tertiary
-                          : AppTheme.primary;
-
                       final String statusLabel;
                       final Color badgeBg;
                       final Color badgeText;
                       final IconData detailIcon;
 
                       if (isCompletedToday) {
-                        statusLabel = 'Done Today';
-                        badgeBg = AppTheme.primaryFixed;
-                        badgeText = AppTheme.onPrimaryFixedVariant;
+                        statusLabel = 'Administered';
+                        badgeBg = isDark
+                            ? AppTheme.statusAdministeredDarkBg
+                            : AppTheme.statusAdministeredBg;
+                        badgeText = isDark
+                            ? AppTheme.statusAdministeredDark
+                            : AppTheme.statusAdministered;
                         detailIcon = Icons.check_circle;
                       } else if (isAsNeeded) {
                         statusLabel = 'PRN';
-                        badgeBg = AppTheme.tertiaryFixed;
-                        badgeText = AppTheme.onTertiaryFixedVariant;
+                        badgeBg = isDark
+                            ? AppTheme.statusMildDarkBg
+                            : AppTheme.statusMildBg;
+                        badgeText = isDark
+                            ? AppTheme.statusMildDark
+                            : AppTheme.statusMild;
                         detailIcon = Icons.health_and_safety;
                       } else {
                         statusLabel = 'Active';
-                        badgeBg = const Color(0xFFFEF08A);
-                        badgeText = const Color(0xFF854D0E);
+                        badgeBg = isDark
+                            ? AppTheme.statusScheduledDarkBg
+                            : AppTheme.statusScheduledBg;
+                        badgeText = isDark
+                            ? AppTheme.statusScheduledDark
+                            : AppTheme.statusScheduled;
                         detailIcon = Icons.medication;
                       }
 
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 0,
-                        color: AppTheme.surfaceContainerLow,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border(
-                              left: BorderSide(color: accentColor, width: 4),
-                            ),
-                          ),
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    med.name,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: badgeBg,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          detailIcon,
-                                          size: 12,
-                                          color: badgeText,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          statusLabel,
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            color: badgeText,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.scale,
-                                    size: 16,
-                                    color: AppTheme.secondary,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      'Dosage: ${med.dose.isNotEmpty ? med.dose : '1 Tablet'}${med.route.isNotEmpty ? ' (${med.route})' : ''}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: AppTheme.secondary,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.event_repeat,
-                                    size: 16,
-                                    color: AppTheme.secondary,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      'Frequency: ${med.frequency.isNotEmpty ? med.frequency : (isAsNeeded ? 'PRN' : 'Daily')}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: AppTheme.secondary,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              SizedBox(
-                                width: double.infinity,
-                                child: OutlinedButton.icon(
-                                  onPressed: () {
-                                    if (med.dosesToday >= med.maxDosesToday) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'All daily doses for ${med.name} completed for today!',
-                                          ),
-                                          backgroundColor: AppTheme.primary,
-                                        ),
-                                      );
-                                      return;
-                                    }
+                      final accentColor = badgeText;
 
-                                    final newDosesToday = (med.dosesToday + 1)
-                                        .clamp(0, med.maxDosesToday);
-                                    final updatedMed = med.copyWith(
-                                      dosesAdministeredToday: newDosesToday,
-                                      administeredDate: DateTime.now(),
-                                    );
-                                    final updatedMeds = _pet.medications
-                                        .map(
-                                          (m) =>
-                                              m.id == med.id ? updatedMed : m,
-                                        )
-                                        .toList();
-                                    final updatedPet = _pet.copyWith(
-                                      medications: updatedMeds,
-                                    );
-                                    context.read<PetBloc>().add(
-                                      UpdatePet(updatedPet),
-                                    );
-
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          '${med.name} dose administered ($newDosesToday/${med.maxDosesToday})',
-                                        ),
-                                        backgroundColor: AppTheme.primary,
-                                      ),
-                                    );
-                                  },
-                                  icon: Icon(
-                                    med.dosesToday >= med.maxDosesToday
-                                        ? Icons.check_circle
-                                        : Icons.medication_liquid,
-                                    size: 16,
-                                  ),
-                                  label: Text(
-                                    med.dosesToday >= med.maxDosesToday
-                                        ? 'Daily dose completed (${med.maxDosesToday}/${med.maxDosesToday})'
-                                        : 'Administrate daily dose(s) (${med.dosesToday}/${med.maxDosesToday})',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor:
-                                        med.dosesToday >= med.maxDosesToday
-                                        ? AppTheme.secondary
-                                        : AppTheme.primary,
-                                    side: BorderSide(
-                                      color: med.dosesToday >= med.maxDosesToday
-                                          ? AppTheme.outlineVariant
-                                          : AppTheme.primary,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 8,
-                                    ),
+                      return AccentLeftCard(
+                        accentColor: accentColor,
+                        onTap: () => _showEditRecordDialog(context, med),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  med.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 12),
-                              const Divider(
-                                height: 1,
-                                color: AppTheme.surfaceContainer,
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Period: ${_formatDate(med.startDate ?? med.nextDoseDate)} - ${med.endDate != null ? _formatDate(med.endDate!) : 'Ongoing'}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: AppTheme.secondary,
-                                    ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
                                   ),
-                                  Row(
+                                  decoration: BoxDecoration(
+                                    color: badgeBg,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      GestureDetector(
-                                        onTap: () =>
-                                            _showEditRecordDialog(context, med),
-                                        child: const Icon(
-                                          Icons.edit_outlined,
-                                          size: 20,
-                                          color: AppTheme.primary,
-                                        ),
+                                      Icon(
+                                        detailIcon,
+                                        size: 12,
+                                        color: badgeText,
                                       ),
-                                      const SizedBox(width: 12),
-                                      GestureDetector(
-                                        onTap: () => _showDeleteConfirmDialog(
-                                          context,
-                                          med,
-                                        ),
-                                        child: const Icon(
-                                          Icons.delete_outline,
-                                          size: 20,
-                                          color: AppTheme.error,
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        statusLabel,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: badgeText,
                                         ),
                                       ),
                                     ],
                                   ),
-                                ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.scale,
+                                  size: 16,
+                                  color: AppTheme.secondary,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'Dosage: ${med.dose.isNotEmpty ? med.dose : '1 Tablet'}${med.route.isNotEmpty ? ' (${med.route})' : ''}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.secondary,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.event_repeat,
+                                  size: 16,
+                                  color: AppTheme.secondary,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'Frequency: ${med.frequency.isNotEmpty ? med.frequency : (isAsNeeded ? 'PRN' : 'Daily')}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.secondary,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.date_range,
+                                  size: 16,
+                                  color: AppTheme.secondary,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'Period: ${_formatDate(med.startDate ?? med.nextDoseDate)} - ${med.endDate != null ? _formatDate(med.endDate!) : 'Ongoing'}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.secondary,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  if (med.dosesToday >= med.maxDosesToday) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'All daily doses for ${med.name} completed for today!',
+                                        ),
+                                        backgroundColor: AppTheme.primary,
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  final newDosesToday = (med.dosesToday + 1)
+                                      .clamp(0, med.maxDosesToday);
+                                  final updatedMed = med.copyWith(
+                                    dosesAdministeredToday: newDosesToday,
+                                    administeredDate: DateTime.now(),
+                                  );
+                                  final updatedMeds = _pet.medications
+                                      .map(
+                                        (m) => m.id == med.id ? updatedMed : m,
+                                      )
+                                      .toList();
+                                  final updatedPet = _pet.copyWith(
+                                    medications: updatedMeds,
+                                  );
+                                  context.read<PetBloc>().add(
+                                    UpdatePet(updatedPet),
+                                  );
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '${med.name} dose administered ($newDosesToday/${med.maxDosesToday})',
+                                      ),
+                                      backgroundColor: AppTheme.primary,
+                                    ),
+                                  );
+                                },
+                                icon: Icon(
+                                  med.dosesToday >= med.maxDosesToday
+                                      ? Icons.check_circle
+                                      : Icons.medication_liquid,
+                                  size: 16,
+                                ),
+                                label: Text(
+                                  med.dosesToday >= med.maxDosesToday
+                                      ? 'Daily dose completed (${med.maxDosesToday}/${med.maxDosesToday})'
+                                      : 'Administrate daily dose(s) (${med.dosesToday}/${med.maxDosesToday})',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor:
+                                      med.dosesToday >= med.maxDosesToday
+                                      ? AppTheme.secondary
+                                      : AppTheme.primary,
+                                  side: BorderSide(
+                                    color: med.dosesToday >= med.maxDosesToday
+                                        ? AppTheme.outlineVariant
+                                        : AppTheme.primary,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -2414,8 +2420,12 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
 
                       if (isCompleted) {
                         statusLabel = 'Administered';
-                        statusColor = AppTheme.primaryFixed;
-                        statusText = AppTheme.onPrimaryFixedVariant;
+                        statusColor = isDark
+                            ? AppTheme.statusAdministeredDarkBg
+                            : AppTheme.statusAdministeredBg;
+                        statusText = isDark
+                            ? AppTheme.statusAdministeredDark
+                            : AppTheme.statusAdministered;
                         statusIcon = Icons.check_circle;
                       } else if (isExpired) {
                         final today = DateTime.now();
@@ -2431,235 +2441,197 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                                 .inDays;
                         statusLabel =
                             'Overdue${daysOverdue > 0 ? ' ${daysOverdue}d' : ''}';
-                        statusColor = const Color(0xFFFFDAD6);
-                        statusText = const Color(0xFF410002);
+                        statusColor = isDark
+                            ? AppTheme.statusOverdueDarkBg
+                            : AppTheme.statusOverdueBg;
+                        statusText = isDark
+                            ? AppTheme.statusOverdueDark
+                            : AppTheme.statusOverdue;
                         statusIcon = Icons.error_outline;
                       } else {
                         statusLabel = 'Scheduled';
-                        statusColor = const Color(0xFFFEF08A);
-                        statusText = const Color(0xFF854D0E);
+                        statusColor = isDark
+                            ? AppTheme.statusScheduledDarkBg
+                            : AppTheme.statusScheduledBg;
+                        statusText = isDark
+                            ? AppTheme.statusScheduledDark
+                            : AppTheme.statusScheduled;
                         statusIcon = Icons.event;
                       }
 
                       final accentColor = statusText;
 
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 0,
-                        color: AppTheme.surfaceContainerLow,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border(
-                              left: BorderSide(color: accentColor, width: 4),
-                            ),
-                          ),
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    v.name,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
+                      return AccentLeftCard(
+                        accentColor: accentColor,
+                        onTap: () => _showEditRecordDialog(context, v),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  v.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
                                   ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: statusColor,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          statusIcon,
-                                          size: 12,
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: statusColor,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        statusIcon,
+                                        size: 12,
+                                        color: statusText,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        statusLabel,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
                                           color: statusText,
                                         ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          statusLabel,
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            color: statusText,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Icon(
-                                    isCompleted
-                                        ? Icons.event_available
-                                        : Icons.event,
-                                    size: 16,
-                                    color: AppTheme.secondary,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      isCompleted
-                                          ? 'Date Given: ${v.administeredDate != null ? _formatDate(v.administeredDate!) : _formatDate(v.nextDoseDate)}'
-                                          : 'Schedule Date: ${_formatDate(v.nextDoseDate)}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: AppTheme.secondary,
                                       ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.qr_code_2,
-                                    size: 16,
-                                    color: AppTheme.secondary,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      'Lot / Batch #: ${v.lotNumber.isNotEmpty ? v.lotNumber : 'N/A'}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: AppTheme.secondary,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (isCompleted) ...[
-                                const SizedBox(height: 10),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: OutlinedButton.icon(
-                                    onPressed: () {
-                                      final alreadySaved = v.isSavedToHistory;
-                                      if (!alreadySaved) {
-                                        final updatedMed = v.copyWith(
-                                          isSavedToHistory: true,
-                                        );
-                                        final updatedMeds = _pet.medications
-                                            .map(
-                                              (m) =>
-                                                  m.id == v.id ? updatedMed : m,
-                                            )
-                                            .toList();
-                                        final updatedPet = _pet.copyWith(
-                                          medications: updatedMeds,
-                                        );
-                                        context.read<PetBloc>().add(
-                                          UpdatePet(updatedPet),
-                                        );
-                                      }
-
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            alreadySaved
-                                                ? '${v.name} is in Vaccination History'
-                                                : '${v.name} saved to Vaccination History',
-                                          ),
-                                          backgroundColor: AppTheme.primary,
-                                        ),
-                                      );
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              MedicalHistoryScreen(pet: _pet),
-                                        ),
-                                      );
-                                    },
-                                    icon: Icon(
-                                      v.isSavedToHistory
-                                          ? Icons.bookmark_added
-                                          : Icons.bookmark_add_outlined,
-                                      size: 16,
-                                    ),
-                                    label: Text(
-                                      v.isSavedToHistory
-                                          ? 'View in Vaccination History'
-                                          : 'Save to Vaccination History',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: v.isSavedToHistory
-                                          ? AppTheme.secondary
-                                          : AppTheme.primary,
-                                      side: BorderSide(
-                                        color: v.isSavedToHistory
-                                            ? AppTheme.outlineVariant
-                                            : AppTheme.primary,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 8,
-                                      ),
-                                    ),
+                                    ],
                                   ),
                                 ),
                               ],
-                              const SizedBox(height: 12),
-                              const Divider(
-                                height: 1,
-                                color: AppTheme.surfaceContainer,
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  GestureDetector(
-                                    onTap: () =>
-                                        _showEditRecordDialog(context, v),
-                                    child: const Icon(
-                                      Icons.edit_outlined,
-                                      size: 20,
-                                      color: AppTheme.primary,
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Icon(
+                                  isCompleted
+                                      ? Icons.event_available
+                                      : Icons.event,
+                                  size: 16,
+                                  color: AppTheme.secondary,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    isCompleted
+                                        ? 'Date Given: ${v.administeredDate != null ? _formatDate(v.administeredDate!) : _formatDate(v.nextDoseDate)}'
+                                        : 'Schedule Date: ${_formatDate(v.nextDoseDate)}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.secondary,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.qr_code_2,
+                                  size: 16,
+                                  color: AppTheme.secondary,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'Lot / Batch #: ${v.lotNumber.isNotEmpty ? v.lotNumber : 'N/A'}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.secondary,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (isCompleted) ...[
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    final alreadySaved = v.isSavedToHistory;
+                                    if (!alreadySaved) {
+                                      final updatedMed = v.copyWith(
+                                        isSavedToHistory: true,
+                                      );
+                                      final updatedMeds = _pet.medications
+                                          .map(
+                                            (m) =>
+                                                m.id == v.id ? updatedMed : m,
+                                          )
+                                          .toList();
+                                      final updatedPet = _pet.copyWith(
+                                        medications: updatedMeds,
+                                      );
+                                      context.read<PetBloc>().add(
+                                        UpdatePet(updatedPet),
+                                      );
+                                    }
+
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          alreadySaved
+                                              ? '${v.name} is in Vaccination History'
+                                              : '${v.name} saved to Vaccination History',
+                                        ),
+                                        backgroundColor: AppTheme.primary,
+                                      ),
+                                    );
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            MedicalHistoryScreen(pet: _pet),
+                                      ),
+                                    );
+                                  },
+                                  icon: Icon(
+                                    v.isSavedToHistory
+                                        ? Icons.bookmark_added
+                                        : Icons.bookmark_add_outlined,
+                                    size: 16,
+                                  ),
+                                  label: Text(
+                                    v.isSavedToHistory
+                                        ? 'View in Vaccination History'
+                                        : 'Save to Vaccination History',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  GestureDetector(
-                                    onTap: () =>
-                                        _showDeleteConfirmDialog(context, v),
-                                    child: const Icon(
-                                      Icons.delete_outline,
-                                      size: 20,
-                                      color: AppTheme.error,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: v.isSavedToHistory
+                                        ? AppTheme.secondary
+                                        : AppTheme.primary,
+                                    side: BorderSide(
+                                      color: v.isSavedToHistory
+                                          ? AppTheme.outlineVariant
+                                          : AppTheme.primary,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
                             ],
-                          ),
+                          ],
                         ),
                       );
                     },

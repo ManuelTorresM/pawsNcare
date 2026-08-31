@@ -90,17 +90,8 @@ class _MyAppState extends State<MyApp> {
               builder: (context, state) {
                 if (state is Authenticated) {
                   return const DashboardScreen();
-                } else if (state is Unauthenticated) {
-                  return const LoginScreen();
-                } else if (state is AuthLoading || state is AuthInitial) {
-                  return const Scaffold(
-                    body: Center(
-                      child: CircularProgressIndicator(color: AppTheme.primary),
-                    ),
-                  );
-                } else {
-                  return const LoginScreen();
                 }
+                return const LoginScreen();
               },
             ),
           );

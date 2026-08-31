@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/accent_left_card.dart';
 
 class MedicalHistoryStep2 extends StatefulWidget {
   final List<Map<String, dynamic>> vaccinations;
@@ -41,6 +42,7 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
   // Custom Vaccine Input State
   bool _isCustomVaccineVisible = false;
   final _customVaccineController = TextEditingController();
+  final _customVaccineLabController = TextEditingController();
 
   // Allergies Autocomplete State
   final _allergySearchController = TextEditingController();
@@ -63,6 +65,7 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
   void dispose() {
     _customConditionController.dispose();
     _customVaccineController.dispose();
+    _customVaccineLabController.dispose();
     _allergySearchController.dispose();
     super.dispose();
   }
@@ -175,15 +178,13 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
           final date = vaccine['date'] as DateTime?;
           final nextDoseDate = vaccine['nextDoseDate'] as DateTime?;
           final lotNumber = (vaccine['lotNumber'] as String?) ?? '';
+          final laboratory = (vaccine['laboratory'] as String?) ?? '';
 
-          return Container(
+          return AccentLeftCard(
+            accentColor: AppTheme.primary,
             margin: const EdgeInsets.only(bottom: 14),
+            borderRadius: 14.0,
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.surfaceContainer),
-            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -414,7 +415,51 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
                 ),
                 const SizedBox(height: 10),
 
-                // Lot Number Field
+                // Laboratory Field
+                TextFormField(
+                  initialValue: laboratory,
+                  onChanged: (val) {
+                    vaccine['laboratory'] = val.trim();
+                  },
+                  style: const TextStyle(fontSize: 12),
+                  decoration: InputDecoration(
+                    hintText: 'Laboratory / Manufacturer',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 10,
+                    ),
+                    filled: true,
+                    fillColor: AppTheme.surfaceContainerLowest,
+                    prefixIconConstraints: const BoxConstraints(
+                      minWidth: 26,
+                      minHeight: 26,
+                    ),
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(left: 8, right: 4),
+                      child: Icon(
+                        Icons.science_outlined,
+                        size: 14,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                        color: AppTheme.surfaceContainer,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                        color: AppTheme.surfaceContainer,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Batch / Lot Number Field (Under Laboratory)
                 TextFormField(
                   initialValue: lotNumber,
                   onChanged: (val) {
@@ -422,15 +467,22 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
                   },
                   style: const TextStyle(fontSize: 12),
                   decoration: InputDecoration(
-                    hintText: 'Batch / Lot # (optional, e.g. VAC-99402)',
+                    hintText: 'Batch / Lot # (optional)',
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
+                      horizontal: 10,
                       vertical: 10,
                     ),
                     filled: true,
                     fillColor: AppTheme.surfaceContainerLowest,
-                    prefixIcon: const Icon(Icons.qr_code, size: 16),
+                    prefixIconConstraints: const BoxConstraints(
+                      minWidth: 26,
+                      minHeight: 26,
+                    ),
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(left: 8, right: 4),
+                      child: Icon(Icons.qr_code, size: 14),
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: const BorderSide(
@@ -575,38 +627,118 @@ class _MedicalHistoryStep2State extends State<MedicalHistoryStep2> {
 
         if (_isCustomVaccineVisible) ...[
           const SizedBox(height: 12),
-          Row(
+          Column(
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _customVaccineController,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter vaccine name...',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _customVaccineController,
+                      style: const TextStyle(fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Vaccine name...',
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 10,
+                        ),
+                        prefixIconConstraints: const BoxConstraints(
+                          minWidth: 26,
+                          minHeight: 26,
+                        ),
+                        prefixIcon: const Padding(
+                          padding: EdgeInsets.only(left: 8, right: 4),
+                          child: Icon(
+                            Icons.vaccines_outlined,
+                            size: 14,
+                            color: AppTheme.primary,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: AppTheme.surfaceContainerLow,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _customVaccineLabController,
+                      style: const TextStyle(fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Laboratory',
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 10,
+                        ),
+                        prefixIconConstraints: const BoxConstraints(
+                          minWidth: 26,
+                          minHeight: 26,
+                        ),
+                        prefixIcon: const Padding(
+                          padding: EdgeInsets.only(left: 8, right: 4),
+                          child: Icon(
+                            Icons.science_outlined,
+                            size: 14,
+                            color: AppTheme.primary,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: AppTheme.surfaceContainerLow,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () {
-                  if (_customVaccineController.text.trim().isNotEmpty) {
-                    widget.onAddCustomVaccine(
-                      _customVaccineController.text.trim(),
-                    );
-                    _customVaccineController.clear();
-                    setState(() => _isCustomVaccineVisible = false);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Add'),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () =>
-                    setState(() => _isCustomVaccineVisible = false),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      _customVaccineController.clear();
+                      _customVaccineLabController.clear();
+                      setState(() => _isCustomVaccineVisible = false);
+                    },
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (_customVaccineController.text.trim().isNotEmpty) {
+                        widget.onAddCustomVaccine(
+                          _customVaccineController.text.trim(),
+                        );
+                        if (widget.vaccinations.isNotEmpty) {
+                          final added = widget.vaccinations.last;
+                          if (_customVaccineLabController.text
+                              .trim()
+                              .isNotEmpty) {
+                            added['laboratory'] = _customVaccineLabController
+                                .text
+                                .trim();
+                          }
+                        }
+                        _customVaccineController.clear();
+                        _customVaccineLabController.clear();
+                        setState(() => _isCustomVaccineVisible = false);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Add Vaccine'),
+                  ),
+                ],
               ),
             ],
           ),

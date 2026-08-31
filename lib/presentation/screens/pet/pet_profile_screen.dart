@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../widgets/photo_source_bottom_sheet.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../logic/theme/theme_cubit.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../../logic/diary/diary_bloc.dart';
@@ -10,6 +12,8 @@ import '../../../data/models/weight_log.dart';
 import '../../../data/models/medication.dart';
 import '../../../data/models/diary_entry.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/accent_left_card.dart';
+import '../../widgets/pet/pet_recent_memories_widget.dart';
 import 'pet_details_screen.dart';
 import 'meds_vaccines_screen.dart';
 import 'pet_album_screen.dart';
@@ -33,6 +37,29 @@ class _PetProfileScreenState extends State<PetProfileScreen>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _pet = widget.pet;
+    _loadWeightUnitPreference();
+  }
+
+  Future<void> _loadWeightUnitPreference() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedUnit = prefs.getString('preferred_weight_unit') ?? 'kg';
+      if (mounted) {
+        setState(() {
+          _selectedWeightUnit = savedUnit;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _setWeightUnit(String unit) async {
+    setState(() {
+      _selectedWeightUnit = unit;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('preferred_weight_unit', unit);
+    } catch (_) {}
   }
 
   @override
@@ -557,8 +584,8 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                                 );
                                 setState(() {
                                   _pet = updatedPet;
-                                  _selectedWeightUnit = dialogUnit;
                                 });
+                                _setWeightUnit(dialogUnit);
                                 Navigator.of(dialogContext).pop();
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
@@ -599,6 +626,81 @@ class _PetProfileScreenState extends State<PetProfileScreen>
               ),
             );
           },
+        );
+      },
+    );
+  }
+
+  void _deleteWeightLog(WeightLog logToDelete) {
+    final isDark = context.read<ThemeCubit>().state;
+    final textPrimary = isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
+    final textSecondary = isDark
+        ? AppTheme.darkOnSurfaceVariant
+        : AppTheme.secondary;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: isDark
+              ? AppTheme.darkSurface
+              : AppTheme.surfaceContainerLowest,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'Delete Weight Log?',
+            style: TextStyle(fontWeight: FontWeight.bold, color: textPrimary),
+          ),
+          content: Text(
+            'Are you sure you want to delete this weight log recorded on ${logToDelete.date.day}/${logToDelete.date.month}/${logToDelete.date.year}?',
+            style: TextStyle(color: textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text('Cancel', style: TextStyle(color: textSecondary)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.error,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () {
+                final updatedHistory = List<WeightLog>.from(_pet.weightHistory)
+                  ..removeWhere((item) => item.id == logToDelete.id);
+
+                double newPetWeight = _pet.weight;
+                if (updatedHistory.isNotEmpty) {
+                  final latest = updatedHistory.first;
+                  newPetWeight = latest.unit.toLowerCase() == 'lbs'
+                      ? latest.weight / 2.20462
+                      : latest.weight;
+                }
+
+                final updatedPet = _pet.copyWith(
+                  weightHistory: updatedHistory,
+                  weight: newPetWeight,
+                );
+
+                context.read<PetBloc>().add(UpdatePet(updatedPet));
+                setState(() {
+                  _pet = updatedPet;
+                });
+                Navigator.of(dialogContext).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Weight log deleted!'),
+                    backgroundColor: AppTheme.error,
+                  ),
+                );
+              },
+              child: const Text('Delete'),
+            ),
+          ],
         );
       },
     );
@@ -674,41 +776,66 @@ class _PetProfileScreenState extends State<PetProfileScreen>
           ),
         ],
       ),
-      body: NestedScrollView(
-        headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
-          return <Widget>[
-            SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  // Profile Hero Section
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Stack(
-                      children: [
-                        Container(
-                          height: 250,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(
-                                  alpha: isDark ? 0.3 : 0.1,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          context.read<PetBloc>().add(LoadPets());
+        },
+        child: NestedScrollView(
+          headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+            return <Widget>[
+              SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    // Profile Hero Section
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Stack(
+                        children: [
+                          Container(
+                            height: 250,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(
+                                    alpha: isDark ? 0.3 : 0.1,
+                                  ),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
                                 ),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(24),
-                            child: _pet.avatarUrl.startsWith('http')
-                                ? Image.network(
-                                    _pet.avatarUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            Container(
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(24),
+                              child: _pet.avatarUrl.startsWith('assets/')
+                                  ? Image.asset(
+                                      _pet.avatarUrl,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : (_pet.avatarUrl.startsWith('http')
+                                      ? Image.network(
+                                          _pet.avatarUrl,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) =>
+                                                  Container(
+                                                    color: isDark
+                                                        ? const Color(0xFF383634)
+                                                        : AppTheme.primaryContainer,
+                                                    child: Icon(
+                                                      Icons.pets,
+                                                      size: 64,
+                                                      color: textSecondary,
+                                                    ),
+                                                  ),
+                                        )
+                                      : (File(_pet.avatarUrl).existsSync()
+                                          ? Image.file(
+                                              File(_pet.avatarUrl),
+                                              fit: BoxFit.cover,
+                                            )
+                                          : Container(
                                               color: isDark
                                                   ? const Color(0xFF383634)
                                                   : AppTheme.primaryContainer,
@@ -717,301 +844,206 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                                                 size: 64,
                                                 color: textSecondary,
                                               ),
-                                            ),
-                                  )
-                                : Container(
-                                    color: isDark
-                                        ? const Color(0xFF383634)
-                                        : AppTheme.primaryContainer,
-                                    child: Icon(
-                                      Icons.pets,
-                                      size: 64,
-                                      color: textSecondary,
+                                            ))),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                borderRadius: const BorderRadius.only(
+                                  bottomLeft: Radius.circular(24),
+                                  bottomRight: Radius.circular(24),
+                                ),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withValues(alpha: 0.8),
+                                  ],
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _pet.name,
+                                    style: const TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
                                     ),
                                   ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              borderRadius: const BorderRadius.only(
-                                bottomLeft: Radius.circular(24),
-                                bottomRight: Radius.circular(24),
-                              ),
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withValues(alpha: 0.8),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primary.withValues(
+                                        alpha: 0.8,
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      '${_pet.breed} • ${_pet.ageString}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _pet.name,
-                                  style: const TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.primary.withValues(
-                                      alpha: 0.8,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    '${_pet.breed} • ${_pet.ageString}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-                  // Quick Stats Row
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Row(
-                      children: [
-                        _buildStatCard(
-                          label: 'Age',
-                          value: _pet.ageString,
-                          icon: Icons.cake,
-                          iconColor: const Color(0xFF9E5A44),
-                        ),
-                        const SizedBox(width: 8),
-                        _buildStatCard(
-                          label: 'Weight',
-                          value: _selectedWeightUnit == 'lbs'
-                              ? '${(_pet.weight * 2.20462).toStringAsFixed(1)} lbs'
-                              : '${_pet.weight.toStringAsFixed(1)} kg',
-                          icon: Icons.scale_outlined,
-                          iconColor: const Color(0xFF1F6156),
-                        ),
-                        const SizedBox(width: 8),
-                        _buildStatCard(
-                          label: 'Vaccine',
-                          value: _getNextVaccineDate(),
-                          icon: Icons.vaccines,
-                          iconColor: const Color(0xFFE67E22),
-                        ),
-                        const SizedBox(width: 8),
-                        _buildStatCard(
-                          label: 'Details',
-                          value: 'Info',
-                          icon: Icons.assignment_outlined,
-                          iconColor: Colors.white,
-                          isHighlighted: true,
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    PetDetailsScreen(pet: _pet),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                    // Quick Stats Row
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Row(
+                        children: [
+                          _buildStatCard(
+                            label: 'Age',
+                            value: _pet.ageString,
+                            icon: Icons.cake,
+                            iconColor: const Color(0xFF9E5A44),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildStatCard(
+                            label: 'Weight',
+                            value: _selectedWeightUnit == 'lbs'
+                                ? '${(_pet.weight * 2.20462).toStringAsFixed(1)} lbs'
+                                : '${_pet.weight.toStringAsFixed(1)} kg',
+                            icon: Icons.scale_outlined,
+                            iconColor: const Color(0xFF1F6156),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildStatCard(
+                            label: 'Vaccine',
+                            value: _getNextVaccineDate(),
+                            icon: Icons.vaccines,
+                            iconColor: const Color(0xFFE67E22),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildStatCard(
+                            label: 'Details',
+                            value: 'Info',
+                            icon: Icons.assignment_outlined,
+                            iconColor: Colors.white,
+                            isHighlighted: true,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      PetDetailsScreen(pet: _pet),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                  // Recent Photos Gallery
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Recent Photos',
-                          style: TextStyle(
-                            fontFamily: 'Montserrat',
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: textPrimary,
-                          ),
-                        ),
-                        TextButton.icon(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    PetAlbumScreen(initialPetFilter: _pet.name),
-                              ),
-                            );
-                          },
-                          icon: Icon(
-                            Icons.photo_library_outlined,
-                            size: 18,
-                            color: headerColor,
-                          ),
-                          label: Text(
-                            'Album',
-                            style: TextStyle(
-                              fontFamily: 'Montserrat',
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: headerColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 120,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: _pet.photos.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index == _pet.photos.length) {
-                          return _buildAddPhotoButton(context);
-                        }
-                        return GestureDetector(
-                          onTap: () => _openPhotoViewer(context, index),
-                          child: Container(
-                            margin: const EdgeInsets.only(right: 12),
-                            width: 120,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child:
-                                  (_pet.photos[index].startsWith('http') ||
-                                      _pet.photos[index].startsWith('https'))
-                                  ? Image.network(
-                                      _pet.photos[index],
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              Container(
-                                                color: isDark
-                                                    ? const Color(0xFF383634)
-                                                    : AppTheme.surfaceContainer,
-                                                child: Icon(
-                                                  Icons.broken_image,
-                                                  color: textSecondary,
-                                                ),
-                                              ),
-                                    )
-                                  : Image.file(
-                                      File(_pet.photos[index]),
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              Container(
-                                                color: isDark
-                                                    ? const Color(0xFF383634)
-                                                    : AppTheme.surfaceContainer,
-                                                child: Icon(
-                                                  Icons.broken_image,
-                                                  color: textSecondary,
-                                                ),
-                                              ),
-                                    ),
+                    // Recent Photos Gallery
+                    PetRecentMemoriesWidget(
+                      photos: _pet.photos,
+                      textPrimary: textPrimary,
+                      headerColor: headerColor,
+                      onViewAlbum: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => PetAlbumScreen(
+                              initialPetFilter: _pet.name,
                             ),
                           ),
                         );
                       },
+                      onAddPhoto: () => _showAddPhotoModal(context),
+                      onPhotoTap: (index) => _openPhotoViewer(context, index),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ];
-        },
-        body: Column(
-          children: [
-            // Tabs navigation
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF383634)
-                    : AppTheme.surfaceContainer,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicatorSize: TabBarIndicatorSize.tab,
-                indicatorPadding: EdgeInsets.zero,
-                indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  color: isDark ? AppTheme.darkSurface : Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: isDark ? 0.2 : 0.08,
-                      ),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
-                labelColor: headerColor,
-                unselectedLabelColor: textPrimary,
-                labelStyle: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-                dividerColor: Colors.transparent,
-                overlayColor: WidgetStateProperty.all(Colors.transparent),
-                tabs: const [
-                  Tab(text: 'Diary'),
-                  Tab(text: 'Weight'),
-                  Tab(text: 'Meds'),
-                ],
               ),
-            ),
-            const SizedBox(height: 16),
+            ];
+          },
+          body: Column(
+            children: [
+              // Tabs navigation
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF383634)
+                      : AppTheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicatorPadding: EdgeInsets.zero,
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    color: isDark ? AppTheme.darkSurface : Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.2 : 0.08,
+                        ),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  labelColor: headerColor,
+                  unselectedLabelColor: textPrimary,
+                  labelStyle: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                  dividerColor: Colors.transparent,
+                  overlayColor: WidgetStateProperty.all(Colors.transparent),
+                  tabs: const [
+                    Tab(text: 'Diary'),
+                    Tab(text: 'Weight'),
+                    Tab(text: 'Meds'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
 
-            // Tab View Body (takes remaining screen space dynamically)
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildDiaryTab(),
-                  _buildWeightTab(),
-                  _buildMedsTab(),
-                ],
+              // Tab View Body (takes remaining screen space dynamically)
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildDiaryTab(),
+                    _buildWeightTab(),
+                    _buildMedsTab(),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1099,46 +1131,6 @@ class _PetProfileScreenState extends State<PetProfileScreen>
     );
   }
 
-  Widget _buildAddPhotoButton(BuildContext context) {
-    final isDark = context.watch<ThemeCubit>().state;
-    final headerColor = isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
-    final cardBg = isDark
-        ? AppTheme.darkSurface
-        : AppTheme.surfaceContainerLowest;
-
-    return Container(
-      width: 120,
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: headerColor.withValues(alpha: 0.4),
-          width: 1.5,
-        ),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => _showAddPhotoModal(context),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add_a_photo_outlined, color: headerColor, size: 28),
-            const SizedBox(height: 6),
-            Text(
-              'Add Photo',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: headerColor,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> _pickPhoto(ImageSource source) async {
     try {
       final picker = ImagePicker();
@@ -1146,7 +1138,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
       if (!mounted) return;
       if (pickedFile != null) {
         final updatedPhotos = List<String>.from(_pet.photos)
-          ..add(pickedFile.path);
+          ..insert(0, pickedFile.path);
         final updatedPet = _pet.copyWith(photos: updatedPhotos);
 
         context.read<PetBloc>().add(UpdatePet(updatedPet));
@@ -1191,39 +1183,40 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: InteractiveViewer(
-                      child: photoUrl.startsWith('http') ||
+                      child:
+                          photoUrl.startsWith('http') ||
                               photoUrl.startsWith('https')
                           ? Image.network(
                               photoUrl,
                               fit: BoxFit.contain,
                               errorBuilder: (context, error, stackTrace) =>
                                   Container(
-                                height: 300,
-                                color: AppTheme.surfaceContainerLow,
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.broken_image,
-                                    size: 48,
-                                    color: AppTheme.secondary,
+                                    height: 300,
+                                    color: AppTheme.surfaceContainerLow,
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        size: 48,
+                                        color: AppTheme.secondary,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
                             )
                           : Image.file(
                               File(photoUrl),
                               fit: BoxFit.contain,
                               errorBuilder: (context, error, stackTrace) =>
                                   Container(
-                                height: 300,
-                                color: AppTheme.surfaceContainerLow,
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.broken_image,
-                                    size: 48,
-                                    color: AppTheme.secondary,
+                                    height: 300,
+                                    color: AppTheme.surfaceContainerLow,
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        size: 48,
+                                        color: AppTheme.secondary,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
                             ),
                     ),
                   ),
@@ -1247,7 +1240,9 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                         ),
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(
-                            color: const Color(0xFFFFB4A3).withValues(alpha: 0.5),
+                            color: const Color(
+                              0xFFFFB4A3,
+                            ).withValues(alpha: 0.5),
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -1312,9 +1307,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                 });
 
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Photo deleted successfully.'),
-                  ),
+                  const SnackBar(content: Text('Photo deleted successfully.')),
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -1329,92 +1322,14 @@ class _PetProfileScreenState extends State<PetProfileScreen>
     );
   }
 
-  void _showAddPhotoModal(BuildContext context) {
-    final isDark = context.read<ThemeCubit>().state;
-    final textPrimary = isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
-    final textSecondary = isDark
-        ? AppTheme.darkOnSurfaceVariant
-        : AppTheme.secondary;
-    final cardBg = isDark ? AppTheme.darkSurface : Colors.white;
-    final headerColor = isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: cardBg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Select Media Source',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    fontFamily: 'Montserrat',
-                    color: textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                ListTile(
-                  leading: Icon(Icons.photo_library, color: headerColor),
-                  title: Text(
-                    'Choose from Gallery',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w600,
-                      color: textPrimary,
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    _pickPhoto(ImageSource.gallery);
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.photo_camera, color: headerColor),
-                  title: Text(
-                    'Open Camera',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w600,
-                      color: textPrimary,
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    _pickPhoto(ImageSource.camera);
-                  },
-                ),
-                Divider(
-                  color: isDark
-                      ? const Color(0xFF383634)
-                      : AppTheme.outlineVariant,
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(sheetContext).pop(),
-                  style: TextButton.styleFrom(foregroundColor: textSecondary),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+  Future<void> _showAddPhotoModal(BuildContext context) async {
+    final source = await PhotoSourceBottomSheet.show(
+      context,
+      title: 'Select Media Source',
     );
+    if (source != null) {
+      _pickPhoto(source);
+    }
   }
 
   String _getNextVaccineDate() {
@@ -1492,18 +1407,32 @@ class _PetProfileScreenState extends State<PetProfileScreen>
         ? 'Today, $timeStr'
         : '${dt.day}/${dt.month} • $timeStr';
 
-    return Container(
+    Color accentColor;
+    switch (entry.severity.toUpperCase()) {
+      case 'SEVERE':
+        accentColor = isDark
+            ? const Color(0xFFFFB4A3)
+            : const Color(0xFFE74C3C);
+        break;
+      case 'MODERATE':
+        accentColor = isDark
+            ? const Color(0xFFFFD580)
+            : const Color(0xFFF39C12);
+        break;
+      case 'MILD':
+      default:
+        accentColor = isDark
+            ? const Color(0xFF90CAF9)
+            : const Color(0xFF5D9CEC);
+        break;
+    }
+
+    return AccentLeftCard(
+      accentColor: accentColor,
+      backgroundColor: cardBg,
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDark
-              ? const Color(0xFF383634)
-              : AppTheme.outlineVariant.withValues(alpha: 0.3),
-        ),
-      ),
+      borderRadius: 14.0,
       child: Row(
         children: [
           // Category Avatar Box
@@ -1650,22 +1579,52 @@ class _PetProfileScreenState extends State<PetProfileScreen>
 
     final history = _pet.weightHistory;
 
-    // Calculate last 6 months (oldest to newest)
+    // Use system date (DateTime.now()) as reference to calculate the last 6 months (oldest to newest)
     final now = DateTime.now();
     final last6Months = List.generate(6, (i) {
       return DateTime(now.year, now.month - (5 - i), 1);
     });
 
-    // Group logs by month and average them
-    final averages = last6Months.map((m) {
-      final logs = history
+    // Chronologically sort history
+    final sortedHistory = List<WeightLog>.from(history)
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    // 1) Compute raw monthly averages in baseline KG using system reference months
+    final List<double?> rawMonthlyAveragesKg = last6Months.map((m) {
+      final logsInMonth = sortedHistory
           .where((log) => log.date.year == m.year && log.date.month == m.month)
           .toList();
-      if (logs.isEmpty) {
-        return null;
+
+      if (logsInMonth.isNotEmpty) {
+        final sum = logsInMonth.fold<double>(0.0, (val, log) {
+          final wInKg = log.unit.toLowerCase() == 'lbs'
+              ? log.weight / 2.20462
+              : log.weight;
+          return val + wInKg;
+        });
+        return sum / logsInMonth.length;
       }
-      final sum = logs.fold<double>(0.0, (val, log) => val + log.weight);
-      return sum / logs.length;
+
+      // Check if there is any log logged prior to the end of month m
+      final endOfMonth = DateTime(m.year, m.month + 1, 0, 23, 59, 59);
+      final priorLogs = sortedHistory
+          .where((log) => log.date.isBefore(endOfMonth))
+          .toList();
+
+      if (priorLogs.isNotEmpty) {
+        final lastPriorLog = priorLogs.last;
+        return lastPriorLog.unit.toLowerCase() == 'lbs'
+            ? lastPriorLog.weight / 2.20462
+            : lastPriorLog.weight;
+      }
+
+      return null;
+    }).toList();
+
+    // 2) Convert monthly averages to active _selectedWeightUnit
+    final List<double?> averages = rawMonthlyAveragesKg.map((wKg) {
+      if (wKg == null) return null;
+      return _selectedWeightUnit == 'lbs' ? wKg * 2.20462 : wKg;
     }).toList();
 
     // Scale calculation
@@ -1715,10 +1674,11 @@ class _PetProfileScreenState extends State<PetProfileScreen>
       final w2 = averages[prevDataIdx]!;
       trendDiff = w1 - w2;
       final prefix = trendDiff >= 0 ? '+' : '';
-      trendText = '$prefix${trendDiff.toStringAsFixed(1)}kg this month';
+      trendText =
+          '$prefix${trendDiff.toStringAsFixed(1)}$_selectedWeightUnit this month';
       showTrend = true;
     } else if (latestDataIdx != -1) {
-      trendText = '0.0kg this month';
+      trendText = '0.0$_selectedWeightUnit this month';
       showTrend = true;
     }
 
@@ -1753,12 +1713,31 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                 ? SizedBox(
                     height: 220,
                     child: Center(
-                      child: Text(
-                        'No weight logs recorded yet.',
-                        style: TextStyle(
-                          color: textSecondary,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.monitor_weight_outlined,
+                            size: 44,
+                            color: textSecondary.withValues(alpha: 0.5),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No weight logs recorded yet.',
+                            style: TextStyle(
+                              color: textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tap "+ Add Log" below to record weight.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: textSecondary.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   )
@@ -1860,7 +1839,6 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                                     final avg = averages[idx];
                                     final monthLabel = _getMonthName(m.month);
                                     final isLatestMonth = idx == 5;
-
                                     Widget barWidget;
                                     Widget weightTextWidget;
 
@@ -2018,8 +1996,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                     child: Row(
                       children: [
                         GestureDetector(
-                          onTap: () =>
-                              setState(() => _selectedWeightUnit = 'kg'),
+                          onTap: () => _setWeightUnit('kg'),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
@@ -2044,8 +2021,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                           ),
                         ),
                         GestureDetector(
-                          onTap: () =>
-                              setState(() => _selectedWeightUnit = 'lbs'),
+                          onTap: () => _setWeightUnit('lbs'),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
@@ -2143,28 +2119,29 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                     ),
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${log.date.day}/${log.date.month}/${log.date.year}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: textPrimary,
-                            ),
-                          ),
-                          if (log.note.isNotEmpty)
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              log.note,
+                              '${log.date.day}/${log.date.month}/${log.date.year}',
                               style: TextStyle(
-                                fontSize: 11,
-                                color: textSecondary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: textPrimary,
                               ),
                             ),
-                        ],
+                            if (log.note.isNotEmpty)
+                              Text(
+                                log.note,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: textSecondary,
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                       Text(
                         '${displayWeightVal.toStringAsFixed(1)} $_selectedWeightUnit',
@@ -2173,6 +2150,16 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                           fontSize: 14,
                           color: headerColor,
                         ),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          size: 20,
+                          color: AppTheme.error,
+                        ),
+                        tooltip: 'Delete Log',
+                        onPressed: () => _deleteWeightLog(log),
                       ),
                     ],
                   ),
@@ -2216,18 +2203,10 @@ class _PetProfileScreenState extends State<PetProfileScreen>
     Color cardBg,
     Color textSecondary,
   ) {
-    return Container(
-      width: double.infinity,
+    return AccentLeftCard(
+      accentColor: AppTheme.secondary,
+      margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDark
-              ? const Color(0xFF383634)
-              : AppTheme.outlineVariant.withValues(alpha: 0.4),
-        ),
-      ),
       child: Text(
         message,
         style: TextStyle(
@@ -2262,35 +2241,42 @@ class _PetProfileScreenState extends State<PetProfileScreen>
 
     if (isToday) {
       statusText = 'Due Today';
-      statusColor = headerColor;
+      statusColor = isDark
+          ? AppTheme.statusScheduledDark
+          : AppTheme.statusScheduled;
       statusBg = isDark
-          ? const Color(0xFF2E4E30)
-          : AppTheme.primaryContainer.withValues(alpha: 0.6);
+          ? AppTheme.statusScheduledDarkBg
+          : AppTheme.statusScheduledBg;
       statusIcon = Icons.today;
     } else if (isOverdue) {
       statusText = 'Overdue${daysOverdue > 0 ? ' ${daysOverdue}d' : ''}';
-      statusColor = const Color(0xFF410002);
-      statusBg = const Color(0xFFFFDAD6);
+      statusColor = isDark
+          ? AppTheme.statusOverdueDark
+          : AppTheme.statusOverdue;
+      statusBg = isDark
+          ? AppTheme.statusOverdueDarkBg
+          : AppTheme.statusOverdueBg;
       statusIcon = Icons.error_outline;
     } else {
       statusText = 'Scheduled';
-      statusColor = const Color(0xFF854D0E);
-      statusBg = const Color(0xFFFEF08A);
+      statusColor = isDark
+          ? AppTheme.statusScheduledDark
+          : AppTheme.statusScheduled;
+      statusBg = isDark
+          ? AppTheme.statusScheduledDarkBg
+          : AppTheme.statusScheduledBg;
       statusIcon = Icons.event;
     }
 
-    return Container(
+    return AccentLeftCard(
+      accentColor: statusColor,
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isToday
-              ? headerColor.withValues(alpha: 0.3)
-              : (isDark ? const Color(0xFF383634) : Colors.transparent),
-        ),
-      ),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => MedsVaccinesScreen(pet: _pet)),
+        );
+      },
       child: Row(
         children: [
           // Date Badge Box
@@ -2309,7 +2295,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: isToday ? Colors.white : statusColor,
+                    color: statusColor,
                   ),
                 ),
                 Text(
@@ -2317,7 +2303,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: isToday ? Colors.white : statusColor,
+                    color: statusColor,
                   ),
                 ),
               ],
@@ -2436,33 +2422,42 @@ class _PetProfileScreenState extends State<PetProfileScreen>
 
     if (isToday) {
       statusText = 'Due Today';
-      statusColor = AppTheme.tertiary;
-      statusBg = AppTheme.tertiaryContainer.withValues(alpha: 0.6);
+      statusColor = isDark
+          ? AppTheme.statusScheduledDark
+          : AppTheme.statusScheduled;
+      statusBg = isDark
+          ? AppTheme.statusScheduledDarkBg
+          : AppTheme.statusScheduledBg;
       statusIcon = Icons.today;
     } else if (isOverdue) {
       statusText = 'Overdue${daysOverdue > 0 ? ' ${daysOverdue}d' : ''}';
-      statusColor = const Color(0xFF410002);
-      statusBg = const Color(0xFFFFDAD6);
+      statusColor = isDark
+          ? AppTheme.statusOverdueDark
+          : AppTheme.statusOverdue;
+      statusBg = isDark
+          ? AppTheme.statusOverdueDarkBg
+          : AppTheme.statusOverdueBg;
       statusIcon = Icons.error_outline;
     } else {
       statusText = 'Scheduled';
-      statusColor = const Color(0xFF854D0E);
-      statusBg = const Color(0xFFFEF08A);
+      statusColor = isDark
+          ? AppTheme.statusScheduledDark
+          : AppTheme.statusScheduled;
+      statusBg = isDark
+          ? AppTheme.statusScheduledDarkBg
+          : AppTheme.statusScheduledBg;
       statusIcon = Icons.event;
     }
 
-    return Container(
+    return AccentLeftCard(
+      accentColor: statusColor,
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isToday
-              ? AppTheme.tertiary.withValues(alpha: 0.3)
-              : (isDark ? const Color(0xFF383634) : Colors.transparent),
-        ),
-      ),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => MedsVaccinesScreen(pet: _pet)),
+        );
+      },
       child: Row(
         children: [
           // Date Badge Box
@@ -2481,7 +2476,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: isToday ? Colors.white : statusColor,
+                    color: statusColor,
                   ),
                 ),
                 Text(
@@ -2489,7 +2484,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: isToday ? Colors.white : statusColor,
+                    color: statusColor,
                   ),
                 ),
               ],
@@ -2566,10 +2561,12 @@ class _PetProfileScreenState extends State<PetProfileScreen>
         : AppTheme.surfaceContainerLowest;
     final headerColor = isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
 
-    // Upcoming Medications: type != 'vaccine' and not completed
+    // Upcoming Medications: type != 'vaccine', type != 'event' and not completed
     final upcomingMeds =
         _pet.medications
-            .where((m) => m.type != 'vaccine' && !m.isCompleted)
+            .where(
+              (m) => m.type != 'vaccine' && m.type != 'event' && !m.isCompleted,
+            )
             .toList()
           ..sort((a, b) => a.nextDoseDate.compareTo(b.nextDoseDate));
 

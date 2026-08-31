@@ -13,7 +13,9 @@ class CreatePetFinishScreen extends StatelessWidget {
   });
 
   ImageProvider _getPetImageProvider(String url) {
-    if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (url.startsWith('assets/')) {
+      return AssetImage(url);
+    } else if (url.startsWith('http://') || url.startsWith('https://')) {
       return NetworkImage(url);
     } else if (url.isNotEmpty) {
       try {
@@ -23,9 +25,7 @@ class CreatePetFinishScreen extends StatelessWidget {
         }
       } catch (_) {}
     }
-    return const NetworkImage(
-      'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600',
-    );
+    return const AssetImage('assets/avatars/dog.png');
   }
 
   @override

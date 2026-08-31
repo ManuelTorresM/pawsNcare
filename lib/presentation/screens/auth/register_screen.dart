@@ -469,7 +469,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   // Sign up with Google Button
                   OutlinedButton.icon(
                     onPressed: () {
-                      context.read<AuthBloc>().add(GoogleLoginSubmitted());
+                      context.read<AuthBloc>().add(GoogleRegisterSubmitted());
                     },
                     icon: Image.network(
                       'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg.png',

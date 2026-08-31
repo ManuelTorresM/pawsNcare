@@ -51,6 +51,7 @@ dependencies:
   qr_flutter: ^4.1.0
   flutter_local_notifications: ^18.0.1
   timezone: ^0.9.4
+  flutter_typeahead: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -63,10 +64,12 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/
+    - assets/avatars/
 
 flutter_launcher_icons:
   android: true
   ios: true
+  remove_alpha_ios: true
   image_path: "assets/icon/paws_n_care_icon.png"
   min_sdk_android: 21
   web:

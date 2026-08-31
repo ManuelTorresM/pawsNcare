@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/models/pet.dart';
@@ -137,7 +138,9 @@ class _InvitationReceivedScreenState
   }
 
   Widget _buildPetImageWidget(String url) {
-    if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (url.startsWith('assets/')) {
+      return Image.asset(url, fit: BoxFit.cover);
+    } else if (url.startsWith('http://') || url.startsWith('https://')) {
       return Image.network(
         url,
         fit: BoxFit.cover,
@@ -147,6 +150,8 @@ class _InvitationReceivedScreenState
           color: AppTheme.primary,
         ),
       );
+    } else if (url.isNotEmpty && File(url).existsSync()) {
+      return Image.file(File(url), fit: BoxFit.cover);
     }
     return Container(
       color: AppTheme.primaryFixedDim,

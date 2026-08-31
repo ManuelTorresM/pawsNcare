@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../logic/theme/theme_cubit.dart';
@@ -6,6 +7,7 @@ import '../../../logic/pet/pet_bloc.dart';
 import '../../../data/models/diary_entry.dart';
 import '../../../data/models/pet.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/accent_left_card.dart';
 
 class DiaryTab extends StatefulWidget {
   const DiaryTab({super.key});
@@ -117,7 +119,7 @@ class _DiaryTabState extends State<DiaryTab> {
     }
   }
 
-  void _showAddEntryDialog(BuildContext context) {
+  void _showAddEntryDialog(BuildContext context, {DiaryEntry? initialEntry}) {
     final petState = context.read<PetBloc>().state;
     if (petState is! PetLoaded || petState.pets.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -126,11 +128,15 @@ class _DiaryTabState extends State<DiaryTab> {
       return;
     }
 
-    final titleController = TextEditingController();
-    final noteController = TextEditingController();
-    String petId = petState.pets.first.id;
-    String category = 'walk';
-    String severity = 'MILD';
+    final titleController = TextEditingController(
+      text: initialEntry?.title ?? '',
+    );
+    final noteController = TextEditingController(
+      text: initialEntry?.note ?? '',
+    );
+    String petId = initialEntry?.petId ?? petState.pets.first.id;
+    String category = initialEntry?.category ?? 'walk';
+    String severity = initialEntry?.severity ?? 'MILD';
     String? validationError;
 
     showDialog(
@@ -142,13 +148,29 @@ class _DiaryTabState extends State<DiaryTab> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              title: const Text(
-                'Add Diary Log',
-                style: TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primary,
-                ),
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    initialEntry != null ? 'Edit Diary Log' : 'Add Diary Log',
+                    style: const TextStyle(
+                      fontFamily: 'Montserrat',
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                  if (initialEntry != null)
+                    IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: AppTheme.error,
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _showDeleteConfirmDialog(context, initialEntry);
+                      },
+                    ),
+                ],
               ),
               content: SingleChildScrollView(
                 child: Column(
@@ -387,20 +409,42 @@ class _DiaryTabState extends State<DiaryTab> {
                       return;
                     }
 
-                    final entry = DiaryEntry(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
-                      petId: petId,
-                      title: title,
-                      category: category,
-                      note: note,
-                      timestamp: DateTime.now(),
-                      severity: severity,
-                    );
-                    context.read<DiaryBloc>().add(AddDiaryEntryEvent(entry));
+                    if (initialEntry != null) {
+                      final updatedEntry = DiaryEntry(
+                        id: initialEntry.id,
+                        petId: petId,
+                        title: title,
+                        category: category,
+                        note: note,
+                        timestamp: initialEntry.timestamp,
+                        severity: severity,
+                      );
+                      context.read<DiaryBloc>().add(
+                        UpdateDiaryEntryEvent(
+                          updatedEntry,
+                          currentPetId: _selectedPetId,
+                        ),
+                      );
+                    } else {
+                      final entry = DiaryEntry(
+                        id: DateTime.now().millisecondsSinceEpoch.toString(),
+                        petId: petId,
+                        title: title,
+                        category: category,
+                        note: note,
+                        timestamp: DateTime.now(),
+                        severity: severity,
+                      );
+                      context.read<DiaryBloc>().add(AddDiaryEntryEvent(entry));
+                    }
                     Navigator.of(context).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Diary log saved successfully!'),
+                      SnackBar(
+                        content: Text(
+                          initialEntry != null
+                              ? 'Diary log updated successfully!'
+                              : 'Diary log saved successfully!',
+                        ),
                         backgroundColor: AppTheme.primary,
                       ),
                     );
@@ -409,7 +453,9 @@ class _DiaryTabState extends State<DiaryTab> {
                     backgroundColor: AppTheme.primary,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Save Log'),
+                  child: Text(
+                    initialEntry != null ? 'Save Changes' : 'Save Log',
+                  ),
                 ),
               ],
             );
@@ -774,7 +820,12 @@ class _DiaryTabState extends State<DiaryTab> {
                     ? const Color(0xFF383634)
                     : AppTheme.surfaceContainerHigh,
                 backgroundImage: resolvedAvatarUrl != null
-                    ? NetworkImage(resolvedAvatarUrl)
+                    ? (resolvedAvatarUrl.startsWith('assets/')
+                          ? AssetImage(resolvedAvatarUrl)
+                          : (resolvedAvatarUrl.startsWith('http')
+                              ? NetworkImage(resolvedAvatarUrl)
+                              : FileImage(File(resolvedAvatarUrl))))
+                        as ImageProvider
                     : null,
                 child: resolvedAvatarUrl == null
                     ? (filter == 'all'
@@ -807,6 +858,39 @@ class _DiaryTabState extends State<DiaryTab> {
     );
   }
 
+  void _showDeleteConfirmDialog(BuildContext context, DiaryEntry entry) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Delete Entry?',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text('Are you sure you want to delete "${entry.title}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.error,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              context.read<DiaryBloc>().add(
+                DeleteDiaryEntryEvent(entry.id, currentPetId: _selectedPetId),
+              );
+              Navigator.pop(ctx);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDiaryCard(
     DiaryEntry entry,
     String petName,
@@ -827,361 +911,135 @@ class _DiaryTabState extends State<DiaryTab> {
     switch (severity.toUpperCase()) {
       case 'SEVERE':
         badgeColor = isDark ? const Color(0xFF5C2B1D) : const Color(0xFFFDEDEC);
-        badgeText = const Color(0xFFFFB4A3);
+        badgeText = isDark ? const Color(0xFFFFB4A3) : const Color(0xFFE74C3C);
         break;
       case 'MODERATE':
         badgeColor = isDark ? const Color(0xFF523B17) : const Color(0xFFFEF9E7);
-        badgeText = const Color(0xFFFFD580);
+        badgeText = isDark ? const Color(0xFFFFD580) : const Color(0xFFF39C12);
         break;
       case 'MILD':
       default:
         badgeColor = isDark ? const Color(0xFF1D3B5C) : const Color(0xFFEBF5FB);
-        badgeText = const Color(0xFF90CAF9);
+        badgeText = isDark ? const Color(0xFF90CAF9) : const Color(0xFF5D9CEC);
         break;
     }
 
-    return GestureDetector(
-      onTap: () => _showFocusedEntryDialog(context, entry, petName),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: tileBg,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: dividerColor),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(width: 4, color: badgeText),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Top Meta row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                _formatDateTime(entry.timestamp),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: textSecondary,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Container(
-                                width: 4,
-                                height: 4,
-                                decoration: BoxDecoration(
-                                  color: textSecondary,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                petName,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: primaryColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: badgeColor,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              severity,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: badgeText,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Title
-                      Text(
-                        entry.title,
-                        style: TextStyle(
-                          fontFamily: 'Montserrat',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-
-                      // Note Description
-                      Text(
-                        entry.note,
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 14,
-                          color: textSecondary,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Bottom Category tag
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? const Color(0xFF2E4E30)
-                              : AppTheme.primaryFixed,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              icon,
-                              size: 14,
-                              color: isDark
-                                  ? AppTheme.primaryFixedDim
-                                  : AppTheme.onPrimaryFixedVariant,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              label,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? AppTheme.primaryFixedDim
-                                    : AppTheme.onPrimaryFixedVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showFocusedEntryDialog(
-    BuildContext context,
-    DiaryEntry entry,
-    String petName,
-  ) {
-    final styles = _getCategoryStyles(entry.category);
-    final accentColor = styles['color'] as Color;
-    final label = styles['label'] as String;
-
-    final severity = entry.severity;
-    Color badgeColor;
-    Color badgeText;
-    switch (severity.toUpperCase()) {
-      case 'SEVERE':
-        badgeColor = const Color(0xFFFDEDEC);
-        badgeText = const Color(0xFFE74C3C);
-        break;
-      case 'MODERATE':
-        badgeColor = const Color(0xFFFEF9E7);
-        badgeText = const Color(0xFFF39C12);
-        break;
-      case 'MILD':
-      default:
-        badgeColor = const Color(0xFFEBF5FB);
-        badgeText = const Color(0xFF5D9CEC);
-        break;
-    }
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          titlePadding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
-          title: Row(
+    return AccentLeftCard(
+      accentColor: badgeText,
+      backgroundColor: tileBg,
+      onTap: () => _showAddEntryDialog(context, initialEntry: entry),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top Meta row
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontWeight: FontWeight.bold,
-                  color: accentColor,
-                  fontSize: 16,
-                ),
+              Row(
+                children: [
+                  Text(
+                    _formatDateTime(entry.timestamp),
+                    style: TextStyle(fontSize: 12, color: textSecondary),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 4,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: textSecondary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    petName,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: primaryColor,
+                    ),
+                  ),
+                ],
               ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.of(dialogContext).pop(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: badgeColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  severity,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: badgeText,
+                  ),
+                ),
               ),
             ],
           ),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 8),
+
+          // Title
+          Text(
+            entry.title,
+            style: TextStyle(
+              fontFamily: 'Montserrat',
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+
+          // Note Description
+          Text(
+            entry.note,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 14,
+              color: textSecondary,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Bottom Category tag
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF2E4E30) : AppTheme.primaryFixed,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Pet & Date info row
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: badgeColor,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        severity,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: badgeText,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _formatDateTime(entry.timestamp),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.secondary,
-                      ),
-                    ),
-                  ],
+                Icon(
+                  icon,
+                  size: 14,
+                  color: isDark
+                      ? AppTheme.primaryFixedDim
+                      : AppTheme.onPrimaryFixedVariant,
                 ),
-                const SizedBox(height: 16),
-
-                // Pet Name section
-                Row(
-                  children: [
-                    const Icon(Icons.pets, size: 16, color: AppTheme.primary),
-                    const SizedBox(width: 6),
-                    Text(
-                      petName,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Title
+                const SizedBox(width: 4),
                 Text(
-                  entry.title,
-                  style: const TextStyle(
-                    fontFamily: 'Montserrat',
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    color: AppTheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Note / Details
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.surfaceContainer),
-                  ),
-                  child: Text(
-                    entry.note,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 14,
-                      color: AppTheme.onSurfaceVariant,
-                      height: 1.5,
-                    ),
+                    color: isDark
+                        ? AppTheme.primaryFixedDim
+                        : AppTheme.onPrimaryFixedVariant,
                   ),
                 ),
               ],
             ),
           ),
-          actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
-          actions: [
-            TextButton.icon(
-              onPressed: () {
-                // Confirm delete dialog
-                showDialog(
-                  context: dialogContext,
-                  builder: (confirmContext) {
-                    return AlertDialog(
-                      title: const Text('Delete Log?'),
-                      content: const Text(
-                        'Are you sure you want to delete this diary entry? This action cannot be undone.',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(confirmContext).pop(),
-                          child: const Text('Cancel'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            // Dispatch delete event on current BLoC using the outer context
-                            context.read<DiaryBloc>().add(
-                              DeleteDiaryEntryEvent(
-                                entry.id,
-                                currentPetId: _selectedPetId,
-                              ),
-                            );
-                            Navigator.of(confirmContext).pop(); // pop confirm
-                            Navigator.of(dialogContext).pop(); // pop details
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.error,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Delete'),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-              icon: const Icon(Icons.delete_outline, color: AppTheme.error),
-              label: const Text(
-                'Delete Log',
-                style: TextStyle(
-                  color: AppTheme.error,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
+        ],
+      ),
     );
   }
 

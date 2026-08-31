@@ -30,6 +30,8 @@ class RegisterSubmitted extends AuthEvent {
 
 class GoogleLoginSubmitted extends AuthEvent {}
 
+class GoogleRegisterSubmitted extends AuthEvent {}
+
 class UserNameUpdated extends AuthEvent {
   final String name;
   const UserNameUpdated(this.name);
@@ -75,6 +77,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<LoginSubmitted>(_onLoginSubmitted);
     on<GoogleLoginSubmitted>(_onGoogleLoginSubmitted);
+    on<GoogleRegisterSubmitted>(_onGoogleRegisterSubmitted);
     on<RegisterSubmitted>(_onRegisterSubmitted);
     on<UserNameUpdated>(_onUserNameUpdated);
     on<LogoutRequested>(_onLogoutRequested);
@@ -120,6 +123,26 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       final repo = await repositorySelector.getActiveRepository();
       final success = await repo.loginWithGoogle();
+      if (success) {
+        final email = await repo.getCurrentUserEmail();
+        final name = await repo.getCurrentUserName();
+        emit(Authenticated(email: email ?? '', name: name ?? ''));
+      } else {
+        emit(const AuthFailure(
+          "No registered account found for this Google email. Please sign up first!",
+        ));
+      }
+    } catch (e) {
+      emit(AuthFailure(e.toString()));
+    }
+  }
+
+  Future<void> _onGoogleRegisterSubmitted(
+      GoogleRegisterSubmitted event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
+    try {
+      final repo = await repositorySelector.getActiveRepository();
+      final success = await repo.registerWithGoogle();
       if (success) {
         final email = await repo.getCurrentUserEmail();
         final name = await repo.getCurrentUserName();

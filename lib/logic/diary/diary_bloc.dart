@@ -24,6 +24,14 @@ class AddDiaryEntryEvent extends DiaryEvent {
   List<Object?> get props => [entry];
 }
 
+class UpdateDiaryEntryEvent extends DiaryEvent {
+  final DiaryEntry entry;
+  final String? currentPetId;
+  const UpdateDiaryEntryEvent(this.entry, {this.currentPetId});
+  @override
+  List<Object?> get props => [entry, currentPetId];
+}
+
 class DeleteDiaryEntryEvent extends DiaryEvent {
   final String entryId;
   final String? currentPetId;
@@ -64,6 +72,7 @@ class DiaryBloc extends Bloc<DiaryEvent, DiaryState> {
   DiaryBloc({required this.repositorySelector}) : super(DiaryInitial()) {
     on<LoadDiary>(_onLoadDiary);
     on<AddDiaryEntryEvent>(_onAddDiaryEntry);
+    on<UpdateDiaryEntryEvent>(_onUpdateDiaryEntry);
     on<DeleteDiaryEntryEvent>(_onDeleteDiaryEntry);
   }
 
@@ -93,6 +102,22 @@ class DiaryBloc extends Bloc<DiaryEvent, DiaryState> {
         entries = await repo.getAllDiaryEntries();
       } else {
         entries = await repo.getDiaryEntries(event.entry.petId);
+      }
+      emit(DiaryLoaded(entries));
+    } catch (e) {
+      emit(DiaryError(e.toString()));
+    }
+  }
+
+  Future<void> _onUpdateDiaryEntry(UpdateDiaryEntryEvent event, Emitter<DiaryState> emit) async {
+    try {
+      final repo = await repositorySelector.getActiveRepository();
+      await repo.updateDiaryEntry(event.entry);
+      List<DiaryEntry> entries;
+      if (event.currentPetId == null) {
+        entries = await repo.getAllDiaryEntries();
+      } else {
+        entries = await repo.getDiaryEntries(event.currentPetId!);
       }
       emit(DiaryLoaded(entries));
     } catch (e) {

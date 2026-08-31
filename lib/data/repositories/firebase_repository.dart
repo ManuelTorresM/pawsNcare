@@ -1,8 +1,6 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/pet.dart';
 import '../models/pet_invitation.dart';
@@ -16,47 +14,7 @@ class FirebaseRepository implements BaseRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
-  Future<String?> uploadImage(File file, String storagePath) async {
-    final storageInstances = [
-      FirebaseStorage.instance,
-      FirebaseStorage.instanceFor(bucket: 'gs://paws-n-care.appspot.com'),
-      FirebaseStorage.instanceFor(
-        bucket: 'gs://paws-n-care.firebasestorage.app',
-      ),
-    ];
-
-    Object? lastError;
-    StackTrace? lastStack;
-
-    for (final storage in storageInstances) {
-      try {
-        debugPrint(
-          '[FirebaseStorage] Trying upload with bucket "${storage.bucket}" for file: ${file.path}',
-        );
-        final ref = storage.ref().child(storagePath);
-        final uploadTask = await ref.putFile(file);
-        final downloadUrl = await uploadTask.ref.getDownloadURL();
-        debugPrint(
-          '[FirebaseStorage] Upload successful! Download URL: $downloadUrl',
-        );
-        return downloadUrl;
-      } catch (e, stack) {
-        lastError = e;
-        lastStack = stack;
-        debugPrint(
-          '[FirebaseStorage] Bucket "${storage.bucket}" attempt failed: $e',
-        );
-      }
-    }
-
-    debugPrint(
-      '[FirebaseStorage] ERROR: All storage bucket attempts failed!\n'
-      'Last error: $lastError\n$lastStack\n'
-      'IMPORTANT: If you receive a 404 / object-not-found error, please open Firebase Console '
-      '(https://console.firebase.google.com/project/paws-n-care/storage) and click "Get Started" to initialize Cloud Storage for your project!',
-    );
-    throw lastError ?? Exception('Firebase Storage upload failed');
-  }
+  Future<String?> uploadImage(File file, String storagePath) async => file.path;
 
   String? get _uid => _auth.currentUser?.uid;
 
@@ -74,8 +32,100 @@ class FirebaseRepository implements BaseRepository {
 
   @override
   Future<bool> login(String email, String password) async {
+    final cleanEmail = email.trim().toLowerCase();
     try {
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      final credential = await _auth.signInWithEmailAndPassword(
+        email: cleanEmail,
+        password: password,
+      );
+
+      if (credential.user != null) {
+        final userDoc = await _firestore
+            .collection('users')
+            .doc(credential.user!.uid)
+            .get();
+        if (!userDoc.exists) {
+          await _auth.signOut();
+          throw Exception(
+            'No account found for "$cleanEmail". Please sign up first before logging in.',
+          );
+        }
+      }
+
+      return true;
+    } on fb.FirebaseAuthException catch (e) {
+      if (e.code == 'wrong-password') {
+        throw Exception('Incorrect password. Please verify your credentials.');
+      }
+      throw Exception(
+        'No account found for "$cleanEmail". Please sign up first before logging in.',
+      );
+    } catch (e) {
+      if (e.toString().contains('wrong-password')) {
+        throw Exception('Incorrect password. Please verify your credentials.');
+      }
+      throw Exception(
+        'No account found for "$cleanEmail". Please sign up first before logging in.',
+      );
+    }
+  }
+
+  @override
+  Future<bool> loginWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) return false;
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      final fb.OAuthCredential credential = fb.GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+      final user = userCredential.user;
+
+      if (user != null) {
+        final userDoc = await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        if (!userDoc.exists) {
+          await _auth.signOut();
+          await GoogleSignIn().signOut();
+          throw Exception(
+            'No registered account found for this Google email. Please sign up first!',
+          );
+        }
+      }
+      return true;
+    } catch (_) {
+      throw Exception(
+        'No registered account found for this Google email. Please sign up first!',
+      );
+    }
+  }
+
+  @override
+  Future<bool> register(String email, String password, String name) async {
+    try {
+      final credential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      if (credential.user != null) {
+        await credential.user!.updateDisplayName(name);
+        try {
+          await credential.user!.sendEmailVerification();
+        } catch (_) {}
+        // Initialize user document in firestore
+        await _firestore.collection('users').doc(credential.user!.uid).set({
+          'name': name,
+          'email': email,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
       return true;
     } catch (_) {
       rethrow;
@@ -83,7 +133,7 @@ class FirebaseRepository implements BaseRepository {
   }
 
   @override
-  Future<bool> loginWithGoogle() async {
+  Future<bool> registerWithGoogle() async {
     try {
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) return false;
@@ -110,31 +160,6 @@ class FirebaseRepository implements BaseRepository {
             'createdAt': FieldValue.serverTimestamp(),
           });
         }
-      }
-      return true;
-    } catch (_) {
-      rethrow;
-    }
-  }
-
-  @override
-  Future<bool> register(String email, String password, String name) async {
-    try {
-      final credential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      if (credential.user != null) {
-        await credential.user!.updateDisplayName(name);
-        try {
-          await credential.user!.sendEmailVerification();
-        } catch (_) {}
-        // Initialize user document in firestore
-        await _firestore.collection('users').doc(credential.user!.uid).set({
-          'name': name,
-          'email': email,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
       }
       return true;
     } catch (_) {
@@ -315,10 +340,9 @@ class FirebaseRepository implements BaseRepository {
     final email = _auth.currentUser?.email ?? invitation.recipientEmail;
 
     // 1. Update invitation status to Active
-    await _firestore
-        .collection('invitations')
-        .doc(invitation.id)
-        .update({'status': 'Active'});
+    await _firestore.collection('invitations').doc(invitation.id).update({
+      'status': 'Active',
+    });
 
     // 2. Add or update member in pet's document under owner's subcollection
     if (invitation.ownerId.isNotEmpty && invitation.petId.isNotEmpty) {
@@ -333,9 +357,11 @@ class FirebaseRepository implements BaseRepository {
         final pet = Pet.fromMap(doc.data()!);
         final updatedMembers = List<SharedMember>.from(pet.members);
 
-        final existingIdx = updatedMembers.indexWhere((m) =>
-            m.email.toLowerCase() == email.toLowerCase() ||
-            (uid != null && m.id == uid));
+        final existingIdx = updatedMembers.indexWhere(
+          (m) =>
+              m.email.toLowerCase() == email.toLowerCase() ||
+              (uid != null && m.id == uid),
+        );
 
         final activeMember = SharedMember(
           id: uid ?? invitation.recipientEmail,
@@ -366,10 +392,9 @@ class FirebaseRepository implements BaseRepository {
 
   Future<void> declineInvitation(PetInvitation invitation) async {
     // Update invitation status to Declined
-    await _firestore
-        .collection('invitations')
-        .doc(invitation.id)
-        .update({'status': 'Declined'});
+    await _firestore.collection('invitations').doc(invitation.id).update({
+      'status': 'Declined',
+    });
   }
 
   // --- Diary Operations ---
@@ -408,6 +433,14 @@ class FirebaseRepository implements BaseRepository {
     final data = entry.toMap();
     data.remove('id'); // Firestore generates the ID
     await ref.add(data);
+  }
+
+  @override
+  Future<void> updateDiaryEntry(DiaryEntry entry) async {
+    final ref = _diaryRef;
+    if (ref == null) throw Exception("User not authenticated");
+    final data = entry.toMap();
+    await ref.doc(entry.id).set(data, SetOptions(merge: true));
   }
 
   @override

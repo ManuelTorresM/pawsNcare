@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../widgets/photo_source_bottom_sheet.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../../data/models/pet.dart';
 import '../../theme/app_theme.dart';
@@ -12,7 +13,7 @@ class MemoryItem {
   final String caption;
   final String petId; // lowercase name (luna, oliver, bella, all, etc.)
   final String month; // e.g. "October 2023"
-  final bool isVideo;
+  final DateTime date;
   bool isFavorite;
 
   MemoryItem({
@@ -21,7 +22,7 @@ class MemoryItem {
     required this.caption,
     required this.petId,
     required this.month,
-    this.isVideo = false,
+    required this.date,
     this.isFavorite = false,
   });
 }
@@ -37,7 +38,7 @@ class PetAlbumScreen extends StatefulWidget {
 
 class _PetAlbumScreenState extends State<PetAlbumScreen> {
   late String _selectedFilter;
-  String _selectedTab = 'all'; // 'all', 'video', 'favorite'
+  String _selectedTab = 'all'; // 'all', 'favorite'
 
   @override
   void initState() {
@@ -69,62 +70,14 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
     return '${months[date.month - 1]} ${date.year}';
   }
 
-  void _startMediaUploadFlow(List<Pet> pets) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Select Media Source',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                ListTile(
-                  leading: const Icon(
-                    Icons.photo_library,
-                    color: AppTheme.primary,
-                  ),
-                  title: const Text('Choose from Gallery'),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    _pickMedia(pets, ImageSource.gallery);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(
-                    Icons.photo_camera,
-                    color: AppTheme.primary,
-                  ),
-                  title: const Text('Open Camera'),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    _pickMedia(pets, ImageSource.camera);
-                  },
-                ),
-                const Divider(),
-                TextButton(
-                  onPressed: () => Navigator.of(sheetContext).pop(),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.secondary,
-                  ),
-                  child: const Text('Cancel'),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+  Future<void> _startMediaUploadFlow(List<Pet> pets) async {
+    final source = await PhotoSourceBottomSheet.show(
+      context,
+      title: 'Select Media Source',
     );
+    if (source != null) {
+      _pickMedia(pets, source);
+    }
   }
 
   Future<void> _pickMedia(List<Pet> pets, ImageSource source) async {
@@ -268,7 +221,7 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                               ? captionController.text.trim()
                               : 'Uploaded Memory',
                           month: formattedMonth,
-                          isVideo: false,
+                          date: timestamp,
                         ),
                       );
                     });
@@ -276,18 +229,18 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                     // Sync photo upload back into user's saved BLoC profile
                     if (pets.isNotEmpty) {
                       final matchedPet = pets.firstWhere(
-                        (p) => p.name.toLowerCase() == uploadPetTarget,
+                        (p) =>
+                            p.id == uploadPetTarget ||
+                            p.name.toLowerCase() ==
+                                uploadPetTarget.toLowerCase(),
                         orElse: () => pets.first,
                       );
-                      if (matchedPet.name.toLowerCase() == uploadPetTarget) {
-                        final updatedPhotos = List<String>.from(
-                          matchedPet.photos,
-                        )..add(filePath);
-                        final updatedPet = matchedPet.copyWith(
-                          photos: updatedPhotos,
-                        );
-                        petBloc.add(UpdatePet(updatedPet));
-                      }
+                      final updatedPhotos = List<String>.from(matchedPet.photos)
+                        ..insert(0, filePath);
+                      final updatedPet = matchedPet.copyWith(
+                        photos: updatedPhotos,
+                      );
+                      petBloc.add(UpdatePet(updatedPet));
                     }
 
                     postNavigator.pop();
@@ -324,165 +277,185 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Large Image Container
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: InteractiveViewer(
-                          child:
-                              memory.imageUrl.startsWith('http') ||
-                                  memory.imageUrl.startsWith('https')
-                              ? Image.network(
-                                  memory.imageUrl,
-                                  fit: BoxFit.contain,
-                                  loadingBuilder:
-                                      (context, child, loadingProgress) {
-                                        if (loadingProgress == null) {
-                                          return child;
-                                        }
-                                        return Container(
-                                          height: 300,
-                                          color: AppTheme.surfaceContainerLow,
-                                          child: const Center(
-                                            child: CircularProgressIndicator(
-                                              color: AppTheme.primary,
+                  SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Large Image Container
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxHeight:
+                                MediaQuery.of(context).size.height * 0.55,
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: InteractiveViewer(
+                              child:
+                                  memory.imageUrl.startsWith('http') ||
+                                      memory.imageUrl.startsWith('https')
+                                  ? Image.network(
+                                      memory.imageUrl,
+                                      fit: BoxFit.contain,
+                                      loadingBuilder:
+                                          (context, child, loadingProgress) {
+                                            if (loadingProgress == null) {
+                                              return child;
+                                            }
+                                            return Container(
+                                              height: 300,
+                                              color:
+                                                  AppTheme.surfaceContainerLow,
+                                              child: const Center(
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      color: AppTheme.primary,
+                                                    ),
+                                              ),
+                                            );
+                                          },
+                                      errorBuilder:
+                                          (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) => Container(
+                                            height: 300,
+                                            color: AppTheme.surfaceContainerLow,
+                                            child: const Center(
+                                              child: Icon(
+                                                Icons.broken_image,
+                                                size: 48,
+                                                color: AppTheme.secondary,
+                                              ),
                                             ),
                                           ),
-                                        );
-                                      },
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      Container(
-                                        height: 300,
-                                        color: AppTheme.surfaceContainerLow,
-                                        child: const Center(
-                                          child: Icon(
-                                            Icons.broken_image,
-                                            size: 48,
-                                            color: AppTheme.secondary,
+                                    )
+                                  : Image.file(
+                                      File(memory.imageUrl),
+                                      fit: BoxFit.contain,
+                                      errorBuilder:
+                                          (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) => Container(
+                                            height: 300,
+                                            color: AppTheme.surfaceContainerLow,
+                                            child: const Center(
+                                              child: Icon(
+                                                Icons.broken_image,
+                                                size: 48,
+                                                color: AppTheme.secondary,
+                                              ),
+                                            ),
                                           ),
-                                        ),
-                                      ),
-                                )
-                              : Image.file(
-                                  File(memory.imageUrl),
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      Container(
-                                        height: 300,
-                                        color: AppTheme.surfaceContainerLow,
-                                        child: const Center(
-                                          child: Icon(
-                                            Icons.broken_image,
-                                            size: 48,
-                                            color: AppTheme.secondary,
-                                          ),
-                                        ),
-                                      ),
-                                ),
+                                    ),
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
+                        const SizedBox(height: 20),
 
-                      // Caption
-                      Text(
-                        memory.caption,
-                        style: const TextStyle(
-                          fontFamily: 'Montserrat',
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        // Caption
+                        Text(
+                          memory.caption,
+                          style: const TextStyle(
+                            fontFamily: 'Montserrat',
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 20),
+                        const SizedBox(height: 20),
 
-                      // Action Buttons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Memory shared successfully!'),
+                        // Action Buttons
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Memory shared successfully!',
+                                    ),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(
+                                Icons.share,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              label: const Text(
+                                'Share',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.white30),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                              );
-                            },
-                            icon: const Icon(
-                              Icons.share,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                            label: const Text(
-                              'Share',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.white30),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              setLightboxState(() {
-                                memory.isFavorite = !memory.isFavorite;
-                              });
-                              setState(() {});
-                            },
-                            icon: Icon(
-                              memory.isFavorite
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                            label: Text(
-                              memory.isFavorite ? 'Favorited' : 'Favorite',
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: memory.isFavorite
-                                  ? AppTheme.primary
-                                  : Colors.white24,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                            const SizedBox(width: 16),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                setLightboxState(() {
+                                  memory.isFavorite = !memory.isFavorite;
+                                });
+                                setState(() {});
+                              },
+                              icon: Icon(
+                                memory.isFavorite
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              label: Text(
+                                memory.isFavorite ? 'Favorited' : 'Favorite',
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: memory.isFavorite
+                                    ? AppTheme.primary
+                                    : Colors.white24,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              _confirmDeleteMemory(context, memory);
-                            },
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Color(0xFFFFB4A3),
-                              size: 18,
-                            ),
-                            label: const Text(
-                              'Delete',
-                              style: TextStyle(color: Color(0xFFFFB4A3)),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(
-                                color: const Color(
-                                  0xFFFFB4A3,
-                                ).withValues(alpha: 0.5),
+                            const SizedBox(width: 16),
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                _confirmDeleteMemory(context, memory);
+                              },
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Color(0xFFFFB4A3),
+                                size: 18,
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                              label: const Text(
+                                'Delete',
+                                style: TextStyle(color: Color(0xFFFFB4A3)),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(
+                                  color: const Color(
+                                    0xFFFFB4A3,
+                                  ).withValues(alpha: 0.5),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
 
                   // Close button
@@ -595,8 +568,17 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
       for (int i = 0; i < pet.photos.length; i++) {
         final photoUrl = pet.photos[i];
         if (!activeMemoriesList.any((m) => m.imageUrl == photoUrl)) {
-          // Group custom photos under the month of pet's birthdate, or current month fallback
-          final String creationMonth = _formatMonthYear(pet.birthDate);
+          // Resolve actual photo file creation/modified timestamp
+          DateTime photoDate = DateTime.now();
+          if (!photoUrl.startsWith('http') && !photoUrl.startsWith('https')) {
+            try {
+              final file = File(photoUrl);
+              if (file.existsSync()) {
+                photoDate = file.lastModifiedSync();
+              }
+            } catch (_) {}
+          }
+          final String creationMonth = _formatMonthYear(photoDate);
           activeMemoriesList.add(
             MemoryItem(
               id: '${pet.id}_profile_photo_$i',
@@ -604,6 +586,7 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
               imageUrl: photoUrl,
               caption: 'Memory of ${pet.name}',
               month: creationMonth,
+              date: photoDate,
             ),
           );
         }
@@ -615,10 +598,12 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
       final matchesPet = _selectedFilter == 'all' || m.petId == _selectedFilter;
       if (!matchesPet) return false;
 
-      if (_selectedTab == 'video') return m.isVideo;
       if (_selectedTab == 'favorite') return m.isFavorite;
       return true;
     }).toList();
+
+    // Sort memories by date descending (most recent photos first)
+    filteredMemories.sort((a, b) => b.date.compareTo(a.date));
 
     // Group Memories by Month of Creation
     final Map<String, List<MemoryItem>> groupedMemories = {};
@@ -663,17 +648,6 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
           IconButton(
             icon: const Icon(Icons.search, color: AppTheme.primary),
             onPressed: () {},
-          ),
-          // Owner profile avatar circle
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundImage: const NetworkImage(
-                'https://lh3.googleusercontent.com/aida-public/AB6AXuDbMAgO8k3oNW5CEWqcyeq3x0u2uuM8RUNW8MnbvVUX61icw1UR6uDJyAnSOLaTEl9Xi1JJZkBb2DVmP94k3kNpFeWZzV7-uxHllmGnvUZIXor2nZtYD_QrpiXS5Ik6HrE7ezcPzLk-kNfA3n_CSeQE6SmmCQ_1VgqPy6_zBxXej1DqS1uV5jva2W74C-eaWikcclVFmWdwLRRrTma7DnhWNqrKgUJoqkJaecfnj1XIF6hLdWJ8gGMKXnFUpzPiO13Yd05HKDSSfUw',
-              ),
-              backgroundColor: AppTheme.surfaceContainerHigh,
-            ),
           ),
         ],
       ),
@@ -770,8 +744,6 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                       children: [
                         _buildSubTab('all', 'All Photos'),
                         const SizedBox(width: 8),
-                        _buildSubTab('video', 'Videos'),
-                        const SizedBox(width: 8),
                         _buildSubTab('favorite', 'Favorites'),
                       ],
                     ),
@@ -794,12 +766,49 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                         ),
                       ),
                     )
-                  : ListView(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      children: groupedMemories.keys.map((month) {
-                        final list = groupedMemories[month]!;
-                        return _buildMonthSection(month, list);
-                      }).toList(),
+                  : Builder(
+                      builder: (context) {
+                        DateTime parseMonthYear(String my) {
+                          try {
+                            final parts = my.split(' ');
+                            if (parts.length == 2) {
+                              const months = [
+                                'January',
+                                'February',
+                                'March',
+                                'April',
+                                'May',
+                                'June',
+                                'July',
+                                'August',
+                                'September',
+                                'October',
+                                'November',
+                                'December',
+                              ];
+                              final mIdx = months.indexOf(parts[0]) + 1;
+                              final year = int.parse(parts[1]);
+                              if (mIdx > 0) return DateTime(year, mIdx);
+                            }
+                          } catch (_) {}
+                          return DateTime(2000);
+                        }
+
+                        final sortedMonthKeys = groupedMemories.keys.toList()
+                          ..sort(
+                            (a, b) =>
+                                parseMonthYear(b).compareTo(parseMonthYear(a)),
+                          );
+
+                        return ListView(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          children: sortedMonthKeys.map((month) {
+                            final list = groupedMemories[month]!;
+                            list.sort((a, b) => b.date.compareTo(a.date));
+                            return _buildMonthSection(month, list);
+                          }).toList(),
+                        );
+                      },
                     ),
             ),
           ],
@@ -845,7 +854,12 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
               child: CircleAvatar(
                 backgroundColor: AppTheme.surfaceContainerHigh,
                 backgroundImage: resolvedAvatarUrl != null
-                    ? NetworkImage(resolvedAvatarUrl)
+                    ? (resolvedAvatarUrl.startsWith('assets/')
+                          ? AssetImage(resolvedAvatarUrl)
+                          : (resolvedAvatarUrl.startsWith('http')
+                              ? NetworkImage(resolvedAvatarUrl)
+                              : FileImage(File(resolvedAvatarUrl))))
+                        as ImageProvider
                     : null,
                 child: resolvedAvatarUrl == null
                     ? (filter == 'all'
@@ -968,15 +982,6 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                     fit: BoxFit.cover,
                   ),
                 ),
-                child: item.isVideo
-                    ? const Center(
-                        child: Icon(
-                          Icons.play_circle_fill,
-                          color: Colors.white,
-                          size: 36,
-                        ),
-                      )
-                    : null,
               ),
             );
           },

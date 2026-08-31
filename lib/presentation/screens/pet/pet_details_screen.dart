@@ -3,13 +3,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../widgets/photo_source_bottom_sheet.dart';
 import '../../../data/models/pet.dart';
+import '../../../data/models/pet_role.dart';
 import '../../../logic/pet/pet_bloc.dart';
+import '../../../logic/theme/theme_cubit.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/role_badge.dart';
 import 'medical_history_screen.dart';
 import 'share_ownership_screen.dart';
 import 'invitation_received_screen.dart';
-import '../../../data/repositories/firebase_repository.dart';
 
 class PetDetailsScreen extends StatefulWidget {
   final Pet pet;
@@ -27,6 +30,24 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
   void initState() {
     super.initState();
     _pet = widget.pet;
+  }
+
+  PetRole get _currentUserRole {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || _pet.ownerId.isEmpty || _pet.ownerId == user.uid) {
+      return PetRole.owner;
+    }
+
+    for (final m in _pet.members) {
+      if (m.status == 'Accepted' &&
+          (m.id == user.uid ||
+              (user.email != null &&
+                  m.email.isNotEmpty &&
+                  m.email.toLowerCase() == user.email!.toLowerCase()))) {
+        return m.role;
+      }
+    }
+    return PetRole.caregiver;
   }
 
   void _updatePet(Pet updated) {
@@ -161,114 +182,31 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                       // Interactive Pet Profile Photo Button
                       Center(
                         child: GestureDetector(
-                          onTap: () {
-                            showModalBottomSheet(
-                              context: dialogContext,
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(24),
-                                ),
-                              ),
-                              builder: (sheetContext) {
-                                return SafeArea(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(24.0),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        const Text(
-                                          'Change Companion Photo',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                        const SizedBox(height: 20),
-                                        ListTile(
-                                          leading: const Icon(
-                                            Icons.photo_library,
-                                            color: AppTheme.primary,
-                                          ),
-                                          title: const Text('Open Gallery'),
-                                          onTap: () async {
-                                            final messenger =
-                                                ScaffoldMessenger.of(context);
-                                            Navigator.pop(sheetContext);
-                                            try {
-                                              final picker = ImagePicker();
-                                              final file = await picker
-                                                  .pickImage(
-                                                    source: ImageSource.gallery,
-                                                  );
-                                              if (file != null) {
-                                                setDialogState(() {
-                                                  selectedAvatarUrl = file.path;
-                                                });
-                                              }
-                                            } catch (e) {
-                                              messenger.showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Error selecting image: $e',
-                                                  ),
-                                                ),
-                                              );
-                                            }
-                                          },
-                                        ),
-                                        ListTile(
-                                          leading: const Icon(
-                                            Icons.photo_camera,
-                                            color: AppTheme.primary,
-                                          ),
-                                          title: const Text('Take a Photo'),
-                                          onTap: () async {
-                                            final messenger =
-                                                ScaffoldMessenger.of(context);
-                                            Navigator.pop(sheetContext);
-                                            try {
-                                              final picker = ImagePicker();
-                                              final file = await picker
-                                                  .pickImage(
-                                                    source: ImageSource.camera,
-                                                  );
-                                              if (file != null) {
-                                                messenger.showSnackBar(
-                                                  const SnackBar(
-                                                    content: Text('Uploading avatar to Cloud Storage...'),
-                                                    duration: Duration(seconds: 2),
-                                                  ),
-                                                );
-                                                final storagePath =
-                                                    'pets/${widget.pet.id}/avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
-                                                final url = await FirebaseRepository().uploadImage(
-                                                  File(file.path),
-                                                  storagePath,
-                                                );
-                                                setDialogState(() {
-                                                  selectedAvatarUrl = url ?? file.path;
-                                                });
-                                              }
-                                            } catch (e) {
-                                              messenger.showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Error taking photo: $e',
-                                                  ),
-                                                ),
-                                              );
-                                            }
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
+                          onTap: () async {
+                            final source = await PhotoSourceBottomSheet.show(
+                              dialogContext,
+                              title: 'Change Pet Photo',
                             );
+                            if (source == null) return;
+                            if (!mounted) return;
+                            final messenger = ScaffoldMessenger.of(context);
+                            try {
+                              final picker = ImagePicker();
+                              final file = await picker.pickImage(
+                                source: source,
+                              );
+                              if (file != null) {
+                                setDialogState(() {
+                                  selectedAvatarUrl = file.path;
+                                });
+                              }
+                            } catch (e) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text('Error selecting image: $e'),
+                                ),
+                              );
+                            }
                           },
                           child: Stack(
                             alignment: Alignment.bottomRight,
@@ -1403,6 +1341,15 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final petState = context.watch<PetBloc>().state;
+    if (petState is PetLoaded) {
+      final updatedPet = petState.pets.firstWhere(
+        (p) => p.id == widget.pet.id || p.id == _pet.id,
+        orElse: () => _pet,
+      );
+      _pet = updatedPet;
+    }
+
     // Dynamic birthdate string
     final months = [
       'Jan',
@@ -1430,489 +1377,575 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     }
     if (ageYears < 0) ageYears = 0;
 
+    final isDark = context.watch<ThemeCubit>().state;
+    final bgColor = isDark ? AppTheme.darkBackground : AppTheme.background;
+    final cardBg = isDark ? AppTheme.darkSurface : Colors.white;
+    final textPrimary = isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
+    final textSecondary = isDark
+        ? AppTheme.darkOnSurfaceVariant
+        : AppTheme.onSurfaceVariant;
+    final headerColor = isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
+    final borderColor = isDark
+        ? AppTheme.darkBorder
+        : AppTheme.surfaceContainerLow;
+
+    final ageCardBg = isDark
+        ? const Color(0xFF5C2B1D)
+        : AppTheme.tertiaryFixed.withValues(alpha: 0.4);
+    final ageCardText = isDark ? const Color(0xFFFFB4A3) : AppTheme.tertiary;
+    final ageCardBorder = isDark
+        ? const Color(0xFF7E2B18)
+        : AppTheme.tertiaryFixed.withValues(alpha: 0.3);
+
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.background,
+        backgroundColor: bgColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
+          icon: Icon(Icons.arrow_back, color: headerColor),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
-          "${_pet.name}'s Details",
-          style: const TextStyle(
-            fontFamily: 'Montserrat',
-            fontWeight: FontWeight.bold,
-            color: AppTheme.primary,
-            fontSize: 20,
-          ),
+        title: Row(
+          children: [
+            Text(
+              "${_pet.name}'s Details",
+              style: TextStyle(
+                fontFamily: 'Montserrat',
+                fontWeight: FontWeight.bold,
+                color: headerColor,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(width: 8),
+            RoleBadge(role: _currentUserRole, isCompact: true),
+          ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.share_outlined, color: AppTheme.primary),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => ShareOwnershipScreen(pet: _pet),
-                ),
-              );
-            },
-          ),
+          if (_currentUserRole.canManageMembers)
+            IconButton(
+              icon: Icon(Icons.share_outlined, color: headerColor),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => ShareOwnershipScreen(pet: _pet),
+                  ),
+                );
+              },
+            ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildPendingInviteBanner(),
-            // Hero Image Area (Asymmetric Layout)
-            SizedBox(
-              height: 180,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Asymmetrical Rotated Image Container
-                  Expanded(
-                    flex: 5,
-                    child: Transform.rotate(
-                      angle: -0.02,
-                      child: Container(
-                        height: 180,
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceContainer,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.08),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          context.read<PetBloc>().add(LoadPets());
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildPendingInviteBanner(),
+              // Hero Image Area (Asymmetric Layout)
+              SizedBox(
+                height: 180,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Asymmetrical Rotated Image Container
+                    Expanded(
+                      flex: 5,
+                      child: Transform.rotate(
+                        angle: -0.02,
+                        child: Container(
+                          height: 180,
+                          decoration: BoxDecoration(
+                            color: AppTheme.surfaceContainer,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: isDark ? 0.25 : 0.08,
+                                ),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                            border: Border.all(
+                              color: isDark
+                                  ? AppTheme.darkBorder
+                                  : Colors.white,
+                              width: 4,
                             ),
-                          ],
-                          border: Border.all(color: Colors.white, width: 4),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: _buildPetImageWidget(
-                            _pet.avatarUrl,
-                            iconSize: 48,
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: _buildPetImageWidget(
+                              _pet.avatarUrl,
+                              iconSize: 48,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Side info card (Age)
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      children: [
-                        // Age Card
-                        Expanded(
-                          child: Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: AppTheme.tertiaryFixed.withValues(
-                                alpha: 0.4,
+                    const SizedBox(width: 12),
+                    // Side info card (Age)
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        children: [
+                          // Age Card
+                          Expanded(
+                            child: Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: ageCardBg,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(color: ageCardBorder),
                               ),
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: AppTheme.tertiaryFixed.withValues(
-                                  alpha: 0.3,
-                                ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Age',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: ageCardText,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '$ageYears',
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontFamily: 'Montserrat',
+                                      fontWeight: FontWeight.bold,
+                                      color: ageCardText,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    ageYears == 1 ? 'Year' : 'Years',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: ageCardText,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text(
-                                  'Age',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: AppTheme.tertiary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '$ageYears',
-                                  style: const TextStyle(
-                                    fontSize: 28,
-                                    fontFamily: 'Montserrat',
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.tertiary,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  ageYears == 1 ? 'Year' : 'Years',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: AppTheme.tertiary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 28),
+              const SizedBox(height: 28),
 
-            // Section 1: Basic Info
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Basic Information',
-                  style: TextStyle(
-                    fontFamily: 'Montserrat',
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: AppTheme.primary,
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: _showEditPetProfileDialog,
-                  icon: const Icon(
-                    Icons.edit_outlined,
-                    size: 18,
-                    color: AppTheme.primary,
-                  ),
-                  label: const Text(
-                    'Edit',
-                    style: TextStyle(
-                      color: AppTheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // Bento Grid of Basic info
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.5,
-              children: [
-                _buildBentoItem(
-                  title: 'Birthday',
-                  value: birthStr,
-                  icon: Icons.cake,
-                ),
-                _buildBentoItem(
-                  title: 'Breed',
-                  value: _pet.breed.isNotEmpty ? _pet.breed : 'Unknown',
-                  icon: Icons.pets,
-                ),
-                _buildBentoItem(
-                  title: 'Gender',
-                  value: _pet.gender,
-                  icon: _pet.gender.toLowerCase() == 'female'
-                      ? Icons.female
-                      : Icons.male,
-                ),
-                _buildBentoItem(
-                  title: 'Neutered',
-                  value: _pet.neutered,
-                  icon: Icons.verified,
-                ),
-              ],
-            ),
-            const SizedBox(height: 28),
-
-            // Section 2: Health Profile
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Health Profile',
-                  style: TextStyle(
-                    fontFamily: 'Montserrat',
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: AppTheme.primary,
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: _showEditHealthProfileDialog,
-                  icon: const Icon(
-                    //Icons.medical_services_outlined,
-                    Icons.edit_outlined,
-                    size: 18,
-                    color: AppTheme.primary,
-                  ),
-                  label: const Text(
-                    'Edit',
-                    style: TextStyle(
-                      color: AppTheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.surfaceContainerLow),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.01),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // Section 1: Basic Info
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Medical Conditions',
+                  Text(
+                    'Basic Information',
                     style: TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
+                      fontFamily: 'Montserrat',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: headerColor,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  _pet.medicalConditions.isEmpty ||
-                          (_pet.medicalConditions.length == 1 &&
-                              _pet.medicalConditions.first.toLowerCase() ==
-                                  'none')
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+                  if (_currentUserRole.canEditProfile)
+                    TextButton.icon(
+                      onPressed: _showEditPetProfileDialog,
+                      icon: Icon(
+                        Icons.edit_outlined,
+                        size: 18,
+                        color: headerColor,
+                      ),
+                      label: Text(
+                        'Edit',
+                        style: TextStyle(
+                          color: headerColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Bento Grid of Basic info
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.5,
+                children: [
+                  _buildBentoItem(
+                    title: 'Birthday',
+                    value: birthStr,
+                    icon: Icons.cake,
+                    cardBg: cardBg,
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
+                    headerColor: headerColor,
+                    borderColor: borderColor,
+                  ),
+                  _buildBentoItem(
+                    title: 'Breed',
+                    value: _pet.breed.isNotEmpty ? _pet.breed : 'Unknown',
+                    icon: Icons.pets,
+                    cardBg: cardBg,
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
+                    headerColor: headerColor,
+                    borderColor: borderColor,
+                  ),
+                  _buildBentoItem(
+                    title: 'Gender',
+                    value: _pet.gender,
+                    icon: _pet.gender.toLowerCase() == 'female'
+                        ? Icons.female
+                        : Icons.male,
+                    cardBg: cardBg,
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
+                    headerColor: headerColor,
+                    borderColor: borderColor,
+                  ),
+                  _buildBentoItem(
+                    title: 'Neutered',
+                    value: _pet.neutered,
+                    icon: Icons.verified,
+                    cardBg: cardBg,
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
+                    headerColor: headerColor,
+                    borderColor: borderColor,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 28),
+
+              // Section 2: Health Profile
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Health Profile',
+                    style: TextStyle(
+                      fontFamily: 'Montserrat',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: headerColor,
+                    ),
+                  ),
+                  if (_currentUserRole.canLogMedical)
+                    TextButton.icon(
+                      onPressed: _showEditHealthProfileDialog,
+                      icon: Icon(
+                        Icons.edit_outlined,
+                        size: 18,
+                        color: headerColor,
+                      ),
+                      label: Text(
+                        'Edit',
+                        style: TextStyle(
+                          color: headerColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: borderColor),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.2 : 0.01,
+                      ),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Medical Conditions',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    _pet.medicalConditions.isEmpty ||
+                            (_pet.medicalConditions.length == 1 &&
+                                _pet.medicalConditions.first.toLowerCase() ==
+                                    'none')
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? AppTheme.darkBorder
+                                  : AppTheme.surfaceContainer,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              'None',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: textPrimary,
+                              ),
+                            ),
+                          )
+                        : Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: _pet.medicalConditions
+                                .where((c) => c.toLowerCase() != 'none')
+                                .map(
+                                  (c) => Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primary.withValues(
+                                        alpha: isDark ? 0.25 : 0.1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      c[0].toUpperCase() + c.substring(1),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: headerColor,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
                           ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.surfaceContainer,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Text(
+                    const SizedBox(height: 16),
+                    Text(
+                      'Allergies',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    _pet.allergies.isEmpty
+                        ? Text(
                             'None',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
+                              color: textPrimary,
                             ),
+                          )
+                        : Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _pet.allergies
+                                .map((a) => _buildAllergyChip(a, isDark))
+                                .toList(),
                           ),
-                        )
-                      : Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: _pet.medicalConditions
-                              .where((c) => c.toLowerCase() != 'none')
-                              .map(
-                                (c) => Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.primary.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    c[0].toUpperCase() + c.substring(1),
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.primary,
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Allergies',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  _pet.allergies.isEmpty
-                      ? const Text(
-                          'None',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                    const SizedBox(height: 16),
+                    // Vaccination button
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                MedicalHistoryScreen(pet: _pet),
                           ),
-                        )
-                      : Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _pet.allergies
-                              .map((a) => _buildAllergyChip(a))
-                              .toList(),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDark
+                            ? AppTheme.primaryContainer
+                            : AppTheme.primaryFixed,
+                        foregroundColor: isDark
+                            ? AppTheme.onPrimaryContainer
+                            : AppTheme.onPrimaryFixedVariant,
+                        elevation: 0,
+                        minimumSize: const Size.fromHeight(50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                  const SizedBox(height: 16),
-                  // Vaccination button
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => MedicalHistoryScreen(pet: _pet),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryFixed,
-                      foregroundColor: AppTheme.onPrimaryFixedVariant,
-                      elevation: 0,
-                      minimumSize: const Size.fromHeight(50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.vaccines),
+                              SizedBox(width: 8),
+                              Text(
+                                'Vaccination History',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          Icon(Icons.chevron_right),
+                        ],
                       ),
                     ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.vaccines),
-                            SizedBox(width: 8),
-                            Text(
-                              'Vaccination History',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              // Section 3: Lifestyle & Routine
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Lifestyle & Routine',
+                    style: TextStyle(
+                      fontFamily: 'Montserrat',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: headerColor,
+                    ),
+                  ),
+                  if (_currentUserRole.canEditProfile)
+                    TextButton.icon(
+                      onPressed: _showEditLifestyleDialog,
+                      icon: Icon(
+                        Icons.edit_outlined,
+                        size: 18,
+                        color: headerColor,
+                      ),
+                      label: Text(
+                        'Edit',
+                        style: TextStyle(
+                          color: headerColor,
+                          fontWeight: FontWeight.bold,
                         ),
-                        Icon(Icons.chevron_right),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: borderColor),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.2 : 0.01,
+                      ),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    _buildRoutineItem(
+                      title: 'Activity Level',
+                      value: _pet.activityLevel.isNotEmpty
+                          ? _pet.activityLevel
+                          : 'Moderate',
+                      icon: Icons.directions_run,
+                      textSecondary: textSecondary,
+                      headerColor: headerColor,
+                    ),
+                    Divider(
+                      height: 24,
+                      color: isDark
+                          ? AppTheme.darkBorder
+                          : AppTheme.surfaceContainer,
+                    ),
+                    _buildRoutineItem(
+                      title: 'Diet',
+                      value: _pet.dietEnabled
+                          ? "${_pet.foodType.isNotEmpty ? _pet.foodType : 'Mixed'}${_pet.feedingNotes.isNotEmpty ? ' - ${_pet.feedingNotes}' : ''}"
+                          : 'Not Specified',
+                      icon: Icons.restaurant,
+                      textSecondary: textSecondary,
+                      headerColor: headerColor,
+                    ),
+                    Divider(
+                      height: 24,
+                      color: isDark
+                          ? AppTheme.darkBorder
+                          : AppTheme.surfaceContainer,
+                    ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Behavior Tags',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              _pet.behaviorTags.isEmpty
+                                  ? Text(
+                                      'None',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: textPrimary,
+                                      ),
+                                    )
+                                  : Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: _pet.behaviorTags
+                                          .map(
+                                            (t) =>
+                                                _buildBehaviorChip(t, isDark),
+                                          )
+                                          .toList(),
+                                    ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 28),
-
-            // Section 3: Lifestyle & Routine
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Lifestyle & Routine',
-                  style: TextStyle(
-                    fontFamily: 'Montserrat',
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: AppTheme.primary,
-                  ),
+                  ],
                 ),
-                TextButton.icon(
-                  onPressed: _showEditLifestyleDialog,
-                  icon: const Icon(
-                    //Icons.favorite_border,
-                    Icons.edit_outlined,
-                    size: 18,
-                    color: AppTheme.primary,
-                  ),
-                  label: const Text(
-                    'Edit',
-                    style: TextStyle(
-                      color: AppTheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.surfaceContainerLow),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.01),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
               ),
-              child: Column(
-                children: [
-                  _buildRoutineItem(
-                    title: 'Activity Level',
-                    value: _pet.activityLevel.isNotEmpty
-                        ? _pet.activityLevel
-                        : 'Moderate',
-                    icon: Icons.directions_run,
-                  ),
-                  const Divider(height: 24),
-                  _buildRoutineItem(
-                    title: 'Diet',
-                    value: _pet.dietEnabled
-                        ? "${_pet.foodType.isNotEmpty ? _pet.foodType : 'Mixed'}${_pet.feedingNotes.isNotEmpty ? ' - ${_pet.feedingNotes}' : ''}"
-                        : 'Not Specified',
-                    icon: Icons.restaurant,
-                  ),
-                  const Divider(height: 24),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Behavior Tags',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            _pet.behaviorTags.isEmpty
-                                ? const Text(
-                                    'None',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  )
-                                : Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: _pet.behaviorTags
-                                        .map((t) => _buildBehaviorChip(t))
-                                        .toList(),
-                                  ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1922,13 +1955,18 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     required String title,
     required String value,
     required IconData icon,
+    required Color cardBg,
+    required Color textPrimary,
+    required Color textSecondary,
+    required Color headerColor,
+    required Color borderColor,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.surfaceContainerLow),
+        border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.01),
@@ -1943,13 +1981,13 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
         children: [
           Row(
             children: [
-              Icon(icon, size: 16, color: AppTheme.primary),
+              Icon(icon, size: 16, color: headerColor),
               const SizedBox(width: 6),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppTheme.onSurfaceVariant,
+                  color: textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1958,10 +1996,10 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
           const SizedBox(height: 6),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: AppTheme.onSurface,
+              color: textPrimary,
             ),
           ),
         ],
@@ -1969,28 +2007,28 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     );
   }
 
-  Widget _buildAllergyChip(String text) {
+  Widget _buildAllergyChip(String text, bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: AppTheme.errorContainer,
+        color: isDark ? const Color(0xFF5C2B1D) : AppTheme.errorContainer,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.warning_amber_rounded,
             size: 14,
-            color: AppTheme.error,
+            color: isDark ? const Color(0xFFFFB4A3) : AppTheme.error,
           ),
           const SizedBox(width: 4),
           Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: AppTheme.error,
+              color: isDark ? const Color(0xFFFFB4A3) : AppTheme.error,
             ),
           ),
         ],
@@ -1998,19 +2036,23 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     );
   }
 
-  Widget _buildBehaviorChip(String text) {
+  Widget _buildBehaviorChip(String text, bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: AppTheme.primaryFixedDim.withValues(alpha: 0.5),
+        color: isDark
+            ? AppTheme.darkBorder
+            : AppTheme.primaryFixedDim.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.bold,
-          color: AppTheme.onPrimaryFixedVariant,
+          color: isDark
+              ? AppTheme.darkOnSurface
+              : AppTheme.onPrimaryFixedVariant,
         ),
       ),
     );
@@ -2020,6 +2062,8 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     required String title,
     required String value,
     required IconData icon,
+    required Color textSecondary,
+    required Color headerColor,
   }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2031,26 +2075,26 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppTheme.onSurfaceVariant,
+                  color: textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.primary,
+                  color: headerColor,
                 ),
               ),
             ],
           ),
         ),
         const SizedBox(width: 12),
-        Icon(icon, color: AppTheme.primary),
+        Icon(icon, color: headerColor),
       ],
     );
   }

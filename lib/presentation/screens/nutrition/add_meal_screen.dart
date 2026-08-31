@@ -99,6 +99,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
       targetPets: List.from(_selectedPets),
       type: 'feeding',
       notes: _notesController.text.trim(),
+      time: _selectedTime,
     );
 
     Navigator.of(context).pop(newItem);
@@ -421,6 +422,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
     Color bulletColor,
     List<String> allRegisteredPets,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = _selectedPets.contains(name);
     return ChoiceChip(
       avatar: bulletColor != Colors.transparent
@@ -430,16 +432,21 @@ class _AddMealScreenState extends State<AddMealScreen> {
       selected: isSelected,
       onSelected: (val) => _handlePetSelection(name, allRegisteredPets),
       selectedColor: AppTheme.primary,
-      backgroundColor: AppTheme.surfaceContainerLowest,
+      backgroundColor:
+          isDark ? const Color(0xFF383634) : AppTheme.surfaceContainerLowest,
       labelStyle: TextStyle(
         fontFamily: 'Inter',
-        color: isSelected ? Colors.white : AppTheme.secondary,
+        color: isSelected
+            ? Colors.white
+            : (isDark ? AppTheme.darkOnSurface : AppTheme.secondary),
         fontWeight: FontWeight.bold,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: isSelected ? AppTheme.primary : AppTheme.surfaceContainer,
+          color: isSelected
+              ? AppTheme.primary
+              : (isDark ? const Color(0xFF4A4846) : AppTheme.surfaceContainer),
         ),
       ),
     );

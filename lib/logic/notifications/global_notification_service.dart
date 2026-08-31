@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/models/app_notification.dart';
 import '../../data/models/pet.dart';
 import '../../presentation/theme/app_theme.dart';
@@ -21,6 +22,10 @@ class GlobalNotificationService extends ChangeNotifier {
       FlutterLocalNotificationsPlugin();
   bool _isInitialized = false;
 
+  bool medsNotificationsEnabled = true;
+  bool vaccinesNotificationsEnabled = true;
+  bool feedingNotificationsEnabled = true;
+
   bool quietHoursEnabled = true;
   TimeOfDay quietStart = const TimeOfDay(hour: 22, minute: 0); // 10:00 PM
   TimeOfDay quietEnd = const TimeOfDay(hour: 7, minute: 0); // 07:00 AM
@@ -36,8 +41,9 @@ class GlobalNotificationService extends ChangeNotifier {
     try {
       tz.initializeTimeZones();
 
-      const androidSettings =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const androidSettings = AndroidInitializationSettings(
+        '@mipmap/ic_launcher',
+      );
       const iosSettings = DarwinInitializationSettings(
         requestAlertPermission: true,
         requestBadgePermission: true,
@@ -51,8 +57,8 @@ class GlobalNotificationService extends ChangeNotifier {
 
       await _localNotifications.initialize(initSettings);
 
-      final androidPlugin =
-          _localNotifications.resolvePlatformSpecificImplementation<
+      final androidPlugin = _localNotifications
+          .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin
           >();
 
@@ -61,21 +67,109 @@ class GlobalNotificationService extends ChangeNotifier {
         await androidPlugin.requestExactAlarmsPermission();
       }
 
+      await _loadPreferences();
       _isInitialized = true;
     } catch (e) {
-      debugPrint('[GlobalNotificationService] Error initializing notifications: $e');
+      debugPrint(
+        '[GlobalNotificationService] Error initializing notifications: $e',
+      );
     }
   }
 
-  void setQuietHours({
+  Future<void> _loadPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      medsNotificationsEnabled = prefs.getBool('notif_meds_enabled') ?? true;
+      vaccinesNotificationsEnabled =
+          prefs.getBool('notif_vaccines_enabled') ?? true;
+      feedingNotificationsEnabled =
+          prefs.getBool('notif_feeding_enabled') ?? true;
+      quietHoursEnabled = prefs.getBool('notif_quiet_hours_enabled') ?? true;
+
+      final quietStartHour = prefs.getInt('notif_quiet_start_hour') ?? 22;
+      final quietStartMin = prefs.getInt('notif_quiet_start_min') ?? 0;
+      final quietEndHour = prefs.getInt('notif_quiet_end_hour') ?? 7;
+      final quietEndMin = prefs.getInt('notif_quiet_end_min') ?? 0;
+
+      quietStart = TimeOfDay(hour: quietStartHour, minute: quietStartMin);
+      quietEnd = TimeOfDay(hour: quietEndHour, minute: quietEndMin);
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[GlobalNotificationService] Error loading preferences: $e');
+    }
+  }
+
+  bool isCategoryEnabled(NotificationCategory category) {
+    switch (category) {
+      case NotificationCategory.medication:
+        return medsNotificationsEnabled;
+      case NotificationCategory.vaccine:
+        return vaccinesNotificationsEnabled;
+      case NotificationCategory.feeding:
+        return feedingNotificationsEnabled;
+      default:
+        return true;
+    }
+  }
+
+  Future<void> setCategoryEnabled(
+    NotificationCategory category,
+    bool enabled,
+  ) async {
+    switch (category) {
+      case NotificationCategory.medication:
+        medsNotificationsEnabled = enabled;
+        break;
+      case NotificationCategory.vaccine:
+        vaccinesNotificationsEnabled = enabled;
+        break;
+      case NotificationCategory.feeding:
+        feedingNotificationsEnabled = enabled;
+        break;
+      default:
+        break;
+    }
+    notifyListeners();
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (category == NotificationCategory.medication) {
+        await prefs.setBool('notif_meds_enabled', enabled);
+      } else if (category == NotificationCategory.vaccine) {
+        await prefs.setBool('notif_vaccines_enabled', enabled);
+      } else if (category == NotificationCategory.feeding) {
+        await prefs.setBool('notif_feeding_enabled', enabled);
+      }
+    } catch (e) {
+      debugPrint(
+        '[GlobalNotificationService] Error saving category preference: $e',
+      );
+    }
+  }
+
+  Future<void> setQuietHours({
     required bool enabled,
     required TimeOfDay start,
     required TimeOfDay end,
-  }) {
+  }) async {
     quietHoursEnabled = enabled;
     quietStart = start;
     quietEnd = end;
     notifyListeners();
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('notif_quiet_hours_enabled', enabled);
+      await prefs.setInt('notif_quiet_start_hour', start.hour);
+      await prefs.setInt('notif_quiet_start_min', start.minute);
+      await prefs.setInt('notif_quiet_end_hour', end.hour);
+      await prefs.setInt('notif_quiet_end_min', end.minute);
+    } catch (e) {
+      debugPrint(
+        '[GlobalNotificationService] Error saving quiet hours preference: $e',
+      );
+    }
   }
 
   bool isQuietHoursActive([DateTime? target]) {
@@ -104,6 +198,12 @@ class GlobalNotificationService extends ChangeNotifier {
     String petName = '',
     String petAvatarUrl = '',
   }) {
+    if (!isCategoryEnabled(category)) {
+      debugPrint(
+        '[GlobalNotificationService] Suppressed notification for $category (disabled in settings)',
+      );
+      return;
+    }
     final notification = AppNotification(
       id: 'notif_${DateTime.now().millisecondsSinceEpoch}',
       title: title,
@@ -128,6 +228,41 @@ class GlobalNotificationService extends ChangeNotifier {
     notifyListeners();
   }
 
+  void scheduleCustomEventNotification({
+    required String title,
+    required String body,
+    required DateTime eventDateTime,
+    required Duration reminderOffset,
+    String petName = '',
+    String petAvatarUrl = '',
+    NotificationCategory category = NotificationCategory.medication,
+  }) {
+    final notifyAt = eventDateTime.subtract(reminderOffset);
+    final delay = notifyAt.difference(DateTime.now());
+
+    // Immediate notification confirming event reminder has been scheduled
+    triggerNotification(
+      title: 'Event Scheduled: $title',
+      body:
+          'Reminder configured for ${petName.isNotEmpty ? petName : 'all pets'}.',
+      category: category,
+      petName: petName,
+      petAvatarUrl: petAvatarUrl,
+    );
+
+    if (!delay.isNegative && delay.inSeconds > 5) {
+      Timer(delay, () {
+        triggerNotification(
+          title: 'Upcoming Event: $title',
+          body: body,
+          category: category,
+          petName: petName,
+          petAvatarUrl: petAvatarUrl,
+        );
+      });
+    }
+  }
+
   Future<void> _showNativeNotification(AppNotification notif) async {
     try {
       const androidDetails = AndroidNotificationDetails(
@@ -145,12 +280,7 @@ class GlobalNotificationService extends ChangeNotifier {
       );
 
       final notifId = DateTime.now().millisecondsSinceEpoch.remainder(100000);
-      await _localNotifications.show(
-        notifId,
-        notif.title,
-        notif.body,
-        details,
-      );
+      await _localNotifications.show(notifId, notif.title, notif.body, details);
     } catch (e) {
       debugPrint('[GlobalNotificationService] Native notification error: $e');
     }
@@ -181,24 +311,63 @@ class GlobalNotificationService extends ChangeNotifier {
 
     for (final pet in pets) {
       for (final med in pet.medications) {
-        // Check if next dose is due within current window
+        // Check if next dose/event is due within current window
         final diffInMinutes = med.nextDoseDate.difference(now).inMinutes;
         if (diffInMinutes >= -15 && diffInMinutes <= 15) {
-          final isVaccine = med.type == 'vaccine';
+          final type = med.type.toLowerCase();
+          final String title;
+          final String body;
+          final NotificationCategory category;
+
+          if (type == 'vaccine') {
+            title = 'Booster Due: ${med.name}';
+            body = 'Scheduled vaccine booster for ${pet.name}.';
+            category = NotificationCategory.vaccine;
+          } else if (type == 'medication') {
+            title = 'Medication Due: ${med.name}';
+            body =
+                'Dose: ${med.dose.isNotEmpty ? med.dose : '1 Tablet'} for ${pet.name}.';
+            category = NotificationCategory.medication;
+          } else if (type == 'feeding') {
+            title = 'Feeding Due: ${med.name}';
+            body = med.dose.isNotEmpty
+                ? med.dose
+                : 'Meal time for ${pet.name}.';
+            category = NotificationCategory.feeding;
+          } else if (type == 'hydration') {
+            title = 'Hydration Reminder: ${med.name}';
+            body = med.dose.isNotEmpty
+                ? med.dose
+                : 'Fresh water reminder for ${pet.name}.';
+            category = NotificationCategory.hydration;
+          } else if (type == 'appointment' || type == 'vet') {
+            title = 'Vet Appointment: ${med.name}';
+            body = med.dose.isNotEmpty
+                ? med.dose
+                : 'Scheduled vet visit for ${pet.name}.';
+            category = NotificationCategory.system;
+          } else if (type == 'grooming') {
+            title = 'Grooming Care: ${med.name}';
+            body = med.dose.isNotEmpty
+                ? med.dose
+                : 'Grooming session for ${pet.name}.';
+            category = NotificationCategory.system;
+          } else {
+            title = 'Calendar Reminder: ${med.name}';
+            body = med.dose.isNotEmpty
+                ? med.dose
+                : 'Upcoming event for ${pet.name}.';
+            category = NotificationCategory.system;
+          }
+
           final notifId = 'event_${pet.id}_${med.id}_${med.nextDoseDate.day}';
 
           final alreadyFired = _notifications.any((n) => n.id == notifId);
           if (!alreadyFired) {
             triggerNotification(
-              title: isVaccine
-                  ? 'Booster Due: ${med.name}'
-                  : 'Medication Due: ${med.name}',
-              body: isVaccine
-                  ? 'Scheduled booster for ${pet.name}.'
-                  : 'Dose: ${med.dose.isNotEmpty ? med.dose : '1 Tablet'} for ${pet.name}.',
-              category: isVaccine
-                  ? NotificationCategory.vaccine
-                  : NotificationCategory.medication,
+              title: title,
+              body: body,
+              category: category,
               petName: pet.name,
               petAvatarUrl: pet.avatarUrl,
             );

@@ -8,17 +8,43 @@ class DemoRepository implements BaseRepository {
   final List<Pet> _demoPets = List.from(DemoDataSupplier.demoPets);
   final List<DiaryEntry> _demoEntries = [];
 
+  final Set<String> _registeredEmails = {'demo@pawsncare.com'};
+
   @override
   Future<String?> uploadImage(File file, String storagePath) async => file.path;
 
   @override
-  Future<bool> login(String email, String password) async => true;
+  Future<bool> login(String email, String password) async {
+    final clean = email.trim().toLowerCase();
+    if (!_registeredEmails.contains(clean)) {
+      throw Exception(
+        'No account found for "$email". Please sign up first before logging in.',
+      );
+    }
+    return true;
+  }
 
   @override
-  Future<bool> loginWithGoogle() async => true;
+  Future<bool> loginWithGoogle() async {
+    if (!_registeredEmails.contains('google_demo@pawsncare.com')) {
+      throw Exception(
+        'No registered account found for this Google email. Please sign up first!',
+      );
+    }
+    return true;
+  }
 
   @override
-  Future<bool> register(String email, String password, String name) async => true;
+  Future<bool> register(String email, String password, String name) async {
+    _registeredEmails.add(email.trim().toLowerCase());
+    return true;
+  }
+
+  @override
+  Future<bool> registerWithGoogle() async {
+    _registeredEmails.add('demo@pawsncare.com');
+    return true;
+  }
 
   @override
   Future<void> logout() async {}
@@ -75,6 +101,16 @@ class DemoRepository implements BaseRepository {
   @override
   Future<void> addDiaryEntry(DiaryEntry entry) async {
     _demoEntries.add(entry);
+  }
+
+  @override
+  Future<void> updateDiaryEntry(DiaryEntry entry) async {
+    final idx = _demoEntries.indexWhere((e) => e.id == entry.id);
+    if (idx != -1) {
+      _demoEntries[idx] = entry;
+    } else {
+      _demoEntries.add(entry);
+    }
   }
 
   @override

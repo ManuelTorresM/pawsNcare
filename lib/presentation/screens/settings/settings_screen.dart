@@ -1,14 +1,18 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../logic/auth/auth_bloc.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../../logic/diary/diary_bloc.dart';
 import '../../../logic/theme/theme_cubit.dart';
 import '../../../data/repositories/repository_selector.dart';
+import '../../../data/models/app_notification.dart';
 import '../../../logic/notifications/global_notification_service.dart';
 import '../../theme/app_theme.dart';
 
 import '../profile/profile_details_screen.dart';
+import '../test/test_playground_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -18,9 +22,10 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  // TODO: Remove this when Demo mode is no longer needed
+  // Hardcoded variable: set to true to manually activate Demo Mode in code
   static const bool isDemoModeEnabled = false;
   String _activeDb = 'firebase';
+  String? _userAvatarPath;
   bool _medsNotifications = true;
   bool _vaccinesNotifications = true;
   bool _feedingNotifications = false;
@@ -39,12 +44,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _loadDbSource();
+    _loadNotificationSettings();
+  }
+
+  void _loadNotificationSettings() {
+    final service = GlobalNotificationService();
+    setState(() {
+      _medsNotifications = service.medsNotificationsEnabled;
+      _vaccinesNotifications = service.vaccinesNotificationsEnabled;
+      _feedingNotifications = service.feedingNotificationsEnabled;
+      _quietHoursEnabled = service.quietHoursEnabled;
+      _quietStart = service.quietStart;
+      _quietEnd = service.quietEnd;
+    });
   }
 
   Future<void> _loadDbSource() async {
     final db = await RepositorySelector.getDbSource();
+    final prefs = await SharedPreferences.getInstance();
+    final avatar = prefs.getString('pawsncare_user_avatar_path');
     setState(() {
       _activeDb = db;
+      _userAvatarPath = avatar;
     });
   }
 
@@ -98,13 +119,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 email = state.email;
               }
               return InkWell(
-                onTap: () {
-                  Navigator.of(context).push(
+                onTap: () async {
+                  await Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) =>
                           ProfileDetailsScreen(name: name, email: email),
                     ),
                   );
+                  _loadDbSource();
                 },
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
@@ -120,9 +142,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           CircleAvatar(
                             radius: 32,
                             backgroundColor: AppTheme.primaryContainer,
-                            backgroundImage: const NetworkImage(
-                              'https://lh3.googleusercontent.com/aida-public/AB6AXuBVmzVQ6tXgL8wUyrhW01rg5PG8buMnmSCeWMY5Q1uxZFHHOCyaK3SQnW91Iju-_SLGZ-9CuaIGrS3Hk-0dnEQhbAOyfT_wpUfVn74Vd1plaCxaNvuu9qBmlt-96BkGXCYnXvaT9O2WnRIPn90-pPE4vXP9wnRt5UXGlwTyTOLwu7B9LrGZG0-mAunb-B-ZZJshFbabnpKyiLiXFpU7uyIJoqkJJSOLAL60eu-0kC_dKa2bZG8rLZkb_qUQkB8WkVKomI0nv9xMm4o',
-                            ),
+                            backgroundImage:
+                                (_userAvatarPath != null &&
+                                        _userAvatarPath!.isNotEmpty)
+                                ? (_userAvatarPath!.startsWith('assets/')
+                                      ? AssetImage(_userAvatarPath!)
+                                      : (_userAvatarPath!.startsWith('http')
+                                          ? NetworkImage(_userAvatarPath!)
+                                          : FileImage(File(_userAvatarPath!))))
+                                    as ImageProvider
+                                : const AssetImage('assets/avatars/dog.png'),
                           ),
                           Positioned(
                             bottom: 0,
@@ -174,7 +203,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Database Storage Section (Shown ONLY when DEMO mode is manually enabled)
+          // Database Storage Section (Shown ONLY when DEMO mode is manually enabled in code)
           if (isDemoModeEnabled) ...[
             _buildSectionHeader('Database Storage', textSecondary),
             const SizedBox(height: 8),
@@ -238,6 +267,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: _medsNotifications,
                   onChanged: (val) {
                     setState(() => _medsNotifications = val);
+                    GlobalNotificationService().setCategoryEnabled(
+                      NotificationCategory.medication,
+                      val,
+                    );
                   },
                 ),
                 Divider(height: 1, color: dividerColor),
@@ -255,6 +288,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: _vaccinesNotifications,
                   onChanged: (val) {
                     setState(() => _vaccinesNotifications = val);
+                    GlobalNotificationService().setCategoryEnabled(
+                      NotificationCategory.vaccine,
+                      val,
+                    );
                   },
                 ),
                 Divider(height: 1, color: dividerColor),
@@ -272,6 +309,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: _feedingNotifications,
                   onChanged: (val) {
                     setState(() => _feedingNotifications = val);
+                    GlobalNotificationService().setCategoryEnabled(
+                      NotificationCategory.feeding,
+                      val,
+                    );
                   },
                 ),
                 Divider(height: 1, color: dividerColor),
@@ -591,6 +632,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     );
                   },
                 ),
+                if (isDemoModeEnabled) ...[
+                  Divider(height: 1, color: dividerColor),
+                  _buildInfoTile(
+                    icon: Icons.science_outlined,
+                    title: 'UI Testing Playground',
+                    trailing: Icon(Icons.chevron_right, color: textSecondary),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TestPlaygroundScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ],
             ),
           ),

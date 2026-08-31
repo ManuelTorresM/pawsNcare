@@ -11,8 +11,7 @@ class DemoDataSupplier {
           breed: 'Golden Retriever',
           ageString: '2 yrs',
           birthDate: DateTime.now().subtract(const Duration(days: 365 * 2)),
-          avatarUrl:
-              'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=400',
+          avatarUrl: 'assets/avatars/dog.png',
           status: 'Healthy',
           weight: 28.5,
           weightHistory: [
@@ -58,8 +57,7 @@ class DemoDataSupplier {
           breed: 'Tabby Cat',
           ageString: '4 yrs',
           birthDate: DateTime.now().subtract(const Duration(days: 365 * 4)),
-          avatarUrl:
-              'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=400',
+          avatarUrl: 'assets/avatars/cat.png',
           status: 'Healthy',
           weight: 4.2,
           weightHistory: [

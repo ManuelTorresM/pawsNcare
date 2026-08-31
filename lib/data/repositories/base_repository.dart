@@ -7,6 +7,7 @@ abstract class BaseRepository {
   Future<bool> login(String email, String password);
   Future<bool> loginWithGoogle();
   Future<bool> register(String email, String password, String name);
+  Future<bool> registerWithGoogle();
   Future<void> logout();
   Future<bool> isLoggedIn();
   Future<String?> getCurrentUserEmail();
@@ -28,5 +29,6 @@ abstract class BaseRepository {
   Future<List<DiaryEntry>> getDiaryEntries(String petId);
   Future<List<DiaryEntry>> getAllDiaryEntries();
   Future<void> addDiaryEntry(DiaryEntry entry);
+  Future<void> updateDiaryEntry(DiaryEntry entry);
   Future<void> deleteDiaryEntry(String entryId);
 }

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -29,8 +30,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
   String? _selectedGender;
   String? _selectedNeutered;
   DateTime? _birthDate;
-  String _selectedAvatar =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAH4q1ZxA4-kVWnFA2l_v138H6omdsv0f2VnRf02r4qUhGIC31Q7V-6LJi9vOTHwCzivv5LXVUp0uqEgLAwY5VAR_upvrgz6VicZcLd64Mp0aXTBK2roz-VVty2zgv4wRykLUcXIDql4wM8lzVEza8ZPVfiOO5cKGHFaHOFWzO1mcbgd5aBQ1NIhs0njlmtX_bce3QhiwKizYSRoyX23nCmNgQSIzzPBJa94FxPhSZvNg3ZDpX2SX7AY9us3VFc3LTeFryokjTdEL8';
+  String _selectedAvatar = 'assets/avatars/dog.png';
 
   // Step 2 State
   final List<Map<String, dynamic>> _vaccinations = [
@@ -54,8 +54,23 @@ class _AddPetWizardState extends State<AddPetWizard> {
   String _selectedWeightUnit = 'kg';
   final List<String> _selectedBehaviorTags = [];
 
+  final _scrollController = ScrollController();
+
+  void _scrollToTop() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _scrollController.dispose();
     _nameController.dispose();
     _breedController.dispose();
     _feedingNotesController.dispose();
@@ -231,15 +246,22 @@ class _AddPetWizardState extends State<AddPetWizard> {
       context: context,
       builder: (context) {
         final avatars = [
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuAH4q1ZxA4-kVWnFA2l_v138H6omdsv0f2VnRf02r4qUhGIC31Q7V-6LJi9vOTHwCzivv5LXVUp0uqEgLAwY5VAR_upvrgz6VicZcLd64Mp0aXTBK2roz-VVty2zgv4wRykLUcXIDql4wM8lzVEza8ZPVfiOO5cKGHFaHOFWzO1mcbgd5aBQ1NIhs0njlmtX_bce3QhiwKizYSRoyX23nCmNgQSIzzPBJa94FxPhSZvNg3ZDpX2SX7AY9us3VFc3LTeFryokjTdEL8',
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuCpT0s0cFYKkX1zUW-ZxppNCO4wIccsTDYvXkjapAsnMu64RzcaIUjAF0H_2Z_WImyF9vDl54Sd3UiP8Ze5UwJCBZhzY5FspotvD89AoJIuI5Inn5ez8rIlp1bz5pzc4VDZy3Mb3iWysaRQGcBlkvhzu4sWcYTdGUqckqvHPXeE6q24o_m3TOQk074Iz5uEfq4ENSFLNa4jiPJM30P2AZWfGFsGOCUbxziOc6wn0t_P1SBzdjxDxS1TjE4Wf6LRSbHHQaaCMa8GmRs',
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuCFcNElyLf3r5PA_2Elk94qMT0TQ-23Cgjap0di5FfbqGolohXnnNV8egscRbhfJTjr8ps-_SniD5702oFSwCSOBM24tKV8qX9c6VhDNNrwVS3cdRvVJgDKxDKaVwT2HIga6UDbEa1syicPc-biHozPmapknaq-BNkvBnifXh2drwb6Vccjq7188kkO1r6VS-vhDfx_-O6fP-Jiyzbf4rUeWPYdnmLkGz4iQ4mgssMdKszHy_tIj9AcyPHqKmdt82FUEx28UYD0yFs',
+          'assets/avatars/dog.png',
+          'assets/avatars/cat.png',
+          'assets/avatars/lil_dog.png',
         ];
         return AlertDialog(
           title: const Text('Choose Avatar'),
           content: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: avatars.map((url) {
+              final ImageProvider imageProvider = url.startsWith('assets/')
+                  ? AssetImage(url)
+                  : (url.startsWith('http')
+                          ? NetworkImage(url)
+                          : FileImage(File(url)))
+                      as ImageProvider;
+
               return GestureDetector(
                 onTap: () {
                   setState(() => _selectedAvatar = url);
@@ -247,7 +269,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
                 },
                 child: CircleAvatar(
                   radius: 32,
-                  backgroundImage: NetworkImage(url),
+                  backgroundImage: imageProvider,
                 ),
               );
             }).toList(),
@@ -257,7 +279,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
     );
   }
 
-  void _submitWizard() {
+  Future<void> _submitWizard() async {
     final petId = DateTime.now().millisecondsSinceEpoch.toString();
 
     // Parse and validate weight
@@ -275,8 +297,9 @@ class _AddPetWizardState extends State<AddPetWizard> {
       return;
     }
 
-    final weightInKg =
-        _selectedWeightUnit == 'lbs' ? weightVal / 2.20462 : weightVal;
+    final weightInKg = _selectedWeightUnit == 'lbs'
+        ? weightVal / 2.20462
+        : weightVal;
 
     // Calculate age string
     final birth =
@@ -350,6 +373,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
       behaviorTags: _selectedBehaviorTags,
     );
 
+    if (!mounted) return;
     context.read<PetBloc>().add(AddPet(newPet));
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
@@ -430,6 +454,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
             // Wizard Step Contents
             Expanded(
               child: SingleChildScrollView(
+                controller: _scrollController,
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
@@ -453,7 +478,10 @@ class _AddPetWizardState extends State<AddPetWizard> {
                       children: [
                         if (_currentStep > 0)
                           OutlinedButton(
-                            onPressed: () => setState(() => _currentStep--),
+                            onPressed: () {
+                              setState(() => _currentStep--);
+                              _scrollToTop();
+                            },
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 24,
@@ -527,6 +555,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
                                 }
                               }
                               setState(() => _currentStep++);
+                              _scrollToTop();
                             } else {
                               _submitWizard();
                             }
@@ -671,8 +700,8 @@ class _AddPetWizardState extends State<AddPetWizard> {
           },
           weightController: _weightController,
           selectedWeightUnit: _selectedWeightUnit,
-          onWeightUnitChanged:
-              (unit) => setState(() => _selectedWeightUnit = unit),
+          onWeightUnitChanged: (unit) =>
+              setState(() => _selectedWeightUnit = unit),
         );
       default:
         return const SizedBox.shrink();

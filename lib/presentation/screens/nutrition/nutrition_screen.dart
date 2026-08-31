@@ -1,8 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../../logic/notifications/global_notification_service.dart';
+import '../../../data/models/app_notification.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/nutrition/nutrition_reminder_card.dart';
 import 'add_meal_screen.dart';
 import 'add_hydration_screen.dart';
 
@@ -13,6 +17,7 @@ class ReminderItem {
   final List<String> targetPets;
   final String type; // 'feeding' or 'hydration'
   final String notes;
+  final TimeOfDay time;
 
   ReminderItem({
     required this.id,
@@ -21,7 +26,33 @@ class ReminderItem {
     required this.targetPets,
     required this.type,
     this.notes = '',
+    this.time = const TimeOfDay(hour: 8, minute: 0),
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'subtitle': subtitle,
+      'targetPets': targetPets,
+      'type': type,
+      'notes': notes,
+      'hour': time.hour,
+      'minute': time.minute,
+    };
+  }
+
+  factory ReminderItem.fromMap(Map<String, dynamic> map) {
+    return ReminderItem(
+      id: map['id'] ?? '',
+      title: map['title'] ?? '',
+      subtitle: map['subtitle'] ?? '',
+      targetPets: List<String>.from(map['targetPets'] ?? ['All Pets']),
+      type: map['type'] ?? 'feeding',
+      notes: map['notes'] ?? '',
+      time: TimeOfDay(hour: map['hour'] ?? 8, minute: map['minute'] ?? 0),
+    );
+  }
 }
 
 class NutritionScreen extends StatefulWidget {
@@ -35,30 +66,26 @@ class _NutritionScreenState extends State<NutritionScreen> {
   // Master Toggles
   bool _masterFeedingEnabled = true;
   bool _masterHydrationEnabled = true;
-  bool _specialDietAlertsEnabled = false;
-
-  // Preferences Toggles
-  bool _soundNotificationsEnabled = true;
-  bool _vibrationEnabled = true;
-  String _selectedAlertTone = 'Gentle Chime (Default)';
 
   // Reminders List
-  final List<ReminderItem> _reminders = [
+  List<ReminderItem> _reminders = [
     ReminderItem(
       id: 'f1',
       title: 'Breakfast',
       subtitle: '07:30 AM • 1.5 cups',
       targetPets: ['All Pets'],
       type: 'feeding',
-      notes: 'Mix kibble with 1 tbsp wet food',
+      notes: 'Add note',
+      time: const TimeOfDay(hour: 7, minute: 30),
     ),
     ReminderItem(
       id: 'f2',
       title: 'Lunch',
       subtitle: '12:30 PM • 1.0 cup',
-      targetPets: ['Luna', 'Oliver'],
+      targetPets: ['All Pets'],
       type: 'feeding',
-      notes: 'Ensure clean food bowl before serving',
+      notes: 'Add note',
+      time: const TimeOfDay(hour: 12, minute: 30),
     ),
     ReminderItem(
       id: 'f3',
@@ -66,7 +93,8 @@ class _NutritionScreenState extends State<NutritionScreen> {
       subtitle: '06:00 PM • 1.5 cups',
       targetPets: ['All Pets'],
       type: 'feeding',
-      notes: 'Serve with joint health chew',
+      notes: 'Add note',
+      time: const TimeOfDay(hour: 18, minute: 0),
     ),
     ReminderItem(
       id: 'h1',
@@ -74,9 +102,45 @@ class _NutritionScreenState extends State<NutritionScreen> {
       subtitle: 'Daily Reminder',
       targetPets: ['All Pets'],
       type: 'hydration',
-      notes: 'Refill fountain with fresh filtered water',
+      notes: 'Add note',
+      time: const TimeOfDay(hour: 8, minute: 0),
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedReminders();
+  }
+
+  Future<void> _loadSavedReminders() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString('saved_nutrition_reminders');
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final List<dynamic> list = jsonDecode(jsonStr);
+        if (list.isNotEmpty) {
+          setState(() {
+            _reminders = list
+                .map((item) => ReminderItem.fromMap(item))
+                .toList();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('[NutritionScreen] Error loading reminders: $e');
+    }
+  }
+
+  Future<void> _persistReminders() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = _reminders.map((r) => r.toMap()).toList();
+      await prefs.setString('saved_nutrition_reminders', jsonEncode(list));
+    } catch (e) {
+      debugPrint('[NutritionScreen] Error saving reminders: $e');
+    }
+  }
 
   void _showDeleteConfirmation(ReminderItem item) {
     showDialog(
@@ -137,6 +201,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                         setState(() {
                           _reminders.removeWhere((r) => r.id == item.id);
                         });
+                        _persistReminders();
                         Navigator.of(context).pop();
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -172,6 +237,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
       setState(() {
         _reminders.add(newItem);
       });
+      _persistReminders();
     }
   }
 
@@ -183,6 +249,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
       setState(() {
         _reminders.add(newItem);
       });
+      _persistReminders();
     }
   }
 
@@ -245,7 +312,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
     final amountController = TextEditingController(text: initialAmount);
     final notesController = TextEditingController(text: item.notes);
-    TimeOfDay selectedTime = const TimeOfDay(hour: 8, minute: 0);
+    TimeOfDay selectedTime = item.time;
     String selectedUnit = initialUnit;
     final List<String> selectedPets = List<String>.from(
       item.targetPets.isNotEmpty ? item.targetPets : ['All Pets'],
@@ -689,15 +756,46 @@ class _NutritionScreenState extends State<NutritionScreen> {
                                       targetPets: List.from(selectedPets),
                                       type: item.type,
                                       notes: notesController.text.trim(),
+                                      time: selectedTime,
                                     );
                                   }
                                 });
+                                _persistReminders();
+
+                                // Schedule system notification alarm
+                                final now = DateTime.now();
+                                DateTime scheduledDT = DateTime(
+                                  now.year,
+                                  now.month,
+                                  now.day,
+                                  selectedTime.hour,
+                                  selectedTime.minute,
+                                );
+                                if (scheduledDT.isBefore(now)) {
+                                  scheduledDT = scheduledDT.add(
+                                    const Duration(days: 1),
+                                  );
+                                }
+
+                                GlobalNotificationService()
+                                    .scheduleCustomEventNotification(
+                                      title:
+                                          '${isHydration ? 'Hydration' : 'Meal'}: $title',
+                                      body:
+                                          '$subtitle (${selectedPets.join(', ')})',
+                                      eventDateTime: scheduledDT,
+                                      reminderOffset: Duration.zero,
+                                      petName: selectedPets.join(', '),
+                                      category: isHydration
+                                          ? NotificationCategory.hydration
+                                          : NotificationCategory.feeding,
+                                    );
 
                                 Navigator.of(dialogContext).pop();
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text(
-                                      'Reminder updated successfully.',
+                                      'Reminder updated successfully & notification scheduled.',
                                     ),
                                     backgroundColor: AppTheme.primary,
                                   ),
@@ -796,6 +894,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
     List<String> registeredPets,
     StateSetter setModalState,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = selectedPets.contains(petName);
     return ChoiceChip(
       showCheckmark: false,
@@ -808,14 +907,20 @@ class _NutritionScreenState extends State<NutritionScreen> {
           fontFamily: 'Inter',
           fontSize: 11,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? Colors.white : AppTheme.onSurface,
+          color: isSelected
+              ? Colors.white
+              : (isDark ? AppTheme.darkOnSurface : AppTheme.onSurface),
         ),
       ),
       selected: isSelected,
       selectedColor: AppTheme.primary,
-      backgroundColor: AppTheme.surfaceContainerLow,
+      backgroundColor: isDark
+          ? const Color(0xFF383634)
+          : AppTheme.surfaceContainerLow,
       side: BorderSide(
-        color: isSelected ? AppTheme.primary : AppTheme.surfaceContainer,
+        color: isSelected
+            ? AppTheme.primary
+            : (isDark ? const Color(0xFF4A4846) : AppTheme.surfaceContainer),
       ),
       onSelected: (bool selected) {
         setModalState(() {
@@ -846,6 +951,12 @@ class _NutritionScreenState extends State<NutritionScreen> {
     final hydrationList = _reminders
         .where((r) => r.type == 'hydration')
         .toList();
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final foodColor = isDark ? AppTheme.foodConceptDark : AppTheme.foodConcept;
+    final waterColor = isDark
+        ? AppTheme.waterConceptDark
+        : AppTheme.waterConcept;
 
     return Scaffold(
       appBar: AppBar(
@@ -939,7 +1050,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
               const SizedBox(height: 28),
 
               // Feeding Reminders Bento Card
-              _buildReminderCard(
+              NutritionReminderCard(
                 title: 'Feeding Schedule for All',
                 icon: Icons.restaurant,
                 isEnabled: _masterFeedingEnabled,
@@ -947,12 +1058,14 @@ class _NutritionScreenState extends State<NutritionScreen> {
                     setState(() => _masterFeedingEnabled = val),
                 onAddPressed: _navigateToAddMeal,
                 items: feedingList,
-                accentColor: AppTheme.primary,
+                accentColor: foodColor,
+                onDeleteItem: _showDeleteConfirmation,
+                onEditItem: _showEditReminderDialog,
               ),
               const SizedBox(height: 24),
 
               // Hydration Reminders Bento Card
-              _buildReminderCard(
+              NutritionReminderCard(
                 title: 'Hydration',
                 icon: Icons.water_drop,
                 isEnabled: _masterHydrationEnabled,
@@ -960,496 +1073,13 @@ class _NutritionScreenState extends State<NutritionScreen> {
                     setState(() => _masterHydrationEnabled = val),
                 onAddPressed: _navigateToAddHydration,
                 items: hydrationList,
-                accentColor: AppTheme.primaryContainer,
-              ),
-              const SizedBox(height: 24),
-
-              // Special Diet Alerts Card (Grayscale if disabled)
-              _buildSpecialDietCard(),
-              const SizedBox(height: 24),
-
-              // Notification Preferences Panel
-              _buildNotificationPreferencesCard(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReminderCard({
-    required String title,
-    required IconData icon,
-    required bool isEnabled,
-    required ValueChanged<bool> onToggleChanged,
-    required VoidCallback onAddPressed,
-    required List<ReminderItem> items,
-    required Color accentColor,
-  }) {
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 200),
-      opacity: isEnabled ? 1.0 : 0.5,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.surfaceContainer),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(2),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              // Accent stripe on the left
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                child: Container(width: 5, color: accentColor),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: AppTheme.primaryFixed.withValues(
-                                  alpha: 0.3,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                icon,
-                                color: AppTheme.primary,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              title,
-                              style: const TextStyle(
-                                fontFamily: 'Montserrat',
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Switch(
-                          value: isEnabled,
-                          activeThumbColor: AppTheme.primary,
-                          onChanged: onToggleChanged,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Add Reminders Button (only visible/active if master switch is on)
-                    IgnorePointer(
-                      ignoring: !isEnabled,
-                      child: OutlinedButton.icon(
-                        onPressed: onAddPressed,
-                        icon: const Icon(Icons.add, size: 16),
-                        label: Text(
-                          'Add ${title == 'Hydration' ? 'Hydration' : 'Meal'}',
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppTheme.primary,
-                          backgroundColor: AppTheme.primaryFixed.withValues(
-                            alpha: 0.1,
-                          ),
-                          side: BorderSide.none,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // List Items
-                    if (items.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Text(
-                          'No reminders active.',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontStyle: FontStyle.italic,
-                            color: AppTheme.secondary,
-                          ),
-                        ),
-                      )
-                    else
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: items.length,
-                        itemBuilder: (context, index) {
-                          final r = items[index];
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppTheme.surfaceContainerLow,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        r.title,
-                                        style: const TextStyle(
-                                          fontFamily: 'Inter',
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        r.subtitle,
-                                        style: const TextStyle(
-                                          fontFamily: 'Inter',
-                                          fontSize: 12,
-                                          color: AppTheme.onSurfaceVariant,
-                                        ),
-                                      ),
-                                      if (r.notes.isNotEmpty) ...[
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.sticky_note_2_outlined,
-                                              size: 13,
-                                              color: AppTheme.primary,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Expanded(
-                                              child: Text(
-                                                r.notes,
-                                                style: const TextStyle(
-                                                  fontFamily: 'Inter',
-                                                  fontSize: 11,
-                                                  fontStyle: FontStyle.italic,
-                                                  color: AppTheme.secondary,
-                                                ),
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                      const SizedBox(height: 6),
-                                      Wrap(
-                                        spacing: 4,
-                                        children: r.targetPets.map((p) {
-                                          return Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 6,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  AppTheme.secondaryContainer,
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              p.toUpperCase(),
-                                              style: const TextStyle(
-                                                fontFamily: 'Inter',
-                                                fontSize: 8,
-                                                fontWeight: FontWeight.bold,
-                                                color:
-                                                    AppTheme.onSurfaceVariant,
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (isEnabled) ...[
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.delete_outline,
-                                      color: AppTheme.secondary,
-                                      size: 20,
-                                    ),
-                                    onPressed: () => _showDeleteConfirmation(r),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.chevron_right,
-                                      color: AppTheme.primary,
-                                      size: 22,
-                                    ),
-                                    onPressed: () => _showEditReminderDialog(r),
-                                  ),
-                                ] else
-                                  const Icon(
-                                    Icons.chevron_right,
-                                    color: AppTheme.secondary,
-                                    size: 20,
-                                  ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                  ],
-                ),
+                accentColor: waterColor,
+                onDeleteItem: _showDeleteConfirmation,
+                onEditItem: _showEditReminderDialog,
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildSpecialDietCard() {
-    final cardContent = AnimatedOpacity(
-      duration: const Duration(milliseconds: 200),
-      opacity: _specialDietAlertsEnabled ? 1.0 : 0.5,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.surfaceContainer),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: const [
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      color: AppTheme.tertiary,
-                      size: 24,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Special Diet Alerts (All Pets)',
-                      style: TextStyle(
-                        fontFamily: 'Montserrat',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ],
-                ),
-                Switch(
-                  value: _specialDietAlertsEnabled,
-                  activeThumbColor: AppTheme.primary,
-                  onChanged: (val) =>
-                      setState(() => _specialDietAlertsEnabled = val),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Alerts for food allergens or strict prescription diet windows.',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 12,
-                color: AppTheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (_specialDietAlertsEnabled) {
-      return cardContent;
-    } else {
-      return ColorFiltered(
-        colorFilter: const ColorFilter.matrix(<double>[
-          0.2126,
-          0.7152,
-          0.0722,
-          0,
-          0,
-          0.2126,
-          0.7152,
-          0.0722,
-          0,
-          0,
-          0.2126,
-          0.7152,
-          0.0722,
-          0,
-          0,
-          0,
-          0,
-          0,
-          1,
-          0,
-        ]),
-        child: cardContent,
-      );
-    }
-  }
-
-  Widget _buildNotificationPreferencesCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.surfaceContainer),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              Icon(
-                Icons.settings_suggest_outlined,
-                color: AppTheme.primary,
-                size: 24,
-              ),
-              SizedBox(width: 8),
-              Text(
-                'Notification Preferences',
-                style: TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          // Sound Toggle
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: const [
-                  Icon(
-                    Icons.volume_up_outlined,
-                    color: AppTheme.secondary,
-                    size: 20,
-                  ),
-                  SizedBox(width: 12),
-                  Text(
-                    'Sound Notifications',
-                    style: TextStyle(fontFamily: 'Inter'),
-                  ),
-                ],
-              ),
-              Switch(
-                value: _soundNotificationsEnabled,
-                activeThumbColor: AppTheme.primary,
-                onChanged: (val) =>
-                    setState(() => _soundNotificationsEnabled = val),
-              ),
-            ],
-          ),
-          const Divider(),
-
-          // Vibration Toggle
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: const [
-                  Icon(
-                    Icons.vibration_outlined,
-                    color: AppTheme.secondary,
-                    size: 20,
-                  ),
-                  SizedBox(width: 12),
-                  Text('Vibration', style: TextStyle(fontFamily: 'Inter')),
-                ],
-              ),
-              Switch(
-                value: _vibrationEnabled,
-                activeThumbColor: AppTheme.primary,
-                onChanged: (val) => setState(() => _vibrationEnabled = val),
-              ),
-            ],
-          ),
-          const Divider(),
-          const SizedBox(height: 12),
-
-          // Alert Tone Selector
-          const Text(
-            'ALERT TONE',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.bold,
-              fontSize: 11,
-              color: AppTheme.onSurfaceVariant,
-              letterSpacing: 1.0,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppTheme.surfaceContainer),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButtonFormField<String>(
-                initialValue: _selectedAlertTone,
-                icon: const Icon(Icons.music_note, color: AppTheme.primary),
-                decoration: const InputDecoration(border: InputBorder.none),
-                items: const [
-                  DropdownMenuItem(
-                    value: 'Gentle Chime (Default)',
-                    child: Text('Gentle Chime (Default)'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'Playful Bark',
-                    child: Text('Playful Bark'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'Nature Morning',
-                    child: Text('Nature Morning'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'Electronic Beep',
-                    child: Text('Electronic Beep'),
-                  ),
-                ],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _selectedAlertTone = val);
-                  }
-                },
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

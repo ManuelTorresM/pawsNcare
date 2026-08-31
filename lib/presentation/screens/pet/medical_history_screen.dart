@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../logic/pet/pet_bloc.dart';
@@ -190,7 +191,12 @@ class _MedicalHistoryScreenState extends State<MedicalHistoryScreen> {
                                   alpha: 0.2,
                                 ),
                                 backgroundImage: _pet.avatarUrl.isNotEmpty
-                                    ? NetworkImage(_pet.avatarUrl)
+                                    ? (_pet.avatarUrl.startsWith('assets/')
+                                          ? AssetImage(_pet.avatarUrl)
+                                          : (_pet.avatarUrl.startsWith('http')
+                                              ? NetworkImage(_pet.avatarUrl)
+                                              : FileImage(File(_pet.avatarUrl))))
+                                        as ImageProvider
                                     : null,
                                 child: _pet.avatarUrl.isEmpty
                                     ? const Icon(
@@ -461,8 +467,8 @@ class _MedicalHistoryScreenState extends State<MedicalHistoryScreen> {
       statusIcon = Icons.check_circle;
     } else if (isOverdue) {
       statusLabel = 'OVERDUE';
-      statusBg = const Color(0xFFFEE2E2);
-      statusText = const Color(0xFF991B1B);
+      statusBg = isDark ? const Color(0xFF5C2B1D) : const Color(0xFFFDEDEC);
+      statusText = isDark ? const Color(0xFFFFB4A3) : const Color(0xFFE74C3C);
       statusIcon = Icons.error;
     } else {
       statusLabel = 'SCHEDULED';
