@@ -160,7 +160,7 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
               children: [
                 // Preview picked media
                 Container(
-                  height: 140,
+                  height: 180,
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: AppTheme.surfaceContainerLow,
@@ -171,7 +171,7 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                     borderRadius: BorderRadius.circular(16),
                     child: Image.file(
                       File(filePath),
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) =>
                           const Center(
                             child: Icon(
