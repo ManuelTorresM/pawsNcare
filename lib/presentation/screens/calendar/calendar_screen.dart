@@ -1402,12 +1402,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(
-                    width: 380,
-                    child: SingleChildScrollView(child: monthCalendarBox),
-                  ),
-                  const VerticalDivider(width: 1, thickness: 1),
+                  // Left Half (flex: 5): Month Calendar View
                   Expanded(
+                    flex: 5,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(bottom: 24.0),
+                      child: monthCalendarBox,
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    color: (isDark
+                            ? const Color(0xFF383634)
+                            : AppTheme.surfaceContainer)
+                        .withValues(alpha: 0.5),
+                  ),
+                  // Right Half (flex: 7): Scheduled Events & Timelines
+                  Expanded(
+                    flex: 7,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
