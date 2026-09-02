@@ -7,6 +7,7 @@ import '../../../data/models/app_notification.dart';
 import '../../../data/models/pet.dart';
 import '../../../data/models/medication.dart';
 import '../../theme/app_theme.dart';
+import '../../../core/utils/responsive_layout.dart';
 import '../../widgets/calendar/calendar_schedule_card.dart';
 import '../pet/meds_vaccines_screen.dart';
 
@@ -1211,6 +1212,256 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ? "Today's Schedule"
         : "${_formatDate(_selectedDate)}'s Schedule";
 
+    final monthCalendarBox = Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Month navigation header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: Icon(Icons.chevron_left, color: textSecondary),
+                onPressed: () {
+                  setState(() {
+                    _currentMonth = DateTime(
+                      _currentMonth.year,
+                      _currentMonth.month - 1,
+                    );
+                  });
+                },
+              ),
+              Text(
+                '${_getMonthName(_currentMonth.month)} ${_currentMonth.year}',
+                style: TextStyle(
+                  fontFamily: 'Montserrat',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: headerColor,
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.chevron_right, color: textSecondary),
+                onPressed: () {
+                  setState(() {
+                    _currentMonth = DateTime(
+                      _currentMonth.year,
+                      _currentMonth.month + 1,
+                    );
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Weekdays Labels
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: daysOfWeek.map((day) {
+              return SizedBox(
+                width: 32,
+                child: Text(
+                  day,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    color: textSecondary,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 8),
+
+          // Calendar Days Grid
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 6,
+              crossAxisSpacing: 6,
+              childAspectRatio: 1.1,
+            ),
+            itemCount: totalSlots,
+            itemBuilder: (context, index) {
+              if (index < startOffset) {
+                return const SizedBox.shrink();
+              }
+              final day = index - startOffset + 1;
+              final date = DateTime(
+                _currentMonth.year,
+                _currentMonth.month,
+                day,
+              );
+              final isSelected =
+                  _selectedDate.year == date.year &&
+                  _selectedDate.month == date.month &&
+                  _selectedDate.day == date.day;
+              final isToday =
+                  DateTime.now().year == date.year &&
+                  DateTime.now().month == date.month &&
+                  DateTime.now().day == date.day;
+
+              final petsList = petState is PetLoaded
+                  ? petState.pets
+                  : <Pet>[];
+              final hasEvents = _hasEventsOnDate(date, petsList);
+
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedDate = date;
+                  });
+                },
+                child: Container(
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected
+                        ? AppTheme.primary
+                        : (isToday
+                              ? headerColor.withValues(alpha: 0.3)
+                              : Colors.transparent),
+                    border: isToday && !isSelected
+                        ? Border.all(color: headerColor, width: 1.5)
+                        : null,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        day.toString(),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: isSelected
+                              ? Colors.white
+                              : (isToday ? headerColor : textPrimary),
+                        ),
+                      ),
+                      if (hasEvents) ...[
+                        const SizedBox(height: 2),
+                        Container(
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isSelected
+                                ? Colors.white
+                                : (isToday
+                                      ? headerColor
+                                      : AppTheme.tertiary),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+
+    Widget buildEventsListWidget({bool shrinkWrap = false}) {
+      if (displayEvents.isEmpty) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.calendar_today_outlined,
+                size: 48,
+                color: textSecondary.withValues(alpha: 0.5),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'No events scheduled for this day.',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontStyle: FontStyle.italic,
+                  color: textSecondary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: () => _showAddEventDialog(context, petState),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Add Event'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        shrinkWrap: shrinkWrap,
+        physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
+        itemCount: displayEvents.length,
+        itemBuilder: (context, index) {
+          final ev = displayEvents[index];
+          final Pet? pet = ev['pet'];
+          final petName = pet?.name ?? 'All Pets';
+          final isCalendarEvent = ev['isCalendarEvent'] == true;
+          final Medication? med = ev['medication'];
+
+          return CalendarScheduleCard(
+            time: ev['time'],
+            title: ev['title'],
+            subtitle: ev['subtitle'],
+            petName: petName,
+            icon: ev['icon'],
+            color: ev['color'],
+            isDark: isDark,
+            cardBg: cardBg,
+            textSecondary: textSecondary,
+            textPrimary: textPrimary,
+            onTap: () {
+              if (isCalendarEvent && pet != null && med != null) {
+                _showEditEventDialog(context, petState, pet, med);
+              } else if (pet != null) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => MedsVaccinesScreen(pet: pet),
+                  ),
+                );
+              }
+            },
+          );
+        },
+      );
+    }
+
+    final isWide = ResponsiveLayout.isWide(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1255,258 +1506,70 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ),
         ),
 
-        // Complete Month Calendar Box
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: cardBg,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              // Month navigation header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.chevron_left, color: textSecondary),
-                    onPressed: () {
-                      setState(() {
-                        _currentMonth = DateTime(
-                          _currentMonth.year,
-                          _currentMonth.month - 1,
-                        );
-                      });
-                    },
+        // Main Content View (Dual Pane on Wide / Tablet screens, Scrollable Column on Mobile)
+        if (isWide)
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 380,
+                  child: SingleChildScrollView(
+                    child: monthCalendarBox,
                   ),
-                  Text(
-                    '${_getMonthName(_currentMonth.month)} ${_currentMonth.year}',
-                    style: TextStyle(
-                      fontFamily: 'Montserrat',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: headerColor,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.chevron_right, color: textSecondary),
-                    onPressed: () {
-                      setState(() {
-                        _currentMonth = DateTime(
-                          _currentMonth.year,
-                          _currentMonth.month + 1,
-                        );
-                      });
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Weekdays Labels
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: daysOfWeek.map((day) {
-                  return SizedBox(
-                    width: 32,
-                    child: Text(
-                      day,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                        color: textSecondary,
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 8),
-
-              // Calendar Days Grid
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 7,
-                  mainAxisSpacing: 6,
-                  crossAxisSpacing: 6,
-                  childAspectRatio: 1.1,
                 ),
-                itemCount: totalSlots,
-                itemBuilder: (context, index) {
-                  if (index < startOffset) {
-                    return const SizedBox.shrink();
-                  }
-                  final day = index - startOffset + 1;
-                  final date = DateTime(
-                    _currentMonth.year,
-                    _currentMonth.month,
-                    day,
-                  );
-                  final isSelected =
-                      _selectedDate.year == date.year &&
-                      _selectedDate.month == date.month &&
-                      _selectedDate.day == date.day;
-                  final isToday =
-                      DateTime.now().year == date.year &&
-                      DateTime.now().month == date.month &&
-                      DateTime.now().day == date.day;
-
-                  final petsList = petState is PetLoaded
-                      ? petState.pets
-                      : <Pet>[];
-                  final hasEvents = _hasEventsOnDate(date, petsList);
-
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedDate = date;
-                      });
-                    },
-                    child: Container(
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isSelected
-                            ? AppTheme.primary
-                            : (isToday
-                                  ? headerColor.withValues(alpha: 0.3)
-                                  : Colors.transparent),
-                        border: isToday && !isSelected
-                            ? Border.all(color: headerColor, width: 1.5)
-                            : null,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            day.toString(),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              color: isSelected
-                                  ? Colors.white
-                                  : (isToday ? headerColor : textPrimary),
-                            ),
-                          ),
-                          if (hasEvents) ...[
-                            const SizedBox(height: 2),
-                            Container(
-                              width: 4,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isSelected
-                                    ? Colors.white
-                                    : (isToday
-                                          ? headerColor
-                                          : AppTheme.tertiary),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-
-        // List of events header
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Text(
-            scheduleTitle,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Events list
-        Expanded(
-          child: displayEvents.isEmpty
-              ? Center(
+                const VerticalDivider(width: 1, thickness: 1),
+                Expanded(
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.calendar_today_outlined,
-                        size: 48,
-                        color: textSecondary.withValues(alpha: 0.5),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'No events scheduled for this day.',
-                        style: TextStyle(
-                          fontStyle: FontStyle.italic,
-                          color: textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton.icon(
-                        onPressed: () => _showAddEventDialog(context, petState),
-                        icon: const Icon(Icons.add, size: 16),
-                        label: const Text('Add Event'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Text(
+                          scheduleTitle,
+                          style: const TextStyle(
+                            fontFamily: 'Montserrat',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: buildEventsListWidget(shrinkWrap: false),
                       ),
                     ],
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: displayEvents.length,
-                  itemBuilder: (context, index) {
-                    final ev = displayEvents[index];
-                    final Pet? pet = ev['pet'];
-                    final petName = pet?.name ?? 'All Pets';
-                    final isCalendarEvent = ev['isCalendarEvent'] == true;
-                    final Medication? med = ev['medication'];
-
-                    return CalendarScheduleCard(
-                      time: ev['time'],
-                      title: ev['title'],
-                      subtitle: ev['subtitle'],
-                      petName: petName,
-                      icon: ev['icon'],
-                      color: ev['color'],
-                      isDark: isDark,
-                      cardBg: cardBg,
-                      textSecondary: textSecondary,
-                      textPrimary: textPrimary,
-                      onTap: () {
-                        if (isCalendarEvent && pet != null && med != null) {
-                          _showEditEventDialog(context, petState, pet, med);
-                        } else if (pet != null) {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => MedsVaccinesScreen(pet: pet),
-                            ),
-                          );
-                        }
-                      },
-                    );
-                  },
                 ),
-        ),
+              ],
+            ),
+          )
+        else
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  monthCalendarBox,
+                  const SizedBox(height: 24),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      scheduleTitle,
+                      style: const TextStyle(
+                        fontFamily: 'Montserrat',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  buildEventsListWidget(shrinkWrap: true),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }
