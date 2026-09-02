@@ -99,14 +99,6 @@ class BaseFormDialog extends StatelessWidget {
                     ),
                   ),
                   ?headerAction,
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: Icon(
-                      Icons.close,
-                      color: textSecondary,
-                      size: 20,
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: 16),
