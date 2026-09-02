@@ -1366,7 +1366,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddEventDialog(context, petState),
         icon: const Icon(Icons.add_circle_outline, color: Colors.white, size: 20),
