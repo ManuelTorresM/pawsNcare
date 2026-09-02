@@ -9,6 +9,7 @@ import '../../../data/models/medication.dart';
 import '../../theme/app_theme.dart';
 import '../../../core/utils/responsive_layout.dart';
 import '../../widgets/calendar/calendar_schedule_card.dart';
+import '../../widgets/base_form_dialog.dart';
 import '../pet/meds_vaccines_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -223,407 +224,319 @@ class _CalendarScreenState extends State<CalendarScreen> {
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
-            return AlertDialog(
-              backgroundColor: cardBg,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              title: Row(
-                children: [
-                  Icon(Icons.event_note, color: headerColor),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Add Event',
-                    style: TextStyle(
-                      fontFamily: 'Montserrat',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      color: textPrimary,
+          builder: (dialogContext, setModalState) {
+            return BaseFormDialog(
+              icon: Icons.event_note,
+              title: 'Add Event',
+              subtitle: 'Schedule a pet event or reminder',
+              primaryButtonText: 'Save Event',
+              onPrimaryPressed: () {
+                final eventTitle = titleController.text.trim().isNotEmpty
+                    ? titleController.text.trim()
+                    : 'Scheduled Event';
+                final eventNote = noteController.text.trim().isNotEmpty
+                    ? noteController.text.trim()
+                    : 'Calendar Event';
+
+                final eventDateTime = DateTime(
+                  selectedDate.year,
+                  selectedDate.month,
+                  selectedDate.day,
+                  selectedTime.hour,
+                  selectedTime.minute,
+                );
+
+                final reminderOffset =
+                    reminderOptions[selectedReminderKey] ?? Duration.zero;
+
+                final petBloc = context.read<PetBloc>();
+
+                final newEvent = Medication(
+                  id: 'event_${DateTime.now().millisecondsSinceEpoch}',
+                  name: eventTitle,
+                  nextDoseDate: eventDateTime,
+                  type: 'event',
+                  dose: eventNote,
+                  frequency: 'One-time',
+                  hasStartTime: true,
+                  remindersEnabled: true,
+                );
+
+                if (selectedPetTarget == 'All') {
+                  for (final pet in petState.pets) {
+                    final updatedMeds = List<Medication>.from(
+                      pet.medications,
+                    )..add(newEvent);
+                    petBloc.add(
+                      UpdatePet(pet.copyWith(medications: updatedMeds)),
+                    );
+                  }
+                  GlobalNotificationService()
+                      .scheduleCustomEventNotification(
+                        title: eventTitle,
+                        body: '$eventNote (For All Pets)',
+                        eventDateTime: eventDateTime,
+                        reminderOffset: reminderOffset,
+                        petName: 'All Pets',
+                        category: NotificationCategory.system,
+                      );
+                } else {
+                  final matchedPet = petState.pets.firstWhere(
+                    (p) => p.name == selectedPetTarget,
+                    orElse: () => petState.pets.first,
+                  );
+                  final updatedMeds = List<Medication>.from(
+                    matchedPet.medications,
+                  )..add(newEvent);
+                  petBloc.add(
+                    UpdatePet(
+                      matchedPet.copyWith(medications: updatedMeds),
+                    ),
+                  );
+                  GlobalNotificationService()
+                      .scheduleCustomEventNotification(
+                        title: eventTitle,
+                        body: '$eventNote for ${matchedPet.name}',
+                        eventDateTime: eventDateTime,
+                        reminderOffset: reminderOffset,
+                        petName: matchedPet.name,
+                        petAvatarUrl: matchedPet.avatarUrl,
+                        category: NotificationCategory.system,
+                      );
+                }
+
+                Navigator.of(dialogContext).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Event "$eventTitle" saved! Reminder set ($selectedReminderKey).',
+                    ),
+                    backgroundColor: AppTheme.primary,
+                  ),
+                );
+              },
+              children: [
+                // 1. Pet Selection Dropdown
+                const FormSectionLabel('Select Pet'),
+                DropdownButtonFormField<String>(
+                  initialValue: selectedPetTarget,
+                  dropdownColor: cardBg,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    color: textPrimary,
+                    fontSize: 14,
+                  ),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: isDark
+                        ? AppTheme.darkSurface
+                        : AppTheme.surfaceContainerLow,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF383634)
+                            : AppTheme.surfaceContainer,
+                      ),
                     ),
                   ),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  items: petOptions.map((name) {
+                    return DropdownMenuItem(
+                      value: name,
+                      child: Text(name == 'All' ? 'All Pets' : name),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setModalState(() => selectedPetTarget = val);
+                    }
+                  },
+                ),
+                const SizedBox(height: 14),
+
+                // 2. Event Title Input
+                const FormSectionLabel('Event Title / Type'),
+                TextField(
+                  controller: titleController,
+                  style: TextStyle(color: textPrimary, fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Vet Visit, Grooming, Vaccination',
+                    hintStyle: TextStyle(
+                      color: textSecondary.withValues(alpha: 0.6),
+                      fontSize: 13,
+                    ),
+                    filled: true,
+                    fillColor: isDark
+                        ? AppTheme.darkSurface
+                        : AppTheme.surfaceContainerLow,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF383634)
+                            : AppTheme.surfaceContainer,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // 3. Date & Time Selection Buttons Row
+                Row(
                   children: [
-                    // 1. Pet Selection Dropdown (All option included)
-                    Text(
-                      'Select Pet',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color: textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedPetTarget,
-                      dropdownColor: cardBg,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: textPrimary,
-                        fontSize: 14,
-                      ),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: isDark
-                            ? AppTheme.darkSurface
-                            : AppTheme.surfaceContainerLow,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: isDark
-                                ? const Color(0xFF383634)
-                                : AppTheme.surfaceContainer,
-                          ),
-                        ),
-                      ),
-                      items: petOptions.map((name) {
-                        return DropdownMenuItem(
-                          value: name,
-                          child: Text(name == 'All' ? 'All Pets' : name),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setModalState(() => selectedPetTarget = val);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 14),
-
-                    // 2. Event Title Input
-                    Text(
-                      'Event Title / Type',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color: textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: titleController,
-                      style: TextStyle(color: textPrimary, fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: 'e.g. Vet Visit, Grooming, Vaccination',
-                        hintStyle: TextStyle(
-                          color: textSecondary.withValues(alpha: 0.6),
-                          fontSize: 13,
-                        ),
-                        filled: true,
-                        fillColor: isDark
-                            ? AppTheme.darkSurface
-                            : AppTheme.surfaceContainerLow,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: isDark
-                                ? const Color(0xFF383634)
-                                : AppTheme.surfaceContainer,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // 3. Date & Time Selection Buttons Row
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Date',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: textSecondary,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const FormSectionLabel('Date'),
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: selectedDate,
+                                firstDate: DateTime.now().subtract(
+                                  const Duration(days: 365),
                                 ),
+                                lastDate: DateTime.now().add(
+                                  const Duration(days: 1825),
+                                ),
+                              );
+                              if (picked != null) {
+                                setModalState(() => selectedDate = picked);
+                              }
+                            },
+                            icon: Icon(
+                              Icons.calendar_today,
+                              size: 16,
+                              color: headerColor,
+                            ),
+                            label: Text(
+                              '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: textPrimary,
                               ),
-                              const SizedBox(height: 6),
-                              OutlinedButton.icon(
-                                onPressed: () async {
-                                  final picked = await showDatePicker(
-                                    context: context,
-                                    initialDate: selectedDate,
-                                    firstDate: DateTime.now().subtract(
-                                      const Duration(days: 365),
-                                    ),
-                                    lastDate: DateTime.now().add(
-                                      const Duration(days: 1825),
-                                    ),
-                                  );
-                                  if (picked != null) {
-                                    setModalState(() => selectedDate = picked);
-                                  }
-                                },
-                                icon: Icon(
-                                  Icons.calendar_today,
-                                  size: 16,
-                                  color: headerColor,
-                                ),
-                                label: Text(
-                                  '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: textPrimary,
-                                  ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 12,
                               ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Time',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: textSecondary,
-                                ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              const SizedBox(height: 6),
-                              OutlinedButton.icon(
-                                onPressed: () async {
-                                  final picked = await showTimePicker(
-                                    context: context,
-                                    initialTime: selectedTime,
-                                  );
-                                  if (picked != null) {
-                                    setModalState(() => selectedTime = picked);
-                                  }
-                                },
-                                icon: Icon(
-                                  Icons.access_time,
-                                  size: 16,
-                                  color: headerColor,
-                                ),
-                                label: Text(
-                                  selectedTime.format(context),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: textPrimary,
-                                  ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const FormSectionLabel('Time'),
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: selectedTime,
+                              );
+                              if (picked != null) {
+                                setModalState(() => selectedTime = picked);
+                              }
+                            },
+                            icon: Icon(
+                              Icons.access_time,
+                              size: 16,
+                              color: headerColor,
+                            ),
+                            label: Text(
+                              selectedTime.format(context),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: textPrimary,
                               ),
-                            ],
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-
-                    // 4. Early Reminder Notification Option
-                    Text(
-                      'Notification Reminder',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color: textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedReminderKey,
-                      dropdownColor: cardBg,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: textPrimary,
-                        fontSize: 14,
-                      ),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: isDark
-                            ? AppTheme.darkSurface
-                            : AppTheme.surfaceContainerLow,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: isDark
-                                ? const Color(0xFF383634)
-                                : AppTheme.surfaceContainer,
-                          ),
-                        ),
-                      ),
-                      items: reminderOptions.keys.map((optionLabel) {
-                        return DropdownMenuItem(
-                          value: optionLabel,
-                          child: Text(optionLabel),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setModalState(() => selectedReminderKey = val);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 14),
-
-                    // 5. Note / Description Input
-                    Text(
-                      'Note / Location',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color: textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: noteController,
-                      style: TextStyle(color: textPrimary, fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: 'e.g. Clinic address, prep instructions',
-                        hintStyle: TextStyle(
-                          color: textSecondary.withValues(alpha: 0.6),
-                          fontSize: 13,
-                        ),
-                        filled: true,
-                        fillColor: isDark
-                            ? AppTheme.darkSurface
-                            : AppTheme.surfaceContainerLow,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: isDark
-                                ? const Color(0xFF383634)
-                                : AppTheme.surfaceContainer,
-                          ),
-                        ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final eventTitle = titleController.text.trim().isNotEmpty
-                        ? titleController.text.trim()
-                        : 'Scheduled Event';
-                    final eventNote = noteController.text.trim().isNotEmpty
-                        ? noteController.text.trim()
-                        : 'Calendar Event';
+                const SizedBox(height: 14),
 
-                    final eventDateTime = DateTime(
-                      selectedDate.year,
-                      selectedDate.month,
-                      selectedDate.day,
-                      selectedTime.hour,
-                      selectedTime.minute,
-                    );
-
-                    final reminderOffset =
-                        reminderOptions[selectedReminderKey] ?? Duration.zero;
-
-                    final petBloc = context.read<PetBloc>();
-
-                    final newEvent = Medication(
-                      id: 'event_${DateTime.now().millisecondsSinceEpoch}',
-                      name: eventTitle,
-                      nextDoseDate: eventDateTime,
-                      type: 'event',
-                      dose: eventNote,
-                      frequency: 'One-time',
-                      hasStartTime: true,
-                      remindersEnabled: true,
-                    );
-
-                    if (selectedPetTarget == 'All') {
-                      for (final pet in petState.pets) {
-                        final updatedMeds = List<Medication>.from(
-                          pet.medications,
-                        )..add(newEvent);
-                        petBloc.add(
-                          UpdatePet(pet.copyWith(medications: updatedMeds)),
-                        );
-                      }
-                      GlobalNotificationService()
-                          .scheduleCustomEventNotification(
-                            title: eventTitle,
-                            body: '$eventNote (For All Pets)',
-                            eventDateTime: eventDateTime,
-                            reminderOffset: reminderOffset,
-                            petName: 'All Pets',
-                            category: NotificationCategory.system,
-                          );
-                    } else {
-                      final matchedPet = petState.pets.firstWhere(
-                        (p) => p.name == selectedPetTarget,
-                        orElse: () => petState.pets.first,
-                      );
-                      final updatedMeds = List<Medication>.from(
-                        matchedPet.medications,
-                      )..add(newEvent);
-                      petBloc.add(
-                        UpdatePet(
-                          matchedPet.copyWith(medications: updatedMeds),
-                        ),
-                      );
-                      GlobalNotificationService()
-                          .scheduleCustomEventNotification(
-                            title: eventTitle,
-                            body: '$eventNote for ${matchedPet.name}',
-                            eventDateTime: eventDateTime,
-                            reminderOffset: reminderOffset,
-                            petName: matchedPet.name,
-                            petAvatarUrl: matchedPet.avatarUrl,
-                            category: NotificationCategory.system,
-                          );
-                    }
-
-                    Navigator.of(dialogContext).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Event "$eventTitle" saved! Reminder set ($selectedReminderKey).',
-                        ),
-                        backgroundColor: AppTheme.primary,
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
+                // 4. Early Reminder Notification Option
+                const FormSectionLabel('Notification Reminder'),
+                DropdownButtonFormField<String>(
+                  initialValue: selectedReminderKey,
+                  dropdownColor: cardBg,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    color: textPrimary,
+                    fontSize: 14,
                   ),
-                  child: const Text('Save Event'),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: isDark
+                        ? AppTheme.darkSurface
+                        : AppTheme.surfaceContainerLow,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF383634)
+                            : AppTheme.surfaceContainer,
+                      ),
+                    ),
+                  ),
+                  items: reminderOptions.keys.map((optionLabel) {
+                    return DropdownMenuItem(
+                      value: optionLabel,
+                      child: Text(optionLabel),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setModalState(() => selectedReminderKey = val);
+                    }
+                  },
+                ),
+                const SizedBox(height: 14),
+
+                // 5. Note / Description Input
+                const FormSectionLabel('Note / Location'),
+                TextField(
+                  controller: noteController,
+                  style: TextStyle(color: textPrimary, fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Clinic address, prep instructions',
+                    hintStyle: TextStyle(
+                      color: textSecondary.withValues(alpha: 0.6),
+                      fontSize: 13,
+                    ),
+                    filled: true,
+                    fillColor: isDark
+                        ? AppTheme.darkSurface
+                        : AppTheme.surfaceContainerLow,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF383634)
+                            : AppTheme.surfaceContainer,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             );
@@ -1451,111 +1364,102 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     final isWide = ResponsiveLayout.isWide(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Calendar & Schedules',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
-              ),
-              ElevatedButton.icon(
-                onPressed: () => _showAddEventDialog(context, petState),
-                icon: const Icon(Icons.add_circle_outline, size: 16),
-                label: const Text(
-                  'Add Event',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  elevation: 0,
-                ),
-              ),
-            ],
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddEventDialog(context, petState),
+        icon: const Icon(Icons.add_circle_outline, color: Colors.white, size: 20),
+        label: const Text(
+          'Add Event',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
-
-        // Main Content View (Dual Pane on Wide / Tablet screens, Scrollable Column on Mobile)
-        if (isWide)
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 380,
-                  child: SingleChildScrollView(child: monthCalendarBox),
-                ),
-                const VerticalDivider(width: 1, thickness: 1),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Text(
-                          scheduleTitle,
-                          style: const TextStyle(
-                            fontFamily: 'Montserrat',
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Expanded(child: buildEventsListWidget(shrinkWrap: false)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          )
-        else
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  monthCalendarBox,
-                  const SizedBox(height: 24),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Text(
-                      scheduleTitle,
-                      style: const TextStyle(
-                        fontFamily: 'Montserrat',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  buildEventsListWidget(shrinkWrap: true),
-                  const SizedBox(height: 24),
-                ],
+        backgroundColor: AppTheme.primary,
+        elevation: 4,
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Text(
+              'Calendar & Schedules',
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
               ),
             ),
           ),
-      ],
+
+          // Main Content View (Dual Pane on Wide / Tablet screens, Scrollable Column on Mobile)
+          if (isWide)
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 380,
+                    child: SingleChildScrollView(child: monthCalendarBox),
+                  ),
+                  const VerticalDivider(width: 1, thickness: 1),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Text(
+                            scheduleTitle,
+                            style: const TextStyle(
+                              fontFamily: 'Montserrat',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: buildEventsListWidget(shrinkWrap: false),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    monthCalendarBox,
+                    const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Text(
+                        scheduleTitle,
+                        style: const TextStyle(
+                          fontFamily: 'Montserrat',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    buildEventsListWidget(shrinkWrap: true),
+                    const SizedBox(height: 80),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
