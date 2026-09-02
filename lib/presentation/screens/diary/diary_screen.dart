@@ -512,21 +512,19 @@ class _DiaryTabState extends State<DiaryTab> {
     final isWide = ResponsiveLayout.isWide(context);
 
     return Scaffold(
-      floatingActionButton: !isWide
-          ? Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: FloatingActionButton(
-                onPressed: () => _showAddEntryDialog(context),
-                backgroundColor: AppTheme.tertiaryContainer,
-                foregroundColor: Colors.white,
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Icon(Icons.add, size: 28),
-              ),
-            )
-          : null,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 16.0),
+        child: FloatingActionButton(
+          onPressed: () => _showAddEntryDialog(context),
+          backgroundColor: AppTheme.tertiaryContainer,
+          foregroundColor: Colors.white,
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Icon(Icons.add, size: 28),
+        ),
+      ),
       body: BlocBuilder<DiaryBloc, DiaryState>(
         builder: (context, diaryState) {
           List<DiaryEntry> entries = [];
@@ -776,7 +774,7 @@ class _DiaryTabState extends State<DiaryTab> {
                   width: 1,
                   color: dividerColor.withValues(alpha: 0.5),
                 ),
-                // Right Half: All Diaries entries and Add entry button
+                // Right Half: All Diaries entries
                 Expanded(
                   flex: 7,
                   child: Column(
@@ -789,40 +787,14 @@ class _DiaryTabState extends State<DiaryTab> {
                           top: 16.0,
                           bottom: 12.0,
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Entries Log',
-                              style: TextStyle(
-                                fontFamily: 'Montserrat',
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                                color: primaryColor,
-                              ),
-                            ),
-                            ElevatedButton.icon(
-                              onPressed: () => _showAddEntryDialog(context),
-                              icon: const Icon(Icons.add, size: 18),
-                              label: const Text('Add Entry'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.tertiaryContainer,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 18,
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                textStyle: const TextStyle(
-                                  fontFamily: 'Montserrat',
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          'Entries Log',
+                          style: TextStyle(
+                            fontFamily: 'Montserrat',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                            color: primaryColor,
+                          ),
                         ),
                       ),
                       Expanded(child: entriesListView),
