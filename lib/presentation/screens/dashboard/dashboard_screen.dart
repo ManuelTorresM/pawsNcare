@@ -4,6 +4,7 @@ import '../../../logic/pet/pet_bloc.dart';
 import '../../../logic/diary/diary_bloc.dart';
 import '../../../logic/notifications/global_notification_service.dart';
 import '../../theme/app_theme.dart';
+import '../../../core/utils/responsive_layout.dart';
 import 'home_tab.dart';
 import '../diary/diary_screen.dart';
 import '../calendar/calendar_screen.dart';
@@ -98,6 +99,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final bool canPopNested = _navigatorKeys[_selectedIndex].currentState?.canPop() ?? false;
 
+    final isWide = ResponsiveLayout.isWide(context);
+
+    final widgetBody = IndexedStack(
+      index: _selectedIndex,
+      children: tabs,
+    );
+
     return PopScope(
       canPop: !canPopNested,
       onPopInvokedWithResult: (didPop, result) {
@@ -172,66 +180,114 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               )
             : null,
-        body: Stack(
-          children: [
-            // Use IndexedStack to preserve states of tabs
-            IndexedStack(
-              index: _selectedIndex,
-              children: tabs,
-            ),
-          ],
-        ),
-        bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, -4),
+        body: isWide
+            ? Row(
+                children: [
+                  NavigationRail(
+                    selectedIndex: _selectedIndex,
+                    onDestinationSelected: _onItemTapped,
+                    labelType: NavigationRailLabelType.all,
+                    backgroundColor: theme.brightness == Brightness.dark
+                        ? AppTheme.darkSurface
+                        : AppTheme.surfaceContainer,
+                    selectedIconTheme: const IconThemeData(color: AppTheme.primary),
+                    selectedLabelTextStyle: const TextStyle(
+                      fontFamily: 'Montserrat',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                      color: AppTheme.primary,
+                    ),
+                    unselectedLabelTextStyle: TextStyle(
+                      fontFamily: 'Montserrat',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 11,
+                      color: AppTheme.onSurfaceVariant.withValues(alpha: 0.6),
+                    ),
+                    destinations: const [
+                      NavigationRailDestination(
+                        icon: Icon(Icons.pets),
+                        selectedIcon: Icon(Icons.pets, color: AppTheme.primary),
+                        label: Text('Pets'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.menu_book),
+                        selectedIcon: Icon(Icons.menu_book, color: AppTheme.primary),
+                        label: Text('Diary'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.calendar_today),
+                        selectedIcon: Icon(Icons.calendar_today, color: AppTheme.primary),
+                        label: Text('Calendar'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.settings),
+                        selectedIcon: Icon(Icons.settings, color: AppTheme.primary),
+                        label: Text('Settings'),
+                      ),
+                    ],
+                  ),
+                  const VerticalDivider(thickness: 1, width: 1),
+                  Expanded(
+                    child: ResponsiveMaxContainer(
+                      child: widgetBody,
+                    ),
+                  ),
+                ],
+              )
+            : widgetBody,
+        bottomNavigationBar: isWide
+            ? null
+            : Container(
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                  child: BottomNavigationBar(
+                    currentIndex: _selectedIndex,
+                    onTap: _onItemTapped,
+                    type: BottomNavigationBarType.fixed,
+                    backgroundColor: theme.brightness == Brightness.dark
+                        ? AppTheme.darkSurface
+                        : AppTheme.surfaceContainer,
+                    selectedItemColor: AppTheme.primary,
+                    unselectedItemColor: AppTheme.onSurfaceVariant.withValues(alpha: 0.6),
+                    selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
+                    items: const [
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.pets),
+                        activeIcon: Icon(Icons.pets, color: AppTheme.primary),
+                        label: 'Pets',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.menu_book),
+                        activeIcon: Icon(Icons.menu_book, color: AppTheme.primary),
+                        label: 'Diary',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.calendar_today),
+                        activeIcon: Icon(Icons.calendar_today, color: AppTheme.primary),
+                        label: 'Calendar',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.settings),
+                        activeIcon: Icon(Icons.settings, color: AppTheme.primary),
+                        label: 'Settings',
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(16),
-              topRight: Radius.circular(16),
-            ),
-            child: BottomNavigationBar(
-              currentIndex: _selectedIndex,
-              onTap: _onItemTapped,
-              type: BottomNavigationBarType.fixed,
-              backgroundColor: theme.brightness == Brightness.dark
-                  ? AppTheme.darkSurface
-                  : AppTheme.surfaceContainer,
-              selectedItemColor: AppTheme.primary,
-              unselectedItemColor: AppTheme.onSurfaceVariant.withValues(alpha: 0.6),
-              selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.pets),
-                  activeIcon: Icon(Icons.pets, color: AppTheme.primary),
-                  label: 'Pets',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.menu_book),
-                  activeIcon: Icon(Icons.menu_book, color: AppTheme.primary),
-                  label: 'Diary',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.calendar_today),
-                  activeIcon: Icon(Icons.calendar_today, color: AppTheme.primary),
-                  label: 'Calendar',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.settings),
-                  activeIcon: Icon(Icons.settings, color: AppTheme.primary),
-                  label: 'Settings',
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

@@ -7,6 +7,7 @@ import '../../../data/models/medication.dart';
 import '../../../logic/theme/theme_cubit.dart';
 import '../../../logic/auth/auth_bloc.dart';
 import '../../../logic/pet/pet_bloc.dart';
+import '../../../core/utils/responsive_layout.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/accent_left_card.dart';
 import '../../widgets/memory_image_card.dart';
@@ -1014,12 +1015,18 @@ class _HomeTabState extends State<HomeTab> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                                childAspectRatio: 0.85,
-                              ),
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount:
+                                ResponsiveLayout.getGridCrossAxisCount(
+                              context,
+                              mobile: 2,
+                              tablet: 3,
+                              desktop: 4,
+                            ),
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 0.85,
+                          ),
                           itemCount: pets.length,
                           itemBuilder: (context, index) {
                             final pet = pets[index];

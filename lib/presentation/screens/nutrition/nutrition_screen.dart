@@ -6,6 +6,7 @@ import '../../../logic/pet/pet_bloc.dart';
 import '../../../logic/notifications/global_notification_service.dart';
 import '../../../data/models/app_notification.dart';
 import '../../theme/app_theme.dart';
+import '../../../core/utils/responsive_layout.dart';
 import '../../widgets/nutrition/nutrition_reminder_card.dart';
 import 'add_meal_screen.dart';
 import 'add_hydration_screen.dart';
@@ -1049,34 +1050,72 @@ class _NutritionScreenState extends State<NutritionScreen> {
               ),
               const SizedBox(height: 28),
 
-              // Feeding Reminders Bento Card
-              NutritionReminderCard(
-                title: 'Feeding Schedule for All',
-                icon: Icons.restaurant,
-                isEnabled: _masterFeedingEnabled,
-                onToggleChanged: (val) =>
-                    setState(() => _masterFeedingEnabled = val),
-                onAddPressed: _navigateToAddMeal,
-                items: feedingList,
-                accentColor: foodColor,
-                onDeleteItem: _showDeleteConfirmation,
-                onEditItem: _showEditReminderDialog,
-              ),
-              const SizedBox(height: 24),
+              // Responsive Feeding & Hydration Cards
+              if (ResponsiveLayout.isWide(context))
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: NutritionReminderCard(
+                        title: 'Feeding Schedule for All',
+                        icon: Icons.restaurant,
+                        isEnabled: _masterFeedingEnabled,
+                        onToggleChanged: (val) =>
+                            setState(() => _masterFeedingEnabled = val),
+                        onAddPressed: _navigateToAddMeal,
+                        items: feedingList,
+                        accentColor: foodColor,
+                        onDeleteItem: _showDeleteConfirmation,
+                        onEditItem: _showEditReminderDialog,
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: NutritionReminderCard(
+                        title: 'Hydration',
+                        icon: Icons.water_drop,
+                        isEnabled: _masterHydrationEnabled,
+                        onToggleChanged: (val) =>
+                            setState(() => _masterHydrationEnabled = val),
+                        onAddPressed: _navigateToAddHydration,
+                        items: hydrationList,
+                        accentColor: waterColor,
+                        onDeleteItem: _showDeleteConfirmation,
+                        onEditItem: _showEditReminderDialog,
+                      ),
+                    ),
+                  ],
+                )
+              else ...[
+                // Feeding Reminders Bento Card
+                NutritionReminderCard(
+                  title: 'Feeding Schedule for All',
+                  icon: Icons.restaurant,
+                  isEnabled: _masterFeedingEnabled,
+                  onToggleChanged: (val) =>
+                      setState(() => _masterFeedingEnabled = val),
+                  onAddPressed: _navigateToAddMeal,
+                  items: feedingList,
+                  accentColor: foodColor,
+                  onDeleteItem: _showDeleteConfirmation,
+                  onEditItem: _showEditReminderDialog,
+                ),
+                const SizedBox(height: 24),
 
-              // Hydration Reminders Bento Card
-              NutritionReminderCard(
-                title: 'Hydration',
-                icon: Icons.water_drop,
-                isEnabled: _masterHydrationEnabled,
-                onToggleChanged: (val) =>
-                    setState(() => _masterHydrationEnabled = val),
-                onAddPressed: _navigateToAddHydration,
-                items: hydrationList,
-                accentColor: waterColor,
-                onDeleteItem: _showDeleteConfirmation,
-                onEditItem: _showEditReminderDialog,
-              ),
+                // Hydration Reminders Bento Card
+                NutritionReminderCard(
+                  title: 'Hydration',
+                  icon: Icons.water_drop,
+                  isEnabled: _masterHydrationEnabled,
+                  onToggleChanged: (val) =>
+                      setState(() => _masterHydrationEnabled = val),
+                  onAddPressed: _navigateToAddHydration,
+                  items: hydrationList,
+                  accentColor: waterColor,
+                  onDeleteItem: _showDeleteConfirmation,
+                  onEditItem: _showEditReminderDialog,
+                ),
+              ],
             ],
           ),
         ),
