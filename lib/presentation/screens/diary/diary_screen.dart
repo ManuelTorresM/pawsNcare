@@ -6,6 +6,7 @@ import '../../../logic/diary/diary_bloc.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../../data/models/diary_entry.dart';
 import '../../../data/models/pet.dart';
+import '../../../core/utils/responsive_layout.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/accent_left_card.dart';
 
@@ -508,20 +509,24 @@ class _DiaryTabState extends State<DiaryTab> {
       }
     }
 
+    final isWide = ResponsiveLayout.isWide(context);
+
     return Scaffold(
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 16.0),
-        child: FloatingActionButton(
-          onPressed: () => _showAddEntryDialog(context),
-          backgroundColor: AppTheme.tertiaryContainer,
-          foregroundColor: Colors.white,
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Icon(Icons.add, size: 28),
-        ),
-      ),
+      floatingActionButton: !isWide
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: FloatingActionButton(
+                onPressed: () => _showAddEntryDialog(context),
+                backgroundColor: AppTheme.tertiaryContainer,
+                foregroundColor: Colors.white,
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(Icons.add, size: 28),
+              ),
+            )
+          : null,
       body: BlocBuilder<DiaryBloc, DiaryState>(
         builder: (context, diaryState) {
           List<DiaryEntry> entries = [];
@@ -535,119 +540,115 @@ class _DiaryTabState extends State<DiaryTab> {
           final totalEntries = entries.length;
           final lastIncidentText = _calculateLastIncident(entries);
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Section
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20.0,
-                  vertical: 12.0,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          final leftPaneHeader = Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 12.0,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
+                    Text(
+                      'HEALTH DIARY',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        color: textSecondary,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      recordsTitle,
+                      style: TextStyle(
+                        fontFamily: 'Montserrat',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24,
+                        color: primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+
+          final statsRow = Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'HEALTH DIARY',
+                          'Total Entries',
                           style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
+                            fontSize: 12,
                             color: textSecondary,
-                            letterSpacing: 1.0,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 6),
                         Text(
-                          recordsTitle,
+                          '$totalEntries',
                           style: TextStyle(
-                            fontFamily: 'Montserrat',
+                            fontSize: 22,
                             fontWeight: FontWeight.bold,
-                            fontSize: 24,
                             color: primaryColor,
                           ),
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-
-              // Stats Row
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: cardBg,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Total Entries',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '$totalEntries',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: primaryColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: cardBg,
-                          borderRadius: BorderRadius.circular(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Last Incident',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: textSecondary,
+                          ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Last Incident',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              lastIncidentText,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: primaryColor,
-                              ),
-                            ),
-                          ],
+                        const SizedBox(height: 6),
+                        Text(
+                          lastIncidentText,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: primaryColor,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
+              ],
+            ),
+          );
 
-              // Select a Pet filter chips row
+          final selectPetSection = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Text(
@@ -671,7 +672,6 @@ class _DiaryTabState extends State<DiaryTab> {
                   itemBuilder: (context, index) {
                     final filter = filtersList[index];
 
-                    // Determine if active
                     bool isSelected = false;
                     if (filter == 'all') {
                       isSelected = _selectedPetId == null;
@@ -700,60 +700,149 @@ class _DiaryTabState extends State<DiaryTab> {
                   },
                 ),
               ),
-              const SizedBox(height: 12),
+            ],
+          );
 
-              // Diary List Content
-              Expanded(
-                child: isLoading
+          final entriesListView = isLoading
+              ? Center(
+                  child: CircularProgressIndicator(color: primaryColor),
+                )
+              : (entries.isEmpty
                     ? Center(
-                        child: CircularProgressIndicator(color: primaryColor),
+                        child: Text(
+                          'No behavioral logs recorded yet.',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontStyle: FontStyle.italic,
+                            color: textSecondary,
+                          ),
+                        ),
                       )
-                    : (entries.isEmpty
-                          ? Center(
-                              child: Text(
-                                'No behavioral logs recorded yet.',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontStyle: FontStyle.italic,
-                                  color: textSecondary,
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 8,
+                        ),
+                        itemCount: entries.length,
+                        itemBuilder: (context, index) {
+                          final entry = entries[index];
+                          final matchedPet = pets.isNotEmpty
+                              ? pets.firstWhere(
+                                  (p) => p.id == entry.petId,
+                                  orElse: () => pets.first,
+                                )
+                              : null;
+                          final petName =
+                              (matchedPet != null &&
+                                  matchedPet.id == entry.petId)
+                              ? matchedPet.name
+                              : 'Luna';
+
+                          return _buildDiaryCard(
+                            entry,
+                            petName,
+                            isDark,
+                            tileBg,
+                            textPrimary,
+                            textSecondary,
+                            primaryColor,
+                            dividerColor,
+                          );
+                        },
+                      ));
+
+          if (isWide) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left Half: Total entries, last incident and select pet
+                Expanded(
+                  flex: 5,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        leftPaneHeader,
+                        const SizedBox(height: 8),
+                        statsRow,
+                        const SizedBox(height: 24),
+                        selectPetSection,
+                      ],
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  color: dividerColor.withValues(alpha: 0.5),
+                ),
+                // Right Half: All Diaries entries and Add entry button
+                Expanded(
+                  flex: 7,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          left: 20.0,
+                          right: 20.0,
+                          top: 16.0,
+                          bottom: 12.0,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Entries Log',
+                              style: TextStyle(
+                                fontFamily: 'Montserrat',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                                color: primaryColor,
+                              ),
+                            ),
+                            ElevatedButton.icon(
+                              onPressed: () => _showAddEntryDialog(context),
+                              icon: const Icon(Icons.add, size: 18),
+                              label: const Text('Add Entry'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.tertiaryContainer,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                textStyle: const TextStyle(
+                                  fontFamily: 'Montserrat',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
                                 ),
                               ),
-                            )
-                          : ListView.builder(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 8,
-                              ),
-                              itemCount: entries.length,
-                              itemBuilder: (context, index) {
-                                final entry = entries[index];
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(child: entriesListView),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }
 
-                                // Retrieve matching pet name
-                                final matchedPet = pets.isNotEmpty
-                                    ? pets.firstWhere(
-                                        (p) => p.id == entry.petId,
-                                        orElse: () => pets.first,
-                                      )
-                                    : null;
-                                final petName =
-                                    (matchedPet != null &&
-                                        matchedPet.id == entry.petId)
-                                    ? matchedPet.name
-                                    : 'Luna';
-
-                                return _buildDiaryCard(
-                                  entry,
-                                  petName,
-                                  isDark,
-                                  tileBg,
-                                  textPrimary,
-                                  textSecondary,
-                                  primaryColor,
-                                  dividerColor,
-                                );
-                              },
-                            )),
-              ),
+          // Mobile View
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              leftPaneHeader,
+              statsRow,
+              const SizedBox(height: 20),
+              selectPetSection,
+              const SizedBox(height: 12),
+              Expanded(child: entriesListView),
             ],
           );
         },
