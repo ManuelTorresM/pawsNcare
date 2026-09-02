@@ -155,298 +155,223 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
               final isOtherVaccine = selectedVaccine == 'Other';
               final isOtherDose = selectedDoseNumber == 'Other';
 
-              return AlertDialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+              return BaseFormDialog(
+                icon: Icons.vaccines_outlined,
+                title: 'Edit Vaccine',
+                subtitle: 'Update vaccination records',
+                primaryButtonText: 'Save Changes',
+                headerAction: IconButton(
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: AppTheme.error,
+                  ),
+                  tooltip: 'Delete',
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    _showDeleteConfirmDialog(parentContext, item);
+                  },
                 ),
-                title: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Edit Vaccine',
-                      style: TextStyle(
-                        fontFamily: 'Montserrat',
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primary,
+                onPrimaryPressed: () {
+                  final vaccineName = isOtherVaccine
+                      ? nameController.text.trim()
+                      : selectedVaccine;
+                  final doseLabel = isOtherDose
+                      ? customDoseController.text.trim()
+                      : selectedDoseNumber;
+
+                  if (vaccineName.isNotEmpty) {
+                    final mfrText = manufacturerController.text.trim();
+                    final batchText = batchController.text.trim();
+
+                    String lotInfo = '';
+                    if (mfrText.isNotEmpty && batchText.isNotEmpty) {
+                      lotInfo = '$mfrText (Batch #$batchText)';
+                    } else if (batchText.isNotEmpty) {
+                      lotInfo = 'Batch #$batchText';
+                    } else if (mfrText.isNotEmpty) {
+                      lotInfo = mfrText;
+                    }
+
+                    final isAlreadyAdministered = dateType == 'Administered';
+
+                    final updatedVaccine = item.copyWith(
+                      name: vaccineName,
+                      dose: doseLabel.isNotEmpty ? doseLabel : '1st Dose',
+                      frequency: doseLabel.isNotEmpty ? doseLabel : 'Annual',
+                      startDate: selectedDate,
+                      nextDoseDate: isAlreadyAdministered
+                          ? selectedDate.add(const Duration(days: 365))
+                          : selectedDate,
+                      administeredDate:
+                          isAlreadyAdministered ? selectedDate : null,
+                      lotNumber: lotInfo,
+                      isCompleted: isAlreadyAdministered,
+                    );
+
+                    final updatedMeds = _pet.medications
+                        .map((m) => m.id == item.id ? updatedVaccine : m)
+                        .toList();
+                    final updatedPet = _pet.copyWith(
+                      medications: updatedMeds,
+                    );
+                    parentContext.read<PetBloc>().add(
+                          UpdatePet(updatedPet),
+                        );
+                    Navigator.of(dialogContext).pop();
+                  }
+                },
+                children: [
+                  // 1. Name
+                  const FormSectionLabel('VACCINE NAME'),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedVaccine,
+                    items: predefinedVaccines
+                        .map(
+                          (v) => DropdownMenuItem(value: v, child: Text(v)),
+                        )
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDialogState(() => selectedVaccine = val);
+                      }
+                    },
+                  ),
+                  if (isOtherVaccine) ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        hintText: 'Enter vaccine name...',
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        color: AppTheme.error,
-                      ),
-                      tooltip: 'Delete',
-                      onPressed: () {
-                        Navigator.of(dialogContext).pop();
-                        _showDeleteConfirmDialog(parentContext, item);
-                      },
                     ),
                   ],
-                ),
-                content: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 12),
+
+                  // 2. Manufacturer / Laboratory (Optional)
+                  const FormSectionLabel('MANUFACTURER / LABORATORY (OPTIONAL)'),
+                  TextField(
+                    controller: manufacturerController,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. Zoetis, Merck, Boehringer',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 3. Batch Number (Optional)
+                  const FormSectionLabel('BATCH NUMBER (OPTIONAL)'),
+                  TextField(
+                    controller: batchController,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. B-987654',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 4. Number of Dose
+                  const FormSectionLabel('DOSE NUMBER / TYPE'),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedDoseNumber,
+                    items: predefinedDoses
+                        .map(
+                          (d) => DropdownMenuItem(value: d, child: Text(d)),
+                        )
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDialogState(() => selectedDoseNumber = val);
+                      }
+                    },
+                  ),
+                  if (isOtherDose) ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: customDoseController,
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. 3rd Dose, Booster #2...',
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+
+                  // Date Mode Selection
+                  const FormSectionLabel('DATE STATUS'),
+                  Wrap(
+                    spacing: 8,
                     children: [
-                      // 1. Name
-                      const Text(
-                        'Vaccine Name',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                      ChoiceChip(
+                        label: const Text(
+                          'Administered',
+                          style: TextStyle(fontSize: 11),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      DropdownButtonFormField<String>(
-                        initialValue: selectedVaccine,
-                        items: predefinedVaccines
-                            .map(
-                              (v) => DropdownMenuItem(value: v, child: Text(v)),
-                            )
-                            .toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            setDialogState(() => selectedVaccine = val);
+                        selected: dateType == 'Administered',
+                        selectedColor: AppTheme.primaryFixed,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setDialogState(() {
+                              dateType = 'Administered';
+                              selectedDate = DateTime.now();
+                            });
                           }
                         },
                       ),
-                      if (isOtherVaccine) ...[
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: nameController,
-                          decoration: const InputDecoration(
-                            hintText: 'Enter vaccine name...',
-                          ),
+                      ChoiceChip(
+                        label: const Text(
+                          'Re-schedule Date',
+                          style: TextStyle(fontSize: 11),
                         ),
-                      ],
-                      const SizedBox(height: 12),
-
-                      // 2. Manufacturer / Laboratory (Optional)
-                      const Text(
-                        'Manufacturer / Laboratory (Optional)',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      TextField(
-                        controller: manufacturerController,
-                        decoration: const InputDecoration(
-                          hintText: 'e.g. Zoetis, Merck, Boehringer',
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // 3. Batch Number (Optional)
-                      const Text(
-                        'Batch Number (Optional)',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      TextField(
-                        controller: batchController,
-                        decoration: const InputDecoration(
-                          hintText: 'e.g. B-987654',
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // 4. Number of Dose (1st, reinforcement, annual, etc)
-                      const Text(
-                        'Dose Number / Type',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      DropdownButtonFormField<String>(
-                        initialValue: selectedDoseNumber,
-                        items: predefinedDoses
-                            .map(
-                              (d) => DropdownMenuItem(value: d, child: Text(d)),
-                            )
-                            .toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            setDialogState(() => selectedDoseNumber = val);
+                        selected: dateType == 'Scheduled',
+                        selectedColor: AppTheme.primaryFixed,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setDialogState(() {
+                              dateType = 'Scheduled';
+                              selectedDate = DateTime.now().add(
+                                const Duration(days: 7),
+                              );
+                            });
                           }
                         },
-                      ),
-                      if (isOtherDose) ...[
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: customDoseController,
-                          decoration: const InputDecoration(
-                            hintText: 'e.g. 3rd Dose, Booster #2...',
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 12),
-
-                      // Date Mode Selection
-                      const Text(
-                        'Date Status',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          ChoiceChip(
-                            label: const Text(
-                              'Administered',
-                              style: TextStyle(fontSize: 11),
-                            ),
-                            selected: dateType == 'Administered',
-                            selectedColor: AppTheme.primaryFixed,
-                            onSelected: (selected) {
-                              if (selected) {
-                                setDialogState(() {
-                                  dateType = 'Administered';
-                                  selectedDate = DateTime.now();
-                                });
-                              }
-                            },
-                          ),
-                          ChoiceChip(
-                            label: const Text(
-                              'Re-schedule Date',
-                              style: TextStyle(fontSize: 11),
-                            ),
-                            selected: dateType == 'Scheduled',
-                            selectedColor: AppTheme.primaryFixed,
-                            onSelected: (selected) {
-                              if (selected) {
-                                setDialogState(() {
-                                  dateType = 'Scheduled';
-                                  selectedDate = DateTime.now().add(
-                                    const Duration(days: 7),
-                                  );
-                                });
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Date Picker Button
-                      Text(
-                        dateType == 'Administered'
-                            ? 'Administration Date'
-                            : 'Re-schedule Date',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      OutlinedButton.icon(
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: dialogContext,
-                            initialDate: selectedDate,
-                            firstDate: dateType == 'Administered'
-                                ? DateTime.now().subtract(
-                                    const Duration(days: 365 * 10),
-                                  )
-                                : DateTime.now().subtract(
-                                    const Duration(days: 365 * 2),
-                                  ),
-                            lastDate: dateType == 'Administered'
-                                ? DateTime.now()
-                                : DateTime.now().add(
-                                    const Duration(days: 365 * 3),
-                                  ),
-                          );
-                          if (!dialogContext.mounted) return;
-                          if (picked != null) {
-                            setDialogState(() => selectedDate = picked);
-                          }
-                        },
-                        icon: const Icon(Icons.calendar_today, size: 16),
-                        label: Text(_formatDate(selectedDate)),
-                        style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
                       ),
                     ],
                   ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                    child: const Text('Cancel'),
+                  const SizedBox(height: 8),
+
+                  // Date Picker Button
+                  FormSectionLabel(
+                    dateType == 'Administered'
+                        ? 'ADMINISTRATION DATE'
+                        : 'RE-SCHEDULE DATE',
                   ),
-                  ElevatedButton(
-                    onPressed: () {
-                      final vaccineName = isOtherVaccine
-                          ? nameController.text.trim()
-                          : selectedVaccine;
-                      final doseLabel = isOtherDose
-                          ? customDoseController.text.trim()
-                          : selectedDoseNumber;
-
-                      if (vaccineName.isNotEmpty) {
-                        final mfrText = manufacturerController.text.trim();
-                        final batchText = batchController.text.trim();
-
-                        String lotInfo = '';
-                        if (mfrText.isNotEmpty && batchText.isNotEmpty) {
-                          lotInfo = '$mfrText (Batch #$batchText)';
-                        } else if (batchText.isNotEmpty) {
-                          lotInfo = 'Batch #$batchText';
-                        } else if (mfrText.isNotEmpty) {
-                          lotInfo = mfrText;
-                        }
-
-                        final isAlreadyAdministered =
-                            dateType == 'Administered';
-
-                        final updatedVaccine = item.copyWith(
-                          name: vaccineName,
-                          dose: doseLabel.isNotEmpty ? doseLabel : '1st Dose',
-                          frequency: doseLabel.isNotEmpty
-                              ? doseLabel
-                              : 'Annual',
-                          startDate: selectedDate,
-                          nextDoseDate: isAlreadyAdministered
-                              ? selectedDate.add(const Duration(days: 365))
-                              : selectedDate,
-                          administeredDate: isAlreadyAdministered
-                              ? selectedDate
-                              : null,
-                          lotNumber: lotInfo,
-                          isCompleted: isAlreadyAdministered,
-                        );
-
-                        final updatedMeds = _pet.medications
-                            .map((m) => m.id == item.id ? updatedVaccine : m)
-                            .toList();
-                        final updatedPet = _pet.copyWith(
-                          medications: updatedMeds,
-                        );
-                        parentContext.read<PetBloc>().add(
-                          UpdatePet(updatedPet),
-                        );
-                        Navigator.of(dialogContext).pop();
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: dialogContext,
+                        initialDate: selectedDate,
+                        firstDate: dateType == 'Administered'
+                            ? DateTime.now().subtract(
+                                const Duration(days: 365 * 10),
+                              )
+                            : DateTime.now().subtract(
+                                const Duration(days: 365 * 2),
+                              ),
+                        lastDate: dateType == 'Administered'
+                            ? DateTime.now()
+                            : DateTime.now().add(
+                                const Duration(days: 365 * 3),
+                              ),
+                      );
+                      if (!dialogContext.mounted) return;
+                      if (picked != null) {
+                        setDialogState(() => selectedDate = picked);
                       }
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary,
-                      foregroundColor: Colors.white,
+                    icon: const Icon(Icons.calendar_today, size: 16),
+                    label: Text(_formatDate(selectedDate)),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: const Text('Save Changes'),
                   ),
                 ],
               );
@@ -486,290 +411,192 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+            return BaseFormDialog(
+              icon: Icons.medication_outlined,
+              title: 'Edit Medication',
+              subtitle: 'Update prescription & dosage details',
+              primaryButtonText: 'Save Changes',
+              headerAction: IconButton(
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: AppTheme.error,
+                ),
+                tooltip: 'Delete',
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  _showDeleteConfirmDialog(parentContext, item);
+                },
               ),
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Edit Medication',
-                    style: TextStyle(
-                      fontFamily: 'Montserrat',
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primary,
-                    ),
+              onPrimaryPressed: () {
+                final nameText = nameController.text.trim();
+                if (nameText.isNotEmpty) {
+                  final finalDoseStr =
+                      '${doseAmountController.text.trim()} $doseUnit'.trim();
+
+                  final updatedMed = item.copyWith(
+                    name: nameText,
+                    dose: finalDoseStr,
+                    frequency: frequency,
+                    startDate: startDate,
+                    nextDoseDate: startDate,
+                    endDate: endDate,
+                    remindersEnabled: reminder,
+                  );
+
+                  final updatedMeds = _pet.medications
+                      .map((m) => m.id == item.id ? updatedMed : m)
+                      .toList();
+                  final updatedPet = _pet.copyWith(
+                    medications: updatedMeds,
+                  );
+                  parentContext.read<PetBloc>().add(
+                        UpdatePet(updatedPet),
+                      );
+                  Navigator.of(dialogContext).pop();
+                }
+              },
+              children: [
+                const FormSectionLabel('MEDICATION NAME'),
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. Apoquel, Heartworm pill',
                   ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.delete_outline,
-                      color: AppTheme.error,
-                    ),
-                    tooltip: 'Delete',
-                    onPressed: () {
-                      Navigator.of(dialogContext).pop();
-                      _showDeleteConfirmDialog(parentContext, item);
-                    },
-                  ),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                ),
+                const SizedBox(height: 12),
+                const FormSectionLabel('DOSE'),
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Medication Name',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                    Expanded(
+                      flex: 2,
+                      child: TextField(
+                        controller: doseAmountController,
+                        decoration: const InputDecoration(hintText: '1'),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(
-                        hintText: 'e.g. Apoquel, Heartworm pill',
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 3,
+                      child: DropdownButtonFormField<String>(
+                        initialValue: doseUnit,
+                        items: const [
+                          DropdownMenuItem(value: 'Tablet', child: Text('Tablet')),
+                          DropdownMenuItem(value: 'mg', child: Text('mg')),
+                          DropdownMenuItem(value: 'ml', child: Text('ml')),
+                          DropdownMenuItem(value: 'Other', child: Text('Other')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setDialogState(() => doseUnit = val);
+                          }
+                        },
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Dose',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: TextField(
-                            controller: doseAmountController,
-                            decoration: const InputDecoration(hintText: '1'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 3,
-                          child: DropdownButtonFormField<String>(
-                            initialValue: doseUnit,
-                            items: const [
-                              DropdownMenuItem(
-                                value: 'Tablet',
-                                child: Text('Tablet'),
-                              ),
-                              DropdownMenuItem(value: 'mg', child: Text('mg')),
-                              DropdownMenuItem(value: 'ml', child: Text('ml')),
-                              DropdownMenuItem(
-                                value: 'Other',
-                                child: Text('Other'),
-                              ),
-                            ],
-                            onChanged: (val) {
-                              if (val != null) {
-                                setDialogState(() => doseUnit = val);
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Frequency',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    DropdownButtonFormField<String>(
-                      initialValue: frequency,
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'Every 8h',
-                          child: Text('Every 8h'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Every 12h',
-                          child: Text('Every 12h'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Every 24h',
-                          child: Text('Every 24h'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Weekly',
-                          child: Text('Weekly'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Monthly',
-                          child: Text('Monthly'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'One-time',
-                          child: Text('One-time'),
-                        ),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) {
-                          setDialogState(() => frequency = val);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Re-schedule / Start Date',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final picked = await showDatePicker(
-                          context: dialogContext,
-                          initialDate: startDate,
-                          firstDate: DateTime.now().subtract(
-                            const Duration(days: 365),
-                          ),
-                          lastDate: DateTime.now().add(
-                            const Duration(days: 365 * 3),
-                          ),
-                        );
-                        if (!dialogContext.mounted) return;
-                        if (picked != null) {
-                          setDialogState(() => startDate = picked);
-                        }
-                      },
-                      icon: const Icon(Icons.calendar_today, size: 16),
-                      label: Text(_formatDate(startDate)),
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'End Date (Optional)',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                        if (endDate != null)
-                          IconButton(
-                            icon: const Icon(
-                              Icons.clear,
-                              size: 16,
-                              color: AppTheme.error,
-                            ),
-                            onPressed: () {
-                              setDialogState(() => endDate = null);
-                            },
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final picked = await showDatePicker(
-                          context: dialogContext,
-                          initialDate:
-                              endDate ?? startDate.add(const Duration(days: 7)),
-                          firstDate: startDate,
-                          lastDate: DateTime.now().add(
-                            const Duration(days: 365 * 3),
-                          ),
-                        );
-                        if (!dialogContext.mounted) return;
-                        if (picked != null) {
-                          setDialogState(() => endDate = picked);
-                        }
-                      },
-                      icon: const Icon(Icons.calendar_today, size: 16),
-                      label: Text(
-                        endDate != null
-                            ? _formatDate(endDate!)
-                            : 'No End Date selected',
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Reminders & Notifications',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                        Switch(
-                          value: reminder,
-                          onChanged: (val) {
-                            setDialogState(() => reminder = val);
-                          },
-                          activeThumbColor: AppTheme.primary,
-                        ),
-                      ],
                     ),
                   ],
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final nameText = nameController.text.trim();
-                    if (nameText.isNotEmpty) {
-                      final finalDoseStr =
-                          '${doseAmountController.text.trim()} $doseUnit'
-                              .trim();
-
-                      final updatedMed = item.copyWith(
-                        name: nameText,
-                        dose: finalDoseStr,
-                        frequency: frequency,
-                        startDate: startDate,
-                        endDate: endDate,
-                        remindersEnabled: reminder,
-                      );
-
-                      final updatedMeds = _pet.medications
-                          .map((m) => m.id == item.id ? updatedMed : m)
-                          .toList();
-                      final updatedPet = _pet.copyWith(
-                        medications: updatedMeds,
-                      );
-                      parentContext.read<PetBloc>().add(UpdatePet(updatedPet));
-                      Navigator.of(dialogContext).pop();
+                const SizedBox(height: 12),
+                const FormSectionLabel('FREQUENCY'),
+                DropdownButtonFormField<String>(
+                  initialValue: frequency,
+                  items: const [
+                    DropdownMenuItem(value: 'Every 8h', child: Text('Every 8h')),
+                    DropdownMenuItem(value: 'Every 12h', child: Text('Every 12h')),
+                    DropdownMenuItem(value: 'Every 24h', child: Text('Every 24h')),
+                    DropdownMenuItem(value: 'Weekly', child: Text('Weekly')),
+                    DropdownMenuItem(value: 'Monthly', child: Text('Monthly')),
+                    DropdownMenuItem(value: 'One-time', child: Text('One-time')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) {
+                      setDialogState(() => frequency = val);
                     }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
+                ),
+                const SizedBox(height: 12),
+                const FormSectionLabel('RE-SCHEDULE / START DATE'),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: dialogContext,
+                      initialDate: startDate,
+                      firstDate:
+                          DateTime.now().subtract(const Duration(days: 365)),
+                      lastDate: DateTime.now().add(const Duration(days: 365 * 3)),
+                    );
+                    if (!dialogContext.mounted) return;
+                    if (picked != null) {
+                      setDialogState(() => startDate = picked);
+                    }
+                  },
+                  icon: const Icon(Icons.calendar_today, size: 16),
+                  label: Text(_formatDate(startDate)),
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  child: const Text('Save Changes'),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const FormSectionLabel('END DATE (OPTIONAL)'),
+                    if (endDate != null)
+                      IconButton(
+                        icon: const Icon(
+                          Icons.clear,
+                          size: 16,
+                          color: AppTheme.error,
+                        ),
+                        onPressed: () {
+                          setDialogState(() => endDate = null);
+                        },
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: dialogContext,
+                      initialDate:
+                          endDate ?? startDate.add(const Duration(days: 7)),
+                      firstDate: startDate,
+                      lastDate: DateTime.now().add(const Duration(days: 365 * 3)),
+                    );
+                    if (!dialogContext.mounted) return;
+                    if (picked != null) {
+                      setDialogState(() => endDate = picked);
+                    }
+                  },
+                  icon: const Icon(Icons.calendar_today, size: 16),
+                  label: Text(
+                    endDate != null
+                        ? _formatDate(endDate!)
+                        : 'No End Date selected',
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const FormSectionLabel('REMINDERS & NOTIFICATIONS'),
+                    Switch(
+                      value: reminder,
+                      onChanged: (val) {
+                        setDialogState(() => reminder = val);
+                      },
+                      activeThumbColor: AppTheme.primary,
+                    ),
+                  ],
                 ),
               ],
             );
