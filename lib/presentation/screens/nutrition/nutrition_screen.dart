@@ -390,7 +390,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    DropdownButtonFormField<String>(
+                    SizedBox(
+                      width: 120,
+                      child: DropdownButtonFormField<String>(
                       initialValue: selectedUnit,
                       decoration: const InputDecoration(
                         contentPadding: EdgeInsets.symmetric(
@@ -407,6 +409,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                         }
                       },
                     ),
+                  ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -613,7 +616,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    DropdownButtonFormField<String>(
+                    SizedBox(
+                      width: 120,
+                      child: DropdownButtonFormField<String>(
                       initialValue: selectedUnit,
                       decoration: const InputDecoration(
                         contentPadding: EdgeInsets.symmetric(
@@ -630,6 +635,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                         }
                       },
                     ),
+                  ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -990,7 +996,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    DropdownButtonFormField<String>(
+                    SizedBox(
+                      width: 120,
+                      child: DropdownButtonFormField<String>(
                       initialValue: selectedUnit,
                       decoration: const InputDecoration(
                         contentPadding: EdgeInsets.symmetric(
@@ -1014,6 +1022,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                         }
                       },
                     ),
+                  ),
                   ],
                 ),
                 const SizedBox(height: 16),
