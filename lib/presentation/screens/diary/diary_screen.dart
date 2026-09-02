@@ -9,6 +9,7 @@ import '../../../data/models/pet.dart';
 import '../../../core/utils/responsive_layout.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/accent_left_card.dart';
+import '../../widgets/base_form_dialog.dart';
 
 class DiaryTab extends StatefulWidget {
   const DiaryTab({super.key});
@@ -142,321 +143,300 @@ class _DiaryTabState extends State<DiaryTab> {
 
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    initialEntry != null ? 'Edit Diary Log' : 'Add Diary Log',
-                    style: const TextStyle(
-                      fontFamily: 'Montserrat',
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primary,
-                    ),
-                  ),
-                  if (initialEntry != null)
-                    IconButton(
+          builder: (dialogContext, setDialogState) {
+            final isDark = context.read<ThemeCubit>().state;
+            final textPrimary =
+                isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
+            final textSecondary =
+                isDark ? AppTheme.darkOnSurfaceVariant : AppTheme.secondary;
+
+            return BaseFormDialog(
+              icon: Icons.book_outlined,
+              title: initialEntry != null ? 'Edit Diary Log' : 'Add Diary Log',
+              subtitle: initialEntry != null
+                  ? 'Update entry details'
+                  : 'Log a new pet diary incident',
+              validationError: validationError,
+              primaryButtonText:
+                  initialEntry != null ? 'Save Changes' : 'Save Log',
+              headerAction: initialEntry != null
+                  ? IconButton(
                       icon: const Icon(
                         Icons.delete_outline,
                         color: AppTheme.error,
                       ),
                       onPressed: () {
-                        Navigator.pop(context);
+                        Navigator.pop(dialogContext);
                         _showDeleteConfirmDialog(context, initialEntry);
                       },
-                    ),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (validationError != null) ...[
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.red.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.error_outline,
-                              color: Colors.red,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                validationError!,
-                                style: const TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                    )
+                  : null,
+              onPrimaryPressed: () {
+                final title = titleController.text.trim();
+                final note = noteController.text.trim();
 
-                    // Pet selection
-                    const Text(
-                      'Select Pet',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    DropdownButtonFormField<String>(
-                      initialValue: petId,
-                      items: petState.pets.map((p) {
-                        return DropdownMenuItem(
-                          value: p.id,
-                          child: Text(p.name),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setDialogState(() => petId = val);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
+                final List<String> missingFields = [];
+                if (petId.isEmpty) missingFields.add('Target Pet');
+                if (title.isEmpty) missingFields.add('Title');
+                if (note.isEmpty) missingFields.add('Notes');
 
-                    // Category selection
-                    const Text(
-                      'Category',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    DropdownButtonFormField<String>(
-                      initialValue: category,
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'walk',
-                          child: Text('Behavioral (Walk)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'food',
-                          child: Text('Dietary (Food)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'hydration',
-                          child: Text('Hydration (Water)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'med',
-                          child: Text('Medication'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'vet',
-                          child: Text('Symptom (Vet Visit)'),
-                        ),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) {
-                          setDialogState(() {
-                            category = val;
-                            if (val == 'vet') {
-                              severity = 'SEVERE';
-                            } else if (val == 'food' || val == 'med') {
-                              severity = 'MODERATE';
-                            } else {
-                              severity = 'MILD';
-                            }
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
+                if (missingFields.isNotEmpty) {
+                  setDialogState(() {
+                    validationError =
+                        'Missing required fields: ${missingFields.join(', ')}';
+                  });
+                  return;
+                }
 
-                    // Severity selection
-                    const Text(
-                      'Severity Level',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _buildSeverityOption(
-                          label: 'MILD',
-                          isSelected: severity == 'MILD',
-                          color: const Color(0xFF5D9CEC),
-                          bgColor: const Color(0xFFEBF5FB),
-                          onTap: () => setDialogState(() => severity = 'MILD'),
-                        ),
-                        const SizedBox(width: 8),
-                        _buildSeverityOption(
-                          label: 'MODERATE',
-                          isSelected: severity == 'MODERATE',
-                          color: const Color(0xFFF39C12),
-                          bgColor: const Color(0xFFFEF9E7),
-                          onTap: () =>
-                              setDialogState(() => severity = 'MODERATE'),
-                        ),
-                        const SizedBox(width: 8),
-                        _buildSeverityOption(
-                          label: 'SEVERE',
-                          isSelected: severity == 'SEVERE',
-                          color: const Color(0xFFE74C3C),
-                          bgColor: const Color(0xFFFDEDEC),
-                          onTap: () =>
-                              setDialogState(() => severity = 'SEVERE'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Title
-                    const Text(
-                      'Title *',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: titleController,
-                      decoration: InputDecoration(
-                        hintText: 'Morning walk, New kibble test, etc.',
-                        errorText:
-                            validationError != null &&
-                                titleController.text.trim().isEmpty
-                            ? 'Title is required'
-                            : null,
-                      ),
-                      onChanged: (_) {
-                        if (validationError != null) {
-                          setDialogState(() => validationError = null);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Note
-                    const Text(
-                      'Notes *',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: noteController,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        hintText: 'Write down behavioral notes or details...',
-                        errorText:
-                            validationError != null &&
-                                noteController.text.trim().isEmpty
-                            ? 'Notes are required'
-                            : null,
-                      ),
-                      onChanged: (_) {
-                        if (validationError != null) {
-                          setDialogState(() => validationError = null);
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final title = titleController.text.trim();
-                    final note = noteController.text.trim();
-
-                    final List<String> missingFields = [];
-                    if (petId.isEmpty) missingFields.add('Target Pet');
-                    if (title.isEmpty) missingFields.add('Title');
-                    if (note.isEmpty) missingFields.add('Notes');
-
-                    if (missingFields.isNotEmpty) {
-                      setDialogState(() {
-                        validationError =
-                            'Missing required fields: ${missingFields.join(', ')}';
-                      });
-                      return;
-                    }
-
-                    if (initialEntry != null) {
-                      final updatedEntry = DiaryEntry(
-                        id: initialEntry.id,
-                        petId: petId,
-                        title: title,
-                        category: category,
-                        note: note,
-                        timestamp: initialEntry.timestamp,
-                        severity: severity,
-                      );
-                      context.read<DiaryBloc>().add(
+                if (initialEntry != null) {
+                  final updatedEntry = DiaryEntry(
+                    id: initialEntry.id,
+                    petId: petId,
+                    title: title,
+                    category: category,
+                    note: note,
+                    timestamp: initialEntry.timestamp,
+                    severity: severity,
+                  );
+                  context.read<DiaryBloc>().add(
                         UpdateDiaryEntryEvent(
                           updatedEntry,
                           currentPetId: _selectedPetId,
                         ),
                       );
-                    } else {
-                      final entry = DiaryEntry(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        petId: petId,
-                        title: title,
-                        category: category,
-                        note: note,
-                        timestamp: DateTime.now(),
-                        severity: severity,
-                      );
-                      context.read<DiaryBloc>().add(AddDiaryEntryEvent(entry));
-                    }
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          initialEntry != null
-                              ? 'Diary log updated successfully!'
-                              : 'Diary log saved successfully!',
-                        ),
-                        backgroundColor: AppTheme.primary,
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
+                } else {
+                  final entry = DiaryEntry(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    petId: petId,
+                    title: title,
+                    category: category,
+                    note: note,
+                    timestamp: DateTime.now(),
+                    severity: severity,
+                  );
+                  context.read<DiaryBloc>().add(AddDiaryEntryEvent(entry));
+                }
+                Navigator.of(dialogContext).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      initialEntry != null
+                          ? 'Diary log updated successfully!'
+                          : 'Diary log saved successfully!',
+                    ),
                     backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
                   ),
-                  child: Text(
-                    initialEntry != null ? 'Save Changes' : 'Save Log',
+                );
+              },
+              children: [
+                // Pet selection
+                const FormSectionLabel('Select Pet'),
+                DropdownButtonFormField<String>(
+                  initialValue: petId,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    color: textPrimary,
+                    fontSize: 14,
                   ),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: isDark
+                        ? AppTheme.darkSurface
+                        : AppTheme.surfaceContainerLow,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF383634)
+                            : AppTheme.surfaceContainer,
+                      ),
+                    ),
+                  ),
+                  items: petState.pets.map((p) {
+                    return DropdownMenuItem(
+                      value: p.id,
+                      child: Text(p.name),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setDialogState(() => petId = val);
+                    }
+                  },
+                ),
+                const SizedBox(height: 14),
+
+                // Category selection
+                const FormSectionLabel('Category'),
+                DropdownButtonFormField<String>(
+                  initialValue: category,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    color: textPrimary,
+                    fontSize: 14,
+                  ),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: isDark
+                        ? AppTheme.darkSurface
+                        : AppTheme.surfaceContainerLow,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF383634)
+                            : AppTheme.surfaceContainer,
+                      ),
+                    ),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'walk',
+                      child: Text('Behavioral (Walk)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'food',
+                      child: Text('Dietary (Food)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'hydration',
+                      child: Text('Hydration (Water)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'med',
+                      child: Text('Medication'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'vet',
+                      child: Text('Symptom (Vet Visit)'),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) {
+                      setDialogState(() {
+                        category = val;
+                        if (val == 'vet') {
+                          severity = 'SEVERE';
+                        } else if (val == 'food' || val == 'med') {
+                          severity = 'MODERATE';
+                        } else {
+                          severity = 'MILD';
+                        }
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 14),
+
+                // Severity selection
+                const FormSectionLabel('Severity Level'),
+                Row(
+                  children: [
+                    _buildSeverityOption(
+                      label: 'MILD',
+                      isSelected: severity == 'MILD',
+                      color: const Color(0xFF5D9CEC),
+                      bgColor: const Color(0xFFEBF5FB),
+                      onTap: () => setDialogState(() => severity = 'MILD'),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildSeverityOption(
+                      label: 'MODERATE',
+                      isSelected: severity == 'MODERATE',
+                      color: const Color(0xFFF39C12),
+                      bgColor: const Color(0xFFFEF9E7),
+                      onTap: () => setDialogState(() => severity = 'MODERATE'),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildSeverityOption(
+                      label: 'SEVERE',
+                      isSelected: severity == 'SEVERE',
+                      color: const Color(0xFFE74C3C),
+                      bgColor: const Color(0xFFFDEDEC),
+                      onTap: () => setDialogState(() => severity = 'SEVERE'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Title
+                const FormSectionLabel('Title *'),
+                TextField(
+                  controller: titleController,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    color: textPrimary,
+                    fontSize: 14,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Morning walk, New kibble test, etc.',
+                    hintStyle: TextStyle(
+                      color: textSecondary.withValues(alpha: 0.6),
+                    ),
+                    filled: true,
+                    fillColor: isDark
+                        ? AppTheme.darkSurface
+                        : AppTheme.surfaceContainerLow,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF383634)
+                            : AppTheme.surfaceContainer,
+                      ),
+                    ),
+                    errorText: validationError != null &&
+                            titleController.text.trim().isEmpty
+                        ? 'Title is required'
+                        : null,
+                  ),
+                  onChanged: (_) {
+                    if (validationError != null) {
+                      setDialogState(() => validationError = null);
+                    }
+                  },
+                ),
+                const SizedBox(height: 14),
+
+                // Note
+                const FormSectionLabel('Notes *'),
+                TextField(
+                  controller: noteController,
+                  maxLines: 3,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    color: textPrimary,
+                    fontSize: 14,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Write down behavioral notes or details...',
+                    hintStyle: TextStyle(
+                      color: textSecondary.withValues(alpha: 0.6),
+                    ),
+                    filled: true,
+                    fillColor: isDark
+                        ? AppTheme.darkSurface
+                        : AppTheme.surfaceContainerLow,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF383634)
+                            : AppTheme.surfaceContainer,
+                      ),
+                    ),
+                    errorText: validationError != null &&
+                            noteController.text.trim().isEmpty
+                        ? 'Notes are required'
+                        : null,
+                  ),
+                  onChanged: (_) {
+                    if (validationError != null) {
+                      setDialogState(() => validationError = null);
+                    }
+                  },
                 ),
               ],
             );

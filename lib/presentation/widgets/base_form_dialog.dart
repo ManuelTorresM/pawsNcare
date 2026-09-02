@@ -16,6 +16,7 @@ class BaseFormDialog extends StatelessWidget {
   final VoidCallback onPrimaryPressed;
   final String cancelButtonText;
   final double maxWidth;
+  final Widget? headerAction;
 
   const BaseFormDialog({
     super.key,
@@ -29,6 +30,7 @@ class BaseFormDialog extends StatelessWidget {
     required this.onPrimaryPressed,
     this.cancelButtonText = 'Cancel',
     this.maxWidth = 520,
+    this.headerAction,
   });
 
   @override
@@ -96,6 +98,7 @@ class BaseFormDialog extends StatelessWidget {
                       ],
                     ),
                   ),
+                  ?headerAction,
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
                     icon: Icon(
