@@ -186,6 +186,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   NavigationRail(
                     selectedIndex: _selectedIndex,
                     onDestinationSelected: _onItemTapped,
+                    groupAlignment: 0.0,
                     labelType: NavigationRailLabelType.all,
                     backgroundColor: theme.brightness == Brightness.dark
                         ? AppTheme.darkSurface
