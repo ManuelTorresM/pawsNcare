@@ -588,10 +588,7 @@ class _HomeTabState extends State<HomeTab> {
                         const SizedBox(height: 4),
                         Text(
                           healthSubtitle,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: textSecondary,
-                          ),
+                          style: TextStyle(fontSize: 13, color: textSecondary),
                         ),
                       ],
                     ),
@@ -646,8 +643,18 @@ class _HomeTabState extends State<HomeTab> {
                 if (upcomingMonthEvents.isNotEmpty) {
                   final nextDate = upcomingMonthEvents.first.nextDoseDate;
                   const months = [
-                    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+                    'Jan',
+                    'Feb',
+                    'Mar',
+                    'Apr',
+                    'May',
+                    'Jun',
+                    'Jul',
+                    'Aug',
+                    'Sep',
+                    'Oct',
+                    'Nov',
+                    'Dec',
                   ];
                   if (nextDate.year == now.year &&
                       nextDate.month == now.month &&
@@ -829,33 +836,28 @@ class _HomeTabState extends State<HomeTab> {
     final nutritionSection = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: AccentLeftCard(
-        accentColor: isDark
-            ? AppTheme.foodConceptDark
-            : AppTheme.foodConcept,
+        accentColor: isDark ? AppTheme.foodConceptDark : AppTheme.foodConcept,
         backgroundColor: cardBg,
         margin: EdgeInsets.zero,
         padding: const EdgeInsets.all(16),
         onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const NutritionScreen()),
-          );
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const NutritionScreen()));
         },
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: (isDark
-                        ? AppTheme.foodConceptDark
-                        : AppTheme.foodConcept)
-                    .withValues(alpha: isDark ? 0.25 : 0.15),
+                color:
+                    (isDark ? AppTheme.foodConceptDark : AppTheme.foodConcept)
+                        .withValues(alpha: isDark ? 0.25 : 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 Icons.restaurant,
-                color: isDark
-                    ? AppTheme.foodConceptDark
-                    : AppTheme.foodConcept,
+                color: isDark ? AppTheme.foodConceptDark : AppTheme.foodConcept,
               ),
             ),
             const SizedBox(width: 16),
@@ -874,10 +876,7 @@ class _HomeTabState extends State<HomeTab> {
                   const SizedBox(height: 2),
                   Text(
                     'Manage meals and logs',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: textSecondary,
-                    ),
+                    style: TextStyle(fontSize: 13, color: textSecondary),
                   ),
                 ],
               ),
@@ -997,9 +996,7 @@ class _HomeTabState extends State<HomeTab> {
                               : AppTheme.tertiary;
                           statusBgColor = isDark
                               ? const Color(0xFF5C2B1D)
-                              : AppTheme.tertiaryFixed.withValues(
-                                  alpha: 0.4,
-                                );
+                              : AppTheme.tertiaryFixed.withValues(alpha: 0.4);
                         } else if (pet.status == 'Puppy') {
                           statusColor = textSecondary;
                           statusBgColor = isDark
@@ -1032,68 +1029,73 @@ class _HomeTabState extends State<HomeTab> {
                                           fit: BoxFit.cover,
                                         )
                                       : (pet.avatarUrl.startsWith('http') ||
-                                              pet.avatarUrl.startsWith('https')
-                                          ? Image.network(
-                                              pet.avatarUrl,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, _, _) =>
-                                                  Container(
-                                                color: isDark
-                                                    ? const Color(
-                                                        0xFF383634,
-                                                      )
-                                                    : AppTheme.primaryFixed
-                                                        .withValues(
-                                                          alpha: 0.3,
-                                                        ),
-                                                child: const Icon(
-                                                  Icons.pets,
-                                                  size: 32,
-                                                  color: AppTheme.primary,
-                                                ),
-                                              ),
-                                            )
-                                          : (pet.avatarUrl.isNotEmpty &&
-                                                  File(
-                                                    pet.avatarUrl,
-                                                  ).existsSync()
-                                              ? Image.file(
-                                                  File(pet.avatarUrl),
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (_, _, _) =>
-                                                      Container(
-                                                    color: isDark
-                                                        ? const Color(
-                                                            0xFF383634,
-                                                          )
-                                                        : AppTheme
-                                                            .primaryFixed
-                                                            .withValues(
-                                                              alpha: 0.3,
-                                                            ),
-                                                    child: const Icon(
-                                                      Icons.pets,
-                                                      size: 32,
-                                                      color: AppTheme
-                                                          .primary,
-                                                    ),
-                                                  ),
+                                                pet.avatarUrl.startsWith(
+                                                  'https',
                                                 )
-                                              : Container(
-                                                  color: isDark
-                                                      ? const Color(
-                                                          0xFF383634,
-                                                        )
-                                                      : AppTheme.primaryFixed
-                                                          .withValues(
-                                                            alpha: 0.3,
+                                            ? Image.network(
+                                                pet.avatarUrl,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, _, _) =>
+                                                    Container(
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF383634,
+                                                            )
+                                                          : AppTheme
+                                                                .primaryFixed
+                                                                .withValues(
+                                                                  alpha: 0.3,
+                                                                ),
+                                                      child: const Icon(
+                                                        Icons.pets,
+                                                        size: 32,
+                                                        color: AppTheme.primary,
+                                                      ),
+                                                    ),
+                                              )
+                                            : (pet.avatarUrl.isNotEmpty &&
+                                                      File(
+                                                        pet.avatarUrl,
+                                                      ).existsSync()
+                                                  ? Image.file(
+                                                      File(pet.avatarUrl),
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (_, _, _) =>
+                                                          Container(
+                                                            color: isDark
+                                                                ? const Color(
+                                                                    0xFF383634,
+                                                                  )
+                                                                : AppTheme
+                                                                      .primaryFixed
+                                                                      .withValues(
+                                                                        alpha:
+                                                                            0.3,
+                                                                      ),
+                                                            child: const Icon(
+                                                              Icons.pets,
+                                                              size: 32,
+                                                              color: AppTheme
+                                                                  .primary,
+                                                            ),
                                                           ),
-                                                  child: const Icon(
-                                                    Icons.pets,
-                                                    size: 32,
-                                                    color: AppTheme.primary,
-                                                  ),
-                                                ))),
+                                                    )
+                                                  : Container(
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF383634,
+                                                            )
+                                                          : AppTheme
+                                                                .primaryFixed
+                                                                .withValues(
+                                                                  alpha: 0.3,
+                                                                ),
+                                                      child: const Icon(
+                                                        Icons.pets,
+                                                        size: 32,
+                                                        color: AppTheme.primary,
+                                                      ),
+                                                    ))),
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -1133,9 +1135,7 @@ class _HomeTabState extends State<HomeTab> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: statusBgColor,
-                                      borderRadius: BorderRadius.circular(
-                                        4,
-                                      ),
+                                      borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
                                       pet.status,
@@ -1240,9 +1240,7 @@ class _HomeTabState extends State<HomeTab> {
               TextButton(
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const PetAlbumScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const PetAlbumScreen()),
                   );
                 },
                 child: Text(
@@ -1295,8 +1293,7 @@ class _HomeTabState extends State<HomeTab> {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 itemCount: limitedMemories.length,
-                separatorBuilder: (context, index) =>
-                    const SizedBox(width: 12),
+                separatorBuilder: (context, index) => const SizedBox(width: 12),
                 itemBuilder: (context, index) {
                   final memory = limitedMemories[index];
                   final photoUrl = memory.key;
@@ -1387,11 +1384,7 @@ class _HomeTabState extends State<HomeTab> {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.ac_unit,
-                          size: 12,
-                          color: Colors.white,
-                        ),
+                        Icon(Icons.ac_unit, size: 12, color: Colors.white),
                         SizedBox(width: 6),
                         Text(
                           'SEASONAL ADVISORY',
@@ -1430,13 +1423,11 @@ class _HomeTabState extends State<HomeTab> {
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
                     onPressed: _showSafetyGuide,
-                    icon: const Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 16,
-                    ),
+                    icon: const Icon(Icons.arrow_forward_rounded, size: 16),
                     label: const Text('Read Safety Tips'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,                      foregroundColor: isDark
+                      backgroundColor: Colors.white,
+                      foregroundColor: isDark
                           ? const Color(0xFF0F172A)
                           : const Color(0xFF0284C7),
                       elevation: 0,
@@ -1466,14 +1457,13 @@ class _HomeTabState extends State<HomeTab> {
       onRefresh: () async {
         context.read<PetBloc>().add(LoadPets());
       },
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: 100),
-        child: isWide
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
+      child: isWide
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const NeverScrollableScrollPhysics(),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1486,7 +1476,11 @@ class _HomeTabState extends State<HomeTab> {
                       ],
                     ),
                   ),
-                  Expanded(
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 100),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1496,9 +1490,13 @@ class _HomeTabState extends State<HomeTab> {
                       ],
                     ),
                   ),
-                ],
-              )
-            : Column(
+                ),
+              ],
+            )
+          : SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 100),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   greetingSection,
@@ -1513,7 +1511,7 @@ class _HomeTabState extends State<HomeTab> {
                   winterSafetySection,
                 ],
               ),
-      ),
+            ),
     );
   }
 }
