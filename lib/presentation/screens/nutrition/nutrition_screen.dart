@@ -8,8 +8,7 @@ import '../../../data/models/app_notification.dart';
 import '../../theme/app_theme.dart';
 import '../../../core/utils/responsive_layout.dart';
 import '../../widgets/nutrition/nutrition_reminder_card.dart';
-import 'add_meal_screen.dart';
-import 'add_hydration_screen.dart';
+import '../../widgets/base_form_dialog.dart';
 
 class ReminderItem {
   final String id;
@@ -230,28 +229,424 @@ class _NutritionScreenState extends State<NutritionScreen> {
     );
   }
 
-  Future<void> _navigateToAddMeal() async {
-    final newItem = await Navigator.of(context).push<ReminderItem>(
-      MaterialPageRoute(builder: (_) => const AddMealScreen()),
-    );
-    if (newItem != null) {
-      setState(() {
-        _reminders.add(newItem);
-      });
-      _persistReminders();
-    }
+  void _navigateToAddMeal() {
+    _showAddMealDialog();
   }
 
-  Future<void> _navigateToAddHydration() async {
-    final newItem = await Navigator.of(context).push<ReminderItem>(
-      MaterialPageRoute(builder: (_) => const AddHydrationScreen()),
-    );
-    if (newItem != null) {
-      setState(() {
-        _reminders.add(newItem);
-      });
-      _persistReminders();
+  void _navigateToAddHydration() {
+    _showAddHydrationDialog();
+  }
+
+  void _showAddMealDialog() {
+    final petState = context.read<PetBloc>().state;
+    final List<String> registeredPets = [];
+    if (petState is PetLoaded) {
+      registeredPets.addAll(petState.pets.map((p) => p.name));
     }
+
+    final nameController = TextEditingController();
+    final amountController = TextEditingController();
+    final notesController = TextEditingController();
+    TimeOfDay selectedTime = const TimeOfDay(hour: 8, minute: 0);
+    String selectedUnit = 'Cups';
+    final List<String> selectedPets = ['All Pets'];
+    String? validationError;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return BaseFormDialog(
+              icon: Icons.restaurant_outlined,
+              title: 'Add Meal Reminder',
+              subtitle: 'Set up feeding portions & schedule for your pets',
+              validationError: validationError,
+              primaryButtonText: 'Save Meal',
+              primaryButtonIcon: Icons.check,
+              onPrimaryPressed: () {
+                final title = nameController.text.trim().isNotEmpty
+                    ? nameController.text.trim()
+                    : 'Meal';
+                final amountText = amountController.text.trim().isNotEmpty
+                    ? amountController.text.trim()
+                    : '1.0';
+                final formattedTime = selectedTime.format(context);
+                final subtitle =
+                    '$formattedTime • $amountText ${selectedUnit.toLowerCase()}';
+
+                final newItem = ReminderItem(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  title: title,
+                  subtitle: subtitle,
+                  targetPets: List.from(selectedPets),
+                  type: 'feeding',
+                  notes: notesController.text.trim(),
+                  time: selectedTime,
+                );
+
+                setState(() {
+                  _reminders.add(newItem);
+                });
+                _persistReminders();
+
+                Navigator.of(dialogContext).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Meal reminder "$title" added!'),
+                    backgroundColor: AppTheme.primary,
+                  ),
+                );
+              },
+              children: [
+                const FormSectionLabel('SELECT PETS'),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    _buildModalPetChip(
+                      'All Pets',
+                      Colors.transparent,
+                      selectedPets,
+                      registeredPets,
+                      setModalState,
+                    ),
+                    ...registeredPets.map((name) {
+                      Color bulletColor = AppTheme.secondary;
+                      if (name.toLowerCase() == 'luna') {
+                        bulletColor = AppTheme.tertiary;
+                      } else if (name.toLowerCase() == 'oliver') {
+                        bulletColor = AppTheme.primaryFixedDim;
+                      }
+                      return _buildModalPetChip(
+                        name,
+                        bulletColor,
+                        selectedPets,
+                        registeredPets,
+                        setModalState,
+                      );
+                    }),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const FormSectionLabel('MEAL NAME'),
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. Breakfast',
+                    prefixIcon: Icon(Icons.restaurant_menu),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const FormSectionLabel('REMINDER TIME'),
+                InkWell(
+                  onTap: () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: selectedTime,
+                    );
+                    if (picked != null) {
+                      setModalState(() => selectedTime = picked);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.surfaceContainer),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          selectedTime.format(context),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Icon(Icons.access_time, color: AppTheme.primary),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const FormSectionLabel('FOOD AMOUNT'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: amountController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          hintText: 'e.g. 1.5',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedUnit,
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: ['Cups', 'Grams', 'Ounces', 'Scoops']
+                          .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setModalState(() => selectedUnit = val);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const FormSectionLabel('ADDITIONAL NOTES'),
+                TextField(
+                  controller: notesController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    hintText: 'Mix with warm water or special diet instructions...',
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showAddHydrationDialog() {
+    final petState = context.read<PetBloc>().state;
+    final List<String> registeredPets = [];
+    if (petState is PetLoaded) {
+      registeredPets.addAll(petState.pets.map((p) => p.name));
+    }
+
+    String selectedFrequency = '2h';
+    final customHoursController = TextEditingController();
+    final notesController = TextEditingController();
+    final amountController = TextEditingController(text: '250');
+    String selectedUnit = 'ml';
+    final List<String> selectedPets = ['All Pets'];
+    String? validationError;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return BaseFormDialog(
+              icon: Icons.water_drop_outlined,
+              title: 'Add Hydration Reminder',
+              subtitle: 'Automated water intake reminders for your pets',
+              validationError: validationError,
+              primaryButtonText: 'Save Hydration',
+              primaryButtonIcon: Icons.check,
+              onPrimaryPressed: () {
+                String title = '';
+                if (selectedFrequency == '2h') {
+                  title = 'Every 2 Hours';
+                } else if (selectedFrequency == '4h') {
+                  title = 'Every 4 Hours';
+                } else if (selectedFrequency == '6h') {
+                  title = 'Every 6 Hours';
+                } else {
+                  final hrs = customHoursController.text.trim().isNotEmpty
+                      ? customHoursController.text.trim()
+                      : '3';
+                  title = 'Every $hrs Hours';
+                }
+
+                final amountText = amountController.text.trim().isNotEmpty
+                    ? amountController.text.trim()
+                    : '250';
+                final subtitle =
+                    'Daily Reminder • $amountText ${selectedUnit.toLowerCase()}';
+
+                final newItem = ReminderItem(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  title: title,
+                  subtitle: subtitle,
+                  targetPets: List.from(selectedPets),
+                  type: 'hydration',
+                  notes: notesController.text.trim(),
+                );
+
+                setState(() {
+                  _reminders.add(newItem);
+                });
+                _persistReminders();
+
+                Navigator.of(dialogContext).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Hydration reminder "$title" added!'),
+                    backgroundColor: AppTheme.primary,
+                  ),
+                );
+              },
+              children: [
+                const FormSectionLabel('SELECT PETS'),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    _buildModalPetChip(
+                      'All Pets',
+                      Colors.transparent,
+                      selectedPets,
+                      registeredPets,
+                      setModalState,
+                    ),
+                    ...registeredPets.map((name) {
+                      Color bulletColor = AppTheme.secondary;
+                      if (name.toLowerCase() == 'luna') {
+                        bulletColor = AppTheme.tertiary;
+                      } else if (name.toLowerCase() == 'oliver') {
+                        bulletColor = AppTheme.primaryFixedDim;
+                      }
+                      return _buildModalPetChip(
+                        name,
+                        bulletColor,
+                        selectedPets,
+                        registeredPets,
+                        setModalState,
+                      );
+                    }),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const FormSectionLabel('FREQUENCY'),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('Every 2h'),
+                      selected: selectedFrequency == '2h',
+                      selectedColor: AppTheme.primary,
+                      labelStyle: TextStyle(
+                        color: selectedFrequency == '2h'
+                            ? Colors.white
+                            : AppTheme.onSurface,
+                        fontSize: 12,
+                      ),
+                      onSelected: (val) =>
+                          setModalState(() => selectedFrequency = '2h'),
+                    ),
+                    ChoiceChip(
+                      label: const Text('Every 4h'),
+                      selected: selectedFrequency == '4h',
+                      selectedColor: AppTheme.primary,
+                      labelStyle: TextStyle(
+                        color: selectedFrequency == '4h'
+                            ? Colors.white
+                            : AppTheme.onSurface,
+                        fontSize: 12,
+                      ),
+                      onSelected: (val) =>
+                          setModalState(() => selectedFrequency = '4h'),
+                    ),
+                    ChoiceChip(
+                      label: const Text('Every 6h'),
+                      selected: selectedFrequency == '6h',
+                      selectedColor: AppTheme.primary,
+                      labelStyle: TextStyle(
+                        color: selectedFrequency == '6h'
+                            ? Colors.white
+                            : AppTheme.onSurface,
+                        fontSize: 12,
+                      ),
+                      onSelected: (val) =>
+                          setModalState(() => selectedFrequency = '6h'),
+                    ),
+                    ChoiceChip(
+                      label: const Text('Custom'),
+                      selected: selectedFrequency == 'custom',
+                      selectedColor: AppTheme.primary,
+                      labelStyle: TextStyle(
+                        color: selectedFrequency == 'custom'
+                            ? Colors.white
+                            : AppTheme.onSurface,
+                        fontSize: 12,
+                      ),
+                      onSelected: (val) =>
+                          setModalState(() => selectedFrequency = 'custom'),
+                    ),
+                  ],
+                ),
+                if (selectedFrequency == 'custom') ...[
+                  const SizedBox(height: 10),
+                  const FormSectionLabel('CUSTOM HOURS INTERVAL'),
+                  TextField(
+                    controller: customHoursController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. 3 (hours)',
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                const FormSectionLabel('WATER VOLUME'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: amountController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          hintText: 'e.g. 250',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedUnit,
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: ['ml', 'Liters', 'Cups']
+                          .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setModalState(() => selectedUnit = val);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const FormSectionLabel('ADDITIONAL NOTES'),
+                TextField(
+                  controller: notesController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    hintText: 'Refill water bowl with fresh filtered water...',
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   void _showEditReminderDialog(ReminderItem item) {
@@ -318,512 +713,320 @@ class _NutritionScreenState extends State<NutritionScreen> {
     final List<String> selectedPets = List<String>.from(
       item.targetPets.isNotEmpty ? item.targetPets : ['All Pets'],
     );
+    String? validationError;
 
     showDialog(
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
+            return BaseFormDialog(
+              icon: isHydration
+                  ? Icons.water_drop_outlined
+                  : Icons.restaurant_outlined,
+              title: 'Edit ${isHydration ? 'Hydration' : 'Meal'}',
+              subtitle: isHydration
+                  ? 'Update water intake schedule & reminders'
+                  : 'Update meal portion & feeding schedule',
+              validationError: validationError,
+              primaryButtonText: 'Save Changes',
+              primaryButtonIcon: Icons.check,
+              headerAction: IconButton(
+                icon: const Icon(Icons.delete_outline, color: AppTheme.error),
+                tooltip: 'Delete',
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  _showDeleteConfirmation(item);
+                },
               ),
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 420),
-                padding: const EdgeInsets.all(20),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              onPrimaryPressed: () {
+                String title = '';
+                String subtitle = '';
+
+                if (isHydration) {
+                  if (selectedFrequency == '2h') {
+                    title = 'Every 2 Hours';
+                  } else if (selectedFrequency == '4h') {
+                    title = 'Every 4 Hours';
+                  } else if (selectedFrequency == '6h') {
+                    title = 'Every 6 Hours';
+                  } else {
+                    final hrs = customHoursController.text.trim().isNotEmpty
+                        ? customHoursController.text.trim()
+                        : '3';
+                    title = 'Every $hrs Hours';
+                  }
+                  final amountText = amountController.text.trim().isNotEmpty
+                      ? amountController.text.trim()
+                      : '250';
+                  subtitle =
+                      'Daily Reminder • $amountText ${selectedUnit.toLowerCase()}';
+                } else {
+                  title = nameController.text.trim().isNotEmpty
+                      ? nameController.text.trim()
+                      : item.title;
+                  final amountText = amountController.text.trim().isNotEmpty
+                      ? amountController.text.trim()
+                      : '1.0';
+                  final formattedTime = selectedTime.format(context);
+                  subtitle =
+                      '$formattedTime • $amountText ${selectedUnit.toLowerCase()}';
+                }
+
+                setState(() {
+                  final idx = _reminders.indexWhere((r) => r.id == item.id);
+                  if (idx >= 0) {
+                    _reminders[idx] = ReminderItem(
+                      id: item.id,
+                      title: title,
+                      subtitle: subtitle,
+                      targetPets: List.from(selectedPets),
+                      type: item.type,
+                      notes: notesController.text.trim(),
+                      time: selectedTime,
+                    );
+                  }
+                });
+                _persistReminders();
+
+                final now = DateTime.now();
+                DateTime scheduledDT = DateTime(
+                  now.year,
+                  now.month,
+                  now.day,
+                  selectedTime.hour,
+                  selectedTime.minute,
+                );
+                if (scheduledDT.isBefore(now)) {
+                  scheduledDT = scheduledDT.add(const Duration(days: 1));
+                }
+
+                GlobalNotificationService().scheduleCustomEventNotification(
+                  title: '${isHydration ? 'Hydration' : 'Meal'}: $title',
+                  body: '$subtitle (${selectedPets.join(', ')})',
+                  eventDateTime: scheduledDT,
+                  reminderOffset: Duration.zero,
+                  petName: selectedPets.join(', '),
+                  category: isHydration
+                      ? NotificationCategory.hydration
+                      : NotificationCategory.feeding,
+                );
+
+                Navigator.of(dialogContext).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Reminder updated successfully & notification scheduled.',
+                    ),
+                    backgroundColor: AppTheme.primary,
+                  ),
+                );
+              },
+              children: [
+                const FormSectionLabel('SELECT PETS'),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    _buildModalPetChip(
+                      'All Pets',
+                      Colors.transparent,
+                      selectedPets,
+                      registeredPets,
+                      setModalState,
+                    ),
+                    ...registeredPets.map((name) {
+                      Color bulletColor = AppTheme.secondary;
+                      if (name.toLowerCase() == 'luna') {
+                        bulletColor = AppTheme.tertiary;
+                      } else if (name.toLowerCase() == 'oliver') {
+                        bulletColor = AppTheme.primaryFixedDim;
+                      }
+                      return _buildModalPetChip(
+                        name,
+                        bulletColor,
+                        selectedPets,
+                        registeredPets,
+                        setModalState,
+                      );
+                    }),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (isHydration) ...[
+                  const FormSectionLabel('FREQUENCY'),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
-                      // Header
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primaryFixed.withValues(
-                                    alpha: 0.3,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(
-                                  isHydration
-                                      ? Icons.water_drop
-                                      : Icons.restaurant,
-                                  color: AppTheme.primary,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Edit ${isHydration ? 'Hydration' : 'Meal'}',
-                                style: const TextStyle(
-                                  fontFamily: 'Montserrat',
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  color: AppTheme.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.close,
-                              color: AppTheme.secondary,
-                            ),
-                            onPressed: () => Navigator.of(dialogContext).pop(),
-                          ),
-                        ],
+                      ChoiceChip(
+                        label: const Text('Every 2h'),
+                        selected: selectedFrequency == '2h',
+                        selectedColor: AppTheme.primary,
+                        labelStyle: TextStyle(
+                          color: selectedFrequency == '2h'
+                              ? Colors.white
+                              : AppTheme.onSurface,
+                          fontSize: 12,
+                        ),
+                        onSelected: (val) =>
+                            setModalState(() => selectedFrequency = '2h'),
                       ),
-                      const SizedBox(height: 16),
-
-                      // Target Pets Selection Chips
-                      const Text(
-                        'SELECT PETS',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 10,
-                          color: AppTheme.onSurfaceVariant,
-                          letterSpacing: 0.8,
+                      ChoiceChip(
+                        label: const Text('Every 4h'),
+                        selected: selectedFrequency == '4h',
+                        selectedColor: AppTheme.primary,
+                        labelStyle: TextStyle(
+                          color: selectedFrequency == '4h'
+                              ? Colors.white
+                              : AppTheme.onSurface,
+                          fontSize: 12,
                         ),
+                        onSelected: (val) =>
+                            setModalState(() => selectedFrequency = '4h'),
                       ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          _buildModalPetChip(
-                            'All Pets',
-                            Colors.transparent,
-                            selectedPets,
-                            registeredPets,
-                            setModalState,
-                          ),
-                          ...registeredPets.map((name) {
-                            Color bulletColor = AppTheme.secondary;
-                            if (name.toLowerCase() == 'luna') {
-                              bulletColor = AppTheme.tertiary;
-                            } else if (name.toLowerCase() == 'oliver') {
-                              bulletColor = AppTheme.primaryFixedDim;
-                            }
-                            return _buildModalPetChip(
-                              name,
-                              bulletColor,
-                              selectedPets,
-                              registeredPets,
-                              setModalState,
-                            );
-                          }),
-                        ],
+                      ChoiceChip(
+                        label: const Text('Every 6h'),
+                        selected: selectedFrequency == '6h',
+                        selectedColor: AppTheme.primary,
+                        labelStyle: TextStyle(
+                          color: selectedFrequency == '6h'
+                              ? Colors.white
+                              : AppTheme.onSurface,
+                          fontSize: 12,
+                        ),
+                        onSelected: (val) =>
+                            setModalState(() => selectedFrequency = '6h'),
                       ),
-                      const SizedBox(height: 18),
-
-                      if (isHydration) ...[
-                        // Hydration Frequency Section
-                        const Text(
-                          'FREQUENCY',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10,
-                            color: AppTheme.onSurfaceVariant,
-                            letterSpacing: 0.8,
-                          ),
+                      ChoiceChip(
+                        label: const Text('Custom'),
+                        selected: selectedFrequency == 'custom',
+                        selectedColor: AppTheme.primary,
+                        labelStyle: TextStyle(
+                          color: selectedFrequency == 'custom'
+                              ? Colors.white
+                              : AppTheme.onSurface,
+                          fontSize: 12,
                         ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            ChoiceChip(
-                              label: const Text('Every 2h'),
-                              selected: selectedFrequency == '2h',
-                              selectedColor: AppTheme.primary,
-                              labelStyle: TextStyle(
-                                color: selectedFrequency == '2h'
-                                    ? Colors.white
-                                    : AppTheme.onSurface,
-                                fontSize: 12,
-                              ),
-                              onSelected: (val) =>
-                                  setModalState(() => selectedFrequency = '2h'),
-                            ),
-                            ChoiceChip(
-                              label: const Text('Every 4h'),
-                              selected: selectedFrequency == '4h',
-                              selectedColor: AppTheme.primary,
-                              labelStyle: TextStyle(
-                                color: selectedFrequency == '4h'
-                                    ? Colors.white
-                                    : AppTheme.onSurface,
-                                fontSize: 12,
-                              ),
-                              onSelected: (val) =>
-                                  setModalState(() => selectedFrequency = '4h'),
-                            ),
-                            ChoiceChip(
-                              label: const Text('Every 6h'),
-                              selected: selectedFrequency == '6h',
-                              selectedColor: AppTheme.primary,
-                              labelStyle: TextStyle(
-                                color: selectedFrequency == '6h'
-                                    ? Colors.white
-                                    : AppTheme.onSurface,
-                                fontSize: 12,
-                              ),
-                              onSelected: (val) =>
-                                  setModalState(() => selectedFrequency = '6h'),
-                            ),
-                            ChoiceChip(
-                              label: const Text('Custom'),
-                              selected: selectedFrequency == 'custom',
-                              selectedColor: AppTheme.primary,
-                              labelStyle: TextStyle(
-                                color: selectedFrequency == 'custom'
-                                    ? Colors.white
-                                    : AppTheme.onSurface,
-                                fontSize: 12,
-                              ),
-                              onSelected: (val) => setModalState(
-                                () => selectedFrequency = 'custom',
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (selectedFrequency == 'custom') ...[
-                          const SizedBox(height: 10),
-                          _buildBentoDialogCard(
-                            label: 'Custom Hours Interval',
-                            accentColor: AppTheme.tertiary,
-                            child: TextField(
-                              controller: customHoursController,
-                              keyboardType: TextInputType.number,
-                              style: const TextStyle(fontFamily: 'Inter'),
-                              decoration: const InputDecoration(
-                                hintText: 'e.g. 3 (hours)',
-                                border: InputBorder.none,
-                              ),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 12),
-                      ] else ...[
-                        // Meal Input 1: Name
-                        _buildBentoDialogCard(
-                          label: 'Meal Name',
-                          accentColor: AppTheme.primary,
-                          child: TextField(
-                            controller: nameController,
-                            style: const TextStyle(fontFamily: 'Inter'),
-                            decoration: InputDecoration(
-                              hintText: 'e.g. Breakfast',
-                              hintStyle: TextStyle(
-                                color: AppTheme.secondary.withValues(
-                                  alpha: 0.4,
-                                ),
-                              ),
-                              suffixIcon: const Icon(
-                                Icons.edit,
-                                size: 18,
-                                color: AppTheme.secondary,
-                              ),
-                              border: InputBorder.none,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Meal Input 2: Time Picker
-                        _buildBentoDialogCard(
-                          label: 'Reminder Time',
-                          accentColor: AppTheme.tertiary,
-                          child: InkWell(
-                            onTap: () async {
-                              final picked = await showTimePicker(
-                                context: context,
-                                initialTime: selectedTime,
-                                builder: (context, child) {
-                                  return Theme(
-                                    data: Theme.of(context).copyWith(
-                                      timePickerTheme:
-                                          const TimePickerThemeData(
-                                            padding: EdgeInsets.all(12),
-                                            dialTextStyle: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                    ),
-                                    child: Transform.scale(
-                                      scale: 1.15,
-                                      child: child!,
-                                    ),
-                                  );
-                                },
-                              );
-                              if (picked != null) {
-                                setModalState(() => selectedTime = picked);
-                              }
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    selectedTime.format(context),
-                                    style: const TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const Icon(
-                                    Icons.access_time,
-                                    color: AppTheme.tertiary,
-                                    size: 20,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-
-                      // Bento Input 3: Portion / Volume Amount
-                      _buildBentoDialogCard(
-                        label: isHydration ? 'Water Volume' : 'Food Amount',
-                        accentColor: AppTheme.secondary,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: amountController,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                    ),
-                                style: const TextStyle(fontFamily: 'Inter'),
-                                decoration: InputDecoration(
-                                  hintText: isHydration
-                                      ? 'e.g. 250'
-                                      : 'e.g. 1.5',
-                                  hintStyle: TextStyle(
-                                    color: AppTheme.secondary.withValues(
-                                      alpha: 0.4,
-                                    ),
-                                  ),
-                                  border: InputBorder.none,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            DropdownButton<String>(
-                              value: selectedUnit,
-                              underline: const SizedBox.shrink(),
-                              items:
-                                  (isHydration
-                                          ? ['ml', 'Liters', 'Cups']
-                                          : [
-                                              'Cups',
-                                              'Grams',
-                                              'Ounces',
-                                              'Scoops',
-                                            ])
-                                      .map(
-                                        (u) => DropdownMenuItem(
-                                          value: u,
-                                          child: Text(u),
-                                        ),
-                                      )
-                                      .toList(),
-                              onChanged: (val) {
-                                if (val != null) {
-                                  setModalState(() => selectedUnit = val);
-                                }
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Bento Input 4: Additional Notes
-                      _buildBentoDialogCard(
-                        label: 'Additional Notes',
-                        accentColor: AppTheme.primary,
-                        child: TextField(
-                          controller: notesController,
-                          maxLines: 2,
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: AppTheme.onSurface,
-                          ),
-                          decoration: InputDecoration(
-                            hintText:
-                                'e.g. Mix with warm water or special diet instructions...',
-                            hintStyle: TextStyle(
-                              color: AppTheme.onSurfaceVariant.withValues(
-                                alpha: 0.7,
-                              ),
-                              fontSize: 12,
-                            ),
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Action buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () =>
-                                  Navigator.of(dialogContext).pop(),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text('Cancel'),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () {
-                                String title = '';
-                                String subtitle = '';
-
-                                if (isHydration) {
-                                  if (selectedFrequency == '2h') {
-                                    title = 'Every 2 Hours';
-                                  } else if (selectedFrequency == '4h') {
-                                    title = 'Every 4 Hours';
-                                  } else if (selectedFrequency == '6h') {
-                                    title = 'Every 6 Hours';
-                                  } else {
-                                    final hrs =
-                                        customHoursController.text
-                                            .trim()
-                                            .isNotEmpty
-                                        ? customHoursController.text.trim()
-                                        : '3';
-                                    title = 'Every $hrs Hours';
-                                  }
-                                  final amountText =
-                                      amountController.text.trim().isNotEmpty
-                                      ? amountController.text.trim()
-                                      : '250';
-                                  subtitle =
-                                      'Daily Reminder • $amountText ${selectedUnit.toLowerCase()}';
-                                } else {
-                                  title = nameController.text.trim().isNotEmpty
-                                      ? nameController.text.trim()
-                                      : item.title;
-                                  final amountText =
-                                      amountController.text.trim().isNotEmpty
-                                      ? amountController.text.trim()
-                                      : '1.0';
-                                  final formattedTime = selectedTime.format(
-                                    context,
-                                  );
-                                  subtitle =
-                                      '$formattedTime • $amountText ${selectedUnit.toLowerCase()}';
-                                }
-
-                                setState(() {
-                                  final idx = _reminders.indexWhere(
-                                    (r) => r.id == item.id,
-                                  );
-                                  if (idx >= 0) {
-                                    _reminders[idx] = ReminderItem(
-                                      id: item.id,
-                                      title: title,
-                                      subtitle: subtitle,
-                                      targetPets: List.from(selectedPets),
-                                      type: item.type,
-                                      notes: notesController.text.trim(),
-                                      time: selectedTime,
-                                    );
-                                  }
-                                });
-                                _persistReminders();
-
-                                // Schedule system notification alarm
-                                final now = DateTime.now();
-                                DateTime scheduledDT = DateTime(
-                                  now.year,
-                                  now.month,
-                                  now.day,
-                                  selectedTime.hour,
-                                  selectedTime.minute,
-                                );
-                                if (scheduledDT.isBefore(now)) {
-                                  scheduledDT = scheduledDT.add(
-                                    const Duration(days: 1),
-                                  );
-                                }
-
-                                GlobalNotificationService()
-                                    .scheduleCustomEventNotification(
-                                      title:
-                                          '${isHydration ? 'Hydration' : 'Meal'}: $title',
-                                      body:
-                                          '$subtitle (${selectedPets.join(', ')})',
-                                      eventDateTime: scheduledDT,
-                                      reminderOffset: Duration.zero,
-                                      petName: selectedPets.join(', '),
-                                      category: isHydration
-                                          ? NotificationCategory.hydration
-                                          : NotificationCategory.feeding,
-                                    );
-
-                                Navigator.of(dialogContext).pop();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Reminder updated successfully & notification scheduled.',
-                                    ),
-                                    backgroundColor: AppTheme.primary,
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text(
-                                'Save Changes',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                        ],
+                        onSelected: (val) =>
+                            setModalState(() => selectedFrequency = 'custom'),
                       ),
                     ],
                   ),
+                  if (selectedFrequency == 'custom') ...[
+                    const SizedBox(height: 10),
+                    const FormSectionLabel('CUSTOM HOURS INTERVAL'),
+                    TextField(
+                      controller: customHoursController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. 3 (hours)',
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                ] else ...[
+                  const FormSectionLabel('MEAL NAME'),
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. Breakfast',
+                      prefixIcon: Icon(Icons.edit_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const FormSectionLabel('REMINDER TIME'),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: selectedTime,
+                      );
+                      if (picked != null) {
+                        setModalState(() => selectedTime = picked);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppTheme.surfaceContainer),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            selectedTime.format(context),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Icon(Icons.access_time, color: AppTheme.primary),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                FormSectionLabel(
+                  isHydration ? 'WATER VOLUME' : 'FOOD AMOUNT',
                 ),
-              ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: amountController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: isHydration ? 'e.g. 250' : 'e.g. 1.5',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedUnit,
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: (isHydration
+                              ? ['ml', 'Liters', 'Cups']
+                              : ['Cups', 'Grams', 'Ounces', 'Scoops'])
+                          .map(
+                            (u) => DropdownMenuItem(
+                              value: u,
+                              child: Text(u),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setModalState(() => selectedUnit = val);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const FormSectionLabel('ADDITIONAL NOTES'),
+                TextField(
+                  controller: notesController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    hintText:
+                        'e.g. Special diet instructions or water bowl location...',
+                  ),
+                ),
+              ],
             );
           },
         );
@@ -831,62 +1034,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
     );
   }
 
-  Widget _buildBentoDialogCard({
-    required String label,
-    required Color accentColor,
-    required Widget child,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.surfaceContainer),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            child: Container(
-              width: 4,
-              decoration: BoxDecoration(
-                color: accentColor,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  bottomLeft: Radius.circular(12),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(
-              left: 14,
-              right: 12,
-              top: 8,
-              bottom: 8,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label.toUpperCase(),
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.bold,
-                    fontSize: 9,
-                    color: accentColor,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-                child,
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildModalPetChip(
     String petName,
@@ -1057,7 +1205,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                   children: [
                     Expanded(
                       child: NutritionReminderCard(
-                        title: 'Feeding Schedule for All',
+                        title: 'Feeding',
                         icon: Icons.restaurant,
                         isEnabled: _masterFeedingEnabled,
                         onToggleChanged: (val) =>
@@ -1089,7 +1237,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
               else ...[
                 // Feeding Reminders Bento Card
                 NutritionReminderCard(
-                  title: 'Feeding Schedule for All',
+                  title: 'Feeding',
                   icon: Icons.restaurant,
                   isEnabled: _masterFeedingEnabled,
                   onToggleChanged: (val) =>
