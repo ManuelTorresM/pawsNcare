@@ -1318,9 +1318,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   DateTime.now().month == date.month &&
                   DateTime.now().day == date.day;
 
-              final petsList = petState is PetLoaded
-                  ? petState.pets
-                  : <Pet>[];
+              final petsList = petState is PetLoaded ? petState.pets : <Pet>[];
               final hasEvents = _hasEventsOnDate(date, petsList);
 
               return GestureDetector(
@@ -1366,9 +1364,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             shape: BoxShape.circle,
                             color: isSelected
                                 ? Colors.white
-                                : (isToday
-                                      ? headerColor
-                                      : AppTheme.tertiary),
+                                : (isToday ? headerColor : AppTheme.tertiary),
                           ),
                         ),
                       ],
@@ -1385,36 +1381,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
     Widget buildEventsListWidget({bool shrinkWrap = false}) {
       if (displayEvents.isEmpty) {
         return Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                Icons.calendar_today_outlined,
-                size: 48,
-                color: textSecondary.withValues(alpha: 0.5),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'No events scheduled for this day.',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontStyle: FontStyle.italic,
-                  color: textSecondary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                onPressed: () => _showAddEventDialog(context, petState),
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add Event'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today_outlined,
+                    size: 24,
+                    color: textSecondary.withValues(alpha: 0.6),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'No events scheduled for this day.',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontStyle: FontStyle.italic,
+                      fontSize: 14,
+                      color: textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1514,9 +1503,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               children: [
                 SizedBox(
                   width: 380,
-                  child: SingleChildScrollView(
-                    child: monthCalendarBox,
-                  ),
+                  child: SingleChildScrollView(child: monthCalendarBox),
                 ),
                 const VerticalDivider(width: 1, thickness: 1),
                 Expanded(
@@ -1535,9 +1522,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Expanded(
-                        child: buildEventsListWidget(shrinkWrap: false),
-                      ),
+                      Expanded(child: buildEventsListWidget(shrinkWrap: false)),
                     ],
                   ),
                 ),
