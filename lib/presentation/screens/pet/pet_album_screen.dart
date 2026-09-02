@@ -6,6 +6,7 @@ import '../../widgets/photo_source_bottom_sheet.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../../data/models/pet.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/base_form_dialog.dart';
 
 class MemoryItem {
   final String id;
@@ -111,145 +112,106 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
         final petBloc = context.read<PetBloc>();
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: const Text(
-                'Post Photo Memory',
-                style: TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primary,
-                ),
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Preview picked media
-                    Container(
-                      height: 120,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: AppTheme.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppTheme.outlineVariant),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.file(
-                          File(filePath),
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Center(
-                                child: Icon(
-                                  Icons.broken_image,
-                                  color: AppTheme.secondary,
-                                  size: 40,
-                                ),
-                              ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+            return BaseFormDialog(
+              icon: Icons.add_a_photo_outlined,
+              title: 'Post Photo Memory',
+              subtitle: 'Add a new memory to your companion gallery',
+              primaryButtonText: 'Post Memory',
+              primaryButtonIcon: Icons.send_rounded,
+              onPrimaryPressed: () {
+                final timestamp = DateTime.now();
+                final formattedMonth = _formatMonthYear(timestamp);
 
-                    // Target Pet Selection
-                    const Text(
-                      'Assign to Pet',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
+                setState(() {
+                  _memories.insert(
+                    0,
+                    MemoryItem(
+                      id: timestamp.millisecondsSinceEpoch.toString(),
+                      petId: uploadPetTarget,
+                      imageUrl: filePath,
+                      caption: captionController.text.trim().isNotEmpty
+                          ? captionController.text.trim()
+                          : 'Uploaded Memory',
+                      month: formattedMonth,
+                      date: timestamp,
                     ),
-                    const SizedBox(height: 4),
-                    DropdownButtonFormField<String>(
-                      initialValue: uploadPetTarget,
-                      items: petOptions.map((name) {
-                        return DropdownMenuItem(
-                          value: name,
-                          child: Text(
-                            name[0].toUpperCase() + name.substring(1),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setModalState(() => uploadPetTarget = val);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
+                  );
+                });
 
-                    // Caption Input
-                    const Text(
-                      'Caption (Optional)',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: captionController,
-                      decoration: const InputDecoration(
-                        hintText: 'Write a memory...',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => postNavigator.pop(),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final timestamp = DateTime.now();
-                    final formattedMonth = _formatMonthYear(timestamp);
+                // Sync photo upload back into user's saved BLoC profile
+                if (pets.isNotEmpty) {
+                  final matchedPet = pets.firstWhere(
+                    (p) =>
+                        p.id == uploadPetTarget ||
+                        p.name.toLowerCase() ==
+                            uploadPetTarget.toLowerCase(),
+                    orElse: () => pets.first,
+                  );
+                  final updatedPhotos = List<String>.from(matchedPet.photos)
+                    ..insert(0, filePath);
+                  final updatedPet = matchedPet.copyWith(
+                    photos: updatedPhotos,
+                  );
+                  petBloc.add(UpdatePet(updatedPet));
+                }
 
-                    setState(() {
-                      _memories.insert(
-                        0,
-                        MemoryItem(
-                          id: timestamp.millisecondsSinceEpoch.toString(),
-                          petId: uploadPetTarget,
-                          imageUrl: filePath,
-                          caption: captionController.text.trim().isNotEmpty
-                              ? captionController.text.trim()
-                              : 'Uploaded Memory',
-                          month: formattedMonth,
-                          date: timestamp,
-                        ),
-                      );
-                    });
-
-                    // Sync photo upload back into user's saved BLoC profile
-                    if (pets.isNotEmpty) {
-                      final matchedPet = pets.firstWhere(
-                        (p) =>
-                            p.id == uploadPetTarget ||
-                            p.name.toLowerCase() ==
-                                uploadPetTarget.toLowerCase(),
-                        orElse: () => pets.first,
-                      );
-                      final updatedPhotos = List<String>.from(matchedPet.photos)
-                        ..insert(0, filePath);
-                      final updatedPet = matchedPet.copyWith(
-                        photos: updatedPhotos,
-                      );
-                      petBloc.add(UpdatePet(updatedPet));
-                    }
-
-                    postNavigator.pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
+                postNavigator.pop();
+              },
+              children: [
+                // Preview picked media
+                Container(
+                  height: 140,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.outlineVariant),
                   ),
-                  child: const Text('Post Memory'),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.file(
+                      File(filePath),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Center(
+                            child: Icon(
+                              Icons.broken_image,
+                              color: AppTheme.secondary,
+                              size: 40,
+                            ),
+                          ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Target Pet Selection
+                const FormSectionLabel('ASSIGN TO PET'),
+                DropdownButtonFormField<String>(
+                  initialValue: uploadPetTarget,
+                  items: petOptions.map((name) {
+                    return DropdownMenuItem(
+                      value: name,
+                      child: Text(
+                        name[0].toUpperCase() + name.substring(1),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setModalState(() => uploadPetTarget = val);
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Caption Input
+                const FormSectionLabel('CAPTION (OPTIONAL)'),
+                TextField(
+                  controller: captionController,
+                  decoration: const InputDecoration(
+                    hintText: 'Write a memory...',
+                  ),
                 ),
               ],
             );
