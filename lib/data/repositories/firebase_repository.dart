@@ -40,32 +40,49 @@ class FirebaseRepository implements BaseRepository {
       );
 
       if (credential.user != null) {
+        final user = credential.user!;
         final userDoc = await _firestore
             .collection('users')
-            .doc(credential.user!.uid)
+            .doc(user.uid)
             .get();
         if (!userDoc.exists) {
           await _auth.signOut();
           throw Exception(
-            'No account found for "$cleanEmail". Please sign up first before logging in.',
+            'Account does not exist. Please sign up first.',
+          );
+        }
+
+        if (!user.emailVerified) {
+          await _auth.signOut();
+          throw Exception(
+            'Account Not Verified. Please check your email inbox and verify your email address before logging in.',
           );
         }
       }
 
       return true;
     } on fb.FirebaseAuthException catch (e) {
-      if (e.code == 'wrong-password') {
+      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
         throw Exception('Incorrect password. Please verify your credentials.');
+      } else if (e.code == 'user-not-found' || e.code == 'invalid-email') {
+        throw Exception('Account does not exist. Please sign up first.');
+      } else if (e.code == 'network-request-failed' || e.code == 'unavailable') {
+        throw Exception('Connection refused by Firebase backend. Please check your internet connection or try again later.');
       }
       throw Exception(
-        'No account found for "$cleanEmail". Please sign up first before logging in.',
+        'Account does not exist. Please sign up first.',
       );
     } catch (e) {
-      if (e.toString().contains('wrong-password')) {
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('wrong-password') || errStr.contains('incorrect password')) {
         throw Exception('Incorrect password. Please verify your credentials.');
+      } else if (errStr.contains('not verified')) {
+        rethrow;
+      } else if (errStr.contains('socketexception') || errStr.contains('connection refused') || errStr.contains('network')) {
+        throw Exception('Connection refused by Firebase backend. Please check your internet connection.');
       }
       throw Exception(
-        'No account found for "$cleanEmail". Please sign up first before logging in.',
+        'Account does not exist. Please sign up first.',
       );
     }
   }

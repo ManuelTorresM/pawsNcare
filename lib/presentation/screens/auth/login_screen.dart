@@ -401,14 +401,39 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _showAuthErrorDialog(BuildContext context, String error) {
     final cleanError = error.replaceAll('Exception: ', '').trim();
-    final isWrongPassword =
-        cleanError.toLowerCase().contains('incorrect password') ||
-        cleanError.toLowerCase().contains('wrong-password');
-    final isNotRegistered = !isWrongPassword;
+    final lower = cleanError.toLowerCase();
 
-    final title = isNotRegistered
-        ? 'Account Not Registered'
-        : 'Incorrect Password';
+    final isConnectionError =
+        lower.contains('connection refused') || lower.contains('network');
+    final isWrongPassword =
+        lower.contains('incorrect password') || lower.contains('wrong-password');
+    final isUnverified =
+        lower.contains('not verified') || lower.contains('account not verified');
+    final isNotRegistered =
+        !isWrongPassword && !isUnverified && !isConnectionError;
+
+    String title;
+    IconData icon;
+    Color iconColor;
+
+    if (isConnectionError) {
+      title = 'Connection Refused';
+      icon = Icons.wifi_off_rounded;
+      iconColor = AppTheme.error;
+    } else if (isUnverified) {
+      title = 'Account Not Verified';
+      icon = Icons.mark_email_unread_rounded;
+      iconColor = Colors.orange;
+    } else if (isWrongPassword) {
+      title = 'Incorrect Password';
+      icon = Icons.lock_reset_rounded;
+      iconColor = AppTheme.secondary;
+    } else {
+      title = 'Account Does Not Exist';
+      icon = Icons.person_off_rounded;
+      iconColor = AppTheme.error;
+    }
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
@@ -424,15 +449,12 @@ class _LoginScreenState extends State<LoginScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: (isNotRegistered ? AppTheme.error : AppTheme.secondary)
-                      .withValues(alpha: 0.15),
+                  color: iconColor.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  isNotRegistered
-                      ? Icons.person_off_rounded
-                      : Icons.warning_amber_rounded,
-                  color: isNotRegistered ? AppTheme.error : AppTheme.secondary,
+                  icon,
+                  color: iconColor,
                   size: 32,
                 ),
               ),
@@ -459,7 +481,42 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           actionsAlignment: MainAxisAlignment.center,
           actions: [
-            if (isNotRegistered) ...[
+            if (isUnverified) ...[
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    color: AppTheme.secondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  Navigator.of(dialogContext).pop();
+                  try {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Sending verification email...',
+                        ),
+                      ),
+                    );
+                  } catch (_) {}
+                },
+                icon: const Icon(Icons.send_rounded, size: 18),
+                label: const Text('Resend Email'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ] else if (isNotRegistered) ...[
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
                 child: const Text(

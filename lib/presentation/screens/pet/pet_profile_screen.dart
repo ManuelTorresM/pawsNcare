@@ -16,6 +16,8 @@ import '../../theme/app_theme.dart';
 import '../../widgets/accent_left_card.dart';
 import '../../widgets/pet/pet_recent_memories_widget.dart';
 import '../../widgets/base_form_dialog.dart';
+import '../../../core/services/local_media_service.dart';
+import '../../../data/services/google_drive_service.dart';
 import 'pet_details_screen.dart';
 import 'meds_vaccines_screen.dart';
 import 'pet_album_screen.dart';
@@ -1012,15 +1014,31 @@ class _PetProfileScreenState extends State<PetProfileScreen>
       final pickedFile = await picker.pickImage(source: source);
       if (!mounted) return;
       if (pickedFile != null) {
+        String finalPath = pickedFile.path;
+        final file = File(pickedFile.path);
+        if (file.existsSync()) {
+          final savedFile = await LocalMediaService.saveToPawsNCareDirectory(file);
+          finalPath = savedFile.path;
+
+          if (await GoogleDriveService.isDriveLinked()) {
+            final driveUrl = await GoogleDriveService.uploadImageToDrive(savedFile);
+            if (driveUrl != null) {
+              finalPath = driveUrl;
+            }
+          }
+        }
+
         final updatedPhotos = List<String>.from(_pet.photos)
-          ..insert(0, pickedFile.path);
+          ..insert(0, finalPath);
         final updatedPet = _pet.copyWith(photos: updatedPhotos);
 
+        if (!mounted) return;
         context.read<PetBloc>().add(UpdatePet(updatedPet));
         setState(() {
           _pet = updatedPet;
         });
 
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Photo added to ${_pet.name}\'s gallery!'),

@@ -12,6 +12,8 @@ import 'create_pet_step1.dart';
 import 'medical_history_step2.dart';
 import 'lifestyle_routine_step3.dart';
 import 'create_pet_finish_screen.dart';
+import '../../../core/services/local_media_service.dart';
+import '../../../data/services/google_drive_service.dart';
 
 class AddPetWizard extends StatefulWidget {
   const AddPetWizard({super.key});
@@ -335,6 +337,81 @@ class _AddPetWizardState extends State<AddPetWizard> {
     final currentOwnerId =
         currentUser?.uid ?? currentUser?.email ?? 'current_owner';
 
+    // Check Google Drive linking prompt if not already linked
+    final isDriveLinked = await GoogleDriveService.isDriveLinked();
+    if (!isDriveLinked && mounted) {
+      await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.add_to_drive, color: AppTheme.primary),
+              SizedBox(width: 10),
+              Text(
+                'Link Google Drive?',
+                style: TextStyle(
+                  fontFamily: 'Montserrat',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Would you like to link Google Drive to automatically back up your pet photos to the cloud across all your devices?',
+            style: TextStyle(fontFamily: 'Inter', fontSize: 13, height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text(
+                'Skip for Now',
+                style: TextStyle(color: AppTheme.secondary),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final success = await GoogleDriveService.linkGoogleDrive();
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop(success);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('Link Google Drive'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Process avatar storage
+    String finalAvatarUrl = _selectedAvatar;
+    if (_selectedAvatar.isNotEmpty &&
+        !_selectedAvatar.startsWith('assets/') &&
+        !_selectedAvatar.startsWith('http')) {
+      final file = File(_selectedAvatar);
+      if (file.existsSync()) {
+        final savedFile = await LocalMediaService.saveToPawsNCareDirectory(file);
+        finalAvatarUrl = savedFile.path;
+
+        if (await GoogleDriveService.isDriveLinked()) {
+          final driveUrl = await GoogleDriveService.uploadImageToDrive(savedFile);
+          if (driveUrl != null) {
+            finalAvatarUrl = driveUrl;
+          }
+        }
+      }
+    }
+
     final newPet = Pet(
       id: petId,
       ownerId: currentOwnerId,
@@ -346,7 +423,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
           : 'Mixed Breed',
       ageString: ageStr,
       birthDate: birth,
-      avatarUrl: _selectedAvatar,
+      avatarUrl: finalAvatarUrl,
       status: years == 0 ? 'Puppy' : 'Healthy',
       weight: weightInKg,
       weightHistory: weightVal == 0.0

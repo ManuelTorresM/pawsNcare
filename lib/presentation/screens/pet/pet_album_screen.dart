@@ -7,6 +7,8 @@ import '../../../logic/pet/pet_bloc.dart';
 import '../../../data/models/pet.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/base_form_dialog.dart';
+import '../../../core/services/local_media_service.dart';
+import '../../../data/services/google_drive_service.dart';
 
 class MemoryItem {
   final String id;
@@ -118,9 +120,23 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
               subtitle: 'Add a new memory to your companion gallery',
               primaryButtonText: 'Post Memory',
               primaryButtonIcon: Icons.send_rounded,
-              onPrimaryPressed: () {
+              onPrimaryPressed: () async {
                 final timestamp = DateTime.now();
                 final formattedMonth = _formatMonthYear(timestamp);
+
+                String finalPath = filePath;
+                final file = File(filePath);
+                if (file.existsSync()) {
+                  final savedFile = await LocalMediaService.saveToPawsNCareDirectory(file);
+                  finalPath = savedFile.path;
+
+                  if (await GoogleDriveService.isDriveLinked()) {
+                    final driveUrl = await GoogleDriveService.uploadImageToDrive(savedFile);
+                    if (driveUrl != null) {
+                      finalPath = driveUrl;
+                    }
+                  }
+                }
 
                 setState(() {
                   _memories.insert(
@@ -128,7 +144,7 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                     MemoryItem(
                       id: timestamp.millisecondsSinceEpoch.toString(),
                       petId: uploadPetTarget,
-                      imageUrl: filePath,
+                      imageUrl: finalPath,
                       caption: captionController.text.trim().isNotEmpty
                           ? captionController.text.trim()
                           : 'Uploaded Memory',
@@ -148,7 +164,7 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                     orElse: () => pets.first,
                   );
                   final updatedPhotos = List<String>.from(matchedPet.photos)
-                    ..insert(0, filePath);
+                    ..insert(0, finalPath);
                   final updatedPet = matchedPet.copyWith(
                     photos: updatedPhotos,
                   );

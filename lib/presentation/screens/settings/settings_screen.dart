@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,6 +10,8 @@ import '../../../data/models/app_notification.dart';
 import '../../../logic/notifications/global_notification_service.dart';
 import '../../theme/app_theme.dart';
 
+import '../../../data/services/google_drive_service.dart';
+import '../../../core/services/local_media_service.dart';
 import '../profile/profile_details_screen.dart';
 import '../test/test_playground_screen.dart';
 
@@ -32,6 +33,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _quietHoursEnabled = true;
   TimeOfDay _quietStart = const TimeOfDay(hour: 22, minute: 0); // 10:00 PM
   TimeOfDay _quietEnd = const TimeOfDay(hour: 7, minute: 0); // 07:00 AM
+  bool _isDriveLinked = false;
+  String? _driveEmail;
 
   String _formatTimeOfDay(TimeOfDay time) {
     final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
@@ -45,6 +48,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _loadDbSource();
     _loadNotificationSettings();
+    _loadGoogleDriveStatus();
+  }
+
+  Future<void> _loadGoogleDriveStatus() async {
+    final isLinked = await GoogleDriveService.isDriveLinked();
+    final email = await GoogleDriveService.getLinkedEmail();
+    if (mounted) {
+      setState(() {
+        _isDriveLinked = isLinked;
+        _driveEmail = email;
+      });
+    }
   }
 
   void _loadNotificationSettings() {
@@ -142,16 +157,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           CircleAvatar(
                             radius: 32,
                             backgroundColor: AppTheme.primaryContainer,
-                            backgroundImage:
-                                (_userAvatarPath != null &&
-                                        _userAvatarPath!.isNotEmpty)
-                                ? (_userAvatarPath!.startsWith('assets/')
-                                      ? AssetImage(_userAvatarPath!)
-                                      : (_userAvatarPath!.startsWith('http')
-                                          ? NetworkImage(_userAvatarPath!)
-                                          : FileImage(File(_userAvatarPath!))))
-                                    as ImageProvider
-                                : const AssetImage('assets/avatars/dog.png'),
+                            backgroundImage: LocalMediaService.resolveImageProvider(
+                              _userAvatarPath,
+                            ),
                           ),
                           Positioned(
                             bottom: 0,
@@ -515,6 +523,130 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                 ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Cloud Storage & Backup Section
+          _buildSectionHeader('Cloud Storage & Backup', textSecondary),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: (isDark
+                                ? AppTheme.primaryFixedDim
+                                : AppTheme.primary)
+                            .withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.cloud_upload_outlined,
+                        color: isDark
+                            ? AppTheme.primaryFixedDim
+                            : AppTheme.primary,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Link to Google Drive',
+                            style: TextStyle(
+                              fontFamily: 'Montserrat',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _isDriveLinked && _driveEmail != null
+                                ? 'Connected: $_driveEmail'
+                                : 'Backup pet photos to your personal Google Drive for cloud access across devices.',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 12,
+                              color: textSecondary,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (_isDriveLinked) ...[
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          await GoogleDriveService.unlinkGoogleDrive();
+                          await _loadGoogleDriveStatus();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Unlinked Google Drive.'),
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.link_off, size: 16),
+                        label: const Text('Unlink'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.error,
+                          side: const BorderSide(color: AppTheme.error),
+                        ),
+                      ),
+                    ] else ...[
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          final success =
+                              await GoogleDriveService.linkGoogleDrive();
+                          await _loadGoogleDriveStatus();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  success
+                                      ? 'Successfully linked Google Drive!'
+                                      : 'Failed to link Google Drive.',
+                                ),
+                                backgroundColor: success
+                                    ? AppTheme.primary
+                                    : AppTheme.error,
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.add_to_drive, size: 16),
+                        label: const Text('Link Now'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
           ),
