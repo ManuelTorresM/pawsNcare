@@ -5,14 +5,31 @@ import 'package:path_provider/path_provider.dart';
 class LocalMediaService {
   static const String folderName = 'pawsncare';
 
-  /// Get the dedicated pawsncare directory on the local device.
+  /// Get the dedicated pawsncare directory on the local device (Publicly visible in Gallery/Files).
   static Future<Directory> getPawsNCareDirectory() async {
-    final docsDir = await getApplicationDocumentsDirectory();
-    final pawsDir = Directory('${docsDir.path}/$folderName');
-    if (!await pawsDir.exists()) {
-      await pawsDir.create(recursive: true);
+    Directory targetDir;
+    if (Platform.isAndroid) {
+      // Use public Pictures directory on Android so images appear in Gallery & File Manager
+      targetDir = Directory('/storage/emulated/0/Pictures/$folderName');
+      if (!await targetDir.exists()) {
+        try {
+          await targetDir.create(recursive: true);
+        } catch (_) {
+          final extDir = await getExternalStorageDirectory();
+          targetDir = Directory('${extDir?.path ?? ''}/$folderName');
+          if (!await targetDir.exists()) {
+            await targetDir.create(recursive: true);
+          }
+        }
+      }
+    } else {
+      final docsDir = await getApplicationDocumentsDirectory();
+      targetDir = Directory('${docsDir.path}/$folderName');
+      if (!await targetDir.exists()) {
+        await targetDir.create(recursive: true);
+      }
     }
-    return pawsDir;
+    return targetDir;
   }
 
   /// Save a media file into the local pawsncare directory.
