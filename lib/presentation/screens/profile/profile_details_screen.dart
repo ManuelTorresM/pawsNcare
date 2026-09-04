@@ -5,8 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:intl_phone_field/countries.dart';
+import 'package:flutter/services.dart';
 import '../../../logic/auth/auth_bloc.dart';
 import '../../../logic/theme/theme_cubit.dart';
+import '../../../data/repositories/firebase_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/photo_source_bottom_sheet.dart';
 
@@ -31,6 +33,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
   static const String _avatarKey = 'pawsncare_user_avatar_path';
 
   String? _avatarPath;
+  String _userCode = '';
 
   late final List<Country> _verifiedCountries = () {
     return countries.map((c) {
@@ -87,9 +90,11 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
     final emergency = prefs.getString(_emergencyKey);
     final address = prefs.getString(_addressKey);
     final avatar = prefs.getString(_avatarKey);
+    final userCode = await FirebaseRepository().getCurrentUserCode();
 
     if (!mounted) return;
     setState(() {
+      _userCode = userCode;
       if (avatar != null && avatar.isNotEmpty) {
         _avatarPath = avatar;
       }
@@ -412,7 +417,57 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                       color: textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  if (_userCode.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    GestureDetector(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: _userCode));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Personal User Code copied to clipboard!'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryFixed,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.key_rounded,
+                              size: 14,
+                              color: AppTheme.primary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Code: $_userCode',
+                              style: const TextStyle(
+                                fontFamily: 'Montserrat',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: AppTheme.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.copy_rounded,
+                              size: 14,
+                              color: AppTheme.primary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
 
                   // Personal Details Card
                   Container(

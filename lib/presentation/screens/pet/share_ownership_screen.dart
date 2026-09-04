@@ -8,6 +8,7 @@ import '../../../data/models/pet.dart';
 import '../../../data/models/pet_invitation.dart';
 import '../../../data/models/pet_role.dart';
 import '../../../data/models/shared_member.dart';
+import '../../../data/models/app_user.dart';
 import '../../../data/repositories/firebase_repository.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../theme/app_theme.dart';
@@ -68,7 +69,7 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
         final name = (data['name'] ?? '').toString();
         final email = (data['email'] ?? '').toString();
         final uid = doc.id;
-        final numericId = (uid.hashCode.abs() % 90000000 + 10000000).toString();
+        final userCode = (data['userCode'] ?? AppUser.generateUserCode(uid)).toString();
         final username =
             (data['username'] ??
                     (email.isNotEmpty ? email.split('@').first : ''))
@@ -77,7 +78,8 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
         if (name.toLowerCase().contains(query) ||
             email.toLowerCase().contains(query) ||
             username.toLowerCase().contains(query) ||
-            numericId.contains(query)) {
+            userCode.toLowerCase().contains(query) ||
+            userCode.contains(query)) {
           final parts = name.trim().split(' ');
           final initials = parts.isNotEmpty && parts.first.isNotEmpty
               ? (parts.length > 1 && parts.last.isNotEmpty
@@ -90,8 +92,9 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
                 ? name
                 : (username.isNotEmpty ? username : email),
             'email': email,
+            'userCode': userCode,
+            'numericId': userCode,
             'username': username,
-            'numericId': numericId,
             'initials': initials,
           });
         }
@@ -112,7 +115,9 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
   void _selectUser(Map<String, String> user) {
     _addContactToSuggested(user);
     setState(() {
-      _emailController.text = user['email']!;
+      _emailController.text = user['userCode']?.isNotEmpty == true
+          ? user['userCode']!
+          : user['email']!;
       _searchResults = [];
       _isSearching = false;
     });
@@ -125,6 +130,7 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
       _suggestedContacts.insert(0, {
         'name': user['name'] ?? user['username'] ?? email.split('@').first,
         'email': email,
+        'userCode': user['userCode'] ?? user['numericId'] ?? '',
         'initials':
             user['initials'] ??
             (email.isNotEmpty ? email[0].toUpperCase() : '?'),
@@ -133,39 +139,82 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
     }
   }
 
-  void _sendInvitation() {
-    final email = _emailController.text.trim();
-    if (email.isEmpty) {
+  Future<void> _sendInvitation() async {
+    final input = _emailController.text.trim();
+    if (input.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter an email address or select a contact.'),
+          content: Text('Please enter an email address or personal user code.'),
         ),
       );
       return;
     }
 
-    // Match searched user
-    final matchedUser = _searchResults.firstWhere(
-      (u) =>
-          u['email']?.toLowerCase() == email.toLowerCase() ||
-          u['username']?.toLowerCase() == email.toLowerCase(),
-      orElse: () => {
-        'name': email.split('@').first,
-        'email': email,
-        'username': email.split('@').first,
-        'initials': email.isNotEmpty ? email[0].toUpperCase() : '?',
-      },
-    );
+    // 1. Check in-memory search results
+    Map<String, String>? matchedUser;
+    for (var u in _searchResults) {
+      if (u['email']?.toLowerCase() == input.toLowerCase() ||
+          u['userCode'] == input ||
+          u['numericId'] == input ||
+          u['username']?.toLowerCase() == input.toLowerCase()) {
+        matchedUser = u;
+        break;
+      }
+    }
 
-    // Prevent multiple invitations for the same user
-    final targetEmail = matchedUser['email'] ?? email;
+    // 2. Query Firestore by email or userCode if not cached
+    if (matchedUser == null) {
+      final appUser = await FirebaseRepository().getUserByEmailOrCode(input);
+      if (appUser != null) {
+        final parts = appUser.name.trim().split(' ');
+        final initials = parts.isNotEmpty && parts.first.isNotEmpty
+            ? (parts.length > 1 && parts.last.isNotEmpty
+                ? '${parts.first[0]}${parts.last[0]}'.toUpperCase()
+                : parts.first[0].toUpperCase())
+            : (appUser.email.isNotEmpty ? appUser.email[0].toUpperCase() : '?');
+
+        matchedUser = {
+          'name': appUser.name.isNotEmpty ? appUser.name : appUser.email.split('@').first,
+          'email': appUser.email,
+          'userCode': appUser.userCode,
+          'numericId': appUser.userCode,
+          'username': appUser.email.split('@').first,
+          'initials': initials,
+        };
+      } else if (input.contains('@')) {
+        matchedUser = {
+          'name': input.split('@').first,
+          'email': input,
+          'userCode': '',
+          'numericId': '',
+          'username': input.split('@').first,
+          'initials': input[0].toUpperCase(),
+        };
+      }
+    }
+
+    if (matchedUser == null || matchedUser['email'] == null || matchedUser['email']!.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppTheme.error,
+          content: Text('No registered user found for code or email "$input".'),
+        ),
+      );
+      return;
+    }
+
+    final targetEmail = matchedUser['email']!;
+
+    // Prevent duplicate invitations
     final hasExistingMember = _pet.members.any(
       (m) =>
-          m.email.toLowerCase() == email.toLowerCase() ||
+          m.email.toLowerCase() == input.toLowerCase() ||
           m.email.toLowerCase() == targetEmail.toLowerCase(),
     );
 
     if (hasExistingMember) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -196,21 +245,21 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
           ? _pet.ownerId
           : (currentUser?.uid ?? ''),
       ownerName: inviterName,
-      recipientEmail: matchedUser['email'] ?? email,
-      recipientUsername: matchedUser['username'] ?? email.split('@').first,
+      recipientEmail: targetEmail,
+      recipientUsername: matchedUser['username'] ?? targetEmail.split('@').first,
       role: _selectedRole,
       status: 'Pending',
       createdAt: DateTime.now(),
     );
 
     // Save invitation to top-level invitations collection in Firestore
-    FirebaseRepository().sendInvitation(invitation);
+    await FirebaseRepository().sendInvitation(invitation);
 
     // Create new shared member
     final newMember = SharedMember(
       id: invId,
-      email: email,
-      name: matchedUser['name'] ?? email.split('@').first,
+      email: targetEmail,
+      name: matchedUser['name'] ?? targetEmail.split('@').first,
       role: _selectedRole,
       joinedAt: DateTime.now(),
       status: 'Pending',
@@ -220,6 +269,7 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
       ..add(newMember);
     final updatedPet = _pet.copyWith(members: updatedMembers);
 
+    if (!mounted) return;
     setState(() {
       _pet = updatedPet;
       _emailController.clear();
@@ -229,21 +279,20 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
 
     final isTransfer = _selectedRole == PetRole.owner;
     final message = isTransfer
-        ? 'Ownership transfer request sent to $email!'
-        : 'Invitation sent to $email as ${_selectedRole.displayName}!';
+        ? 'Ownership transfer request sent to $targetEmail!'
+        : 'Invitation sent to $targetEmail as ${_selectedRole.displayName}!';
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(backgroundColor: AppTheme.primary, content: Text(message)),
     );
   }
 
-  void _showQrCodeModal() {
-    final user = FirebaseAuth.instance.currentUser;
-    final uid = user?.uid ?? '10000001';
-    final numericId = (uid.hashCode.abs() % 90000000 + 10000000).toString();
+  Future<void> _showQrCodeModal() async {
+    final userCode = await FirebaseRepository().getCurrentUserCode();
     final qrDeepLink =
-        'https://pawsncare.app/share?userId=$numericId&petId=${_pet.id}';
+        'https://pawsncare.app/share?userId=$userCode&petId=${_pet.id}';
 
+    if (!mounted) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -332,7 +381,7 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        'ID: $numericId',
+                        'ID: $userCode',
                         style: const TextStyle(
                           fontFamily: 'Montserrat',
                           fontWeight: FontWeight.bold,
@@ -352,11 +401,11 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () {
-                        _emailController.text = numericId;
+                        _emailController.text = userCode;
                         Navigator.pop(bottomSheetContext);
                       },
                       icon: const Icon(Icons.copy, size: 16),
-                      label: Text('Use ID: $numericId'),
+                      label: Text('Use ID: $userCode'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(

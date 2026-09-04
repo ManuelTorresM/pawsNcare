@@ -7,6 +7,7 @@ import '../models/pet_invitation.dart';
 import '../models/shared_member.dart';
 import '../models/pet_role.dart';
 import '../models/diary_entry.dart';
+import '../models/app_user.dart';
 import 'base_repository.dart';
 
 class FirebaseRepository implements BaseRepository {
@@ -136,10 +137,13 @@ class FirebaseRepository implements BaseRepository {
         try {
           await credential.user!.sendEmailVerification();
         } catch (_) {}
-        // Initialize user document in firestore
-        await _firestore.collection('users').doc(credential.user!.uid).set({
+        // Initialize user document in firestore with personal userCode
+        final uid = credential.user!.uid;
+        final userCode = AppUser.generateUserCode(uid);
+        await _firestore.collection('users').doc(uid).set({
           'name': name,
           'email': email,
+          'userCode': userCode,
           'createdAt': FieldValue.serverTimestamp(),
         });
       }
@@ -170,12 +174,18 @@ class FirebaseRepository implements BaseRepository {
             .collection('users')
             .doc(user.uid)
             .get();
+        final userCode = AppUser.generateUserCode(user.uid);
         if (!userDoc.exists) {
           await _firestore.collection('users').doc(user.uid).set({
             'name': user.displayName ?? 'Google User',
             'email': user.email ?? '',
+            'userCode': userCode,
             'createdAt': FieldValue.serverTimestamp(),
           });
+        } else if (userDoc.data()?['userCode'] == null) {
+          await _firestore.collection('users').doc(user.uid).set({
+            'userCode': userCode,
+          }, SetOptions(merge: true));
         }
       }
       return true;
@@ -202,6 +212,72 @@ class FirebaseRepository implements BaseRepository {
   @override
   Future<String?> getCurrentUserName() async {
     return _auth.currentUser?.displayName;
+  }
+
+  Future<String> getCurrentUserCode() async {
+    final uid = _uid;
+    if (uid == null) return '10000001';
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (doc.exists) {
+        final data = doc.data() ?? {};
+        final code = (data['userCode'] ?? '').toString();
+        if (code.isNotEmpty) return code;
+      }
+      final generated = AppUser.generateUserCode(uid);
+      await _firestore.collection('users').doc(uid).set({
+        'userCode': generated,
+      }, SetOptions(merge: true));
+      return generated;
+    } catch (_) {
+      return AppUser.generateUserCode(uid);
+    }
+  }
+
+  Future<AppUser?> getUserByEmailOrCode(String input) async {
+    final cleanInput = input.trim().toLowerCase();
+    if (cleanInput.isEmpty) return null;
+
+    // Check userCode exact match
+    try {
+      final codeSnap = await _firestore
+          .collection('users')
+          .where('userCode', isEqualTo: input.trim())
+          .limit(1)
+          .get();
+      if (codeSnap.docs.isNotEmpty) {
+        final doc = codeSnap.docs.first;
+        return AppUser.fromMap(doc.data(), doc.id);
+      }
+    } catch (_) {}
+
+    // Check email exact match
+    try {
+      final emailSnap = await _firestore
+          .collection('users')
+          .where('email', isEqualTo: cleanInput)
+          .limit(1)
+          .get();
+      if (emailSnap.docs.isNotEmpty) {
+        final doc = emailSnap.docs.first;
+        return AppUser.fromMap(doc.data(), doc.id);
+      }
+    } catch (_) {}
+
+    // Fallback scan users collection
+    try {
+      final snapshot = await _firestore.collection('users').get();
+      for (var doc in snapshot.docs) {
+        final user = AppUser.fromMap(doc.data(), doc.id);
+        if (user.userCode == input.trim() ||
+            user.userCode.toLowerCase() == cleanInput ||
+            user.email.toLowerCase() == cleanInput) {
+          return user;
+        }
+      }
+    } catch (_) {}
+
+    return null;
   }
 
   @override
