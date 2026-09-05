@@ -264,9 +264,9 @@ class _AddPetWizardState extends State<AddPetWizard> {
                 final ImageProvider imageProvider = url.startsWith('assets/')
                     ? AssetImage(url)
                     : (url.startsWith('http')
-                            ? NetworkImage(url)
-                            : FileImage(File(url)))
-                        as ImageProvider;
+                              ? NetworkImage(url)
+                              : FileImage(File(url)))
+                          as ImageProvider;
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 6.0),
@@ -409,11 +409,15 @@ class _AddPetWizardState extends State<AddPetWizard> {
         !_selectedAvatar.startsWith('http')) {
       final file = File(_selectedAvatar);
       if (file.existsSync()) {
-        final savedFile = await LocalMediaService.saveToPawsNCareDirectory(file);
+        final savedFile = await LocalMediaService.saveToPawsNCareDirectory(
+          file,
+        );
         finalAvatarUrl = savedFile.path;
 
         if (await GoogleDriveService.isDriveLinked()) {
-          final driveUrl = await GoogleDriveService.uploadImageToDrive(savedFile);
+          final driveUrl = await GoogleDriveService.uploadImageToDrive(
+            savedFile,
+          );
           if (driveUrl != null) {
             finalAvatarUrl = driveUrl;
           }

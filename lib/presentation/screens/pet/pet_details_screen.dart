@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../widgets/photo_source_bottom_sheet.dart';
+import '../../widgets/base_form_dialog.dart';
 import '../../../data/models/pet.dart';
 import '../../../data/models/pet_role.dart';
 import '../../../logic/pet/pet_bloc.dart';
@@ -160,298 +161,269 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
               );
             }
 
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: const Text(
-                'Edit Companion Profile',
-                style: TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primary,
-                  fontSize: 18,
-                ),
-              ),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Interactive Pet Profile Photo Button
-                      Center(
-                        child: GestureDetector(
-                          onTap: () async {
-                            final source = await PhotoSourceBottomSheet.show(
-                              dialogContext,
-                              title: 'Change Pet Photo',
-                            );
-                            if (source == null) return;
-                            if (!mounted) return;
-                            final messenger = ScaffoldMessenger.of(context);
-                            try {
-                              final picker = ImagePicker();
-                              final file = await picker.pickImage(
-                                source: source,
-                              );
-                              if (file != null) {
-                                setDialogState(() {
-                                  selectedAvatarUrl = file.path;
-                                });
-                              }
-                            } catch (e) {
-                              messenger.showSnackBar(
-                                SnackBar(
-                                  content: Text('Error selecting image: $e'),
-                                ),
-                              );
-                            }
-                          },
-                          child: Stack(
-                            alignment: Alignment.bottomRight,
-                            children: [
-                              Container(
-                                width: 96,
-                                height: 96,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: AppTheme.primaryFixed,
-                                    width: 3,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(48),
-                                  child: _buildPetImageWidget(
-                                    selectedAvatarUrl,
-                                    width: 96,
-                                    height: 96,
-                                    iconSize: 32,
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primary,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.edit,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ),
-                            ],
+            return BaseFormDialog(
+              icon: Icons.pets,
+              title: 'Edit Companion Profile',
+              subtitle: 'Update basic details & photo',
+              primaryButtonText: 'Save',
+              primaryButtonIcon: Icons.check,
+              onPrimaryPressed: () {
+                final newName = nameCtrl.text.trim();
+                if (newName.isNotEmpty) {
+                  final updated = _pet.copyWith(
+                    name: newName,
+                    avatarUrl: selectedAvatarUrl,
+                    breed: breedCtrl.text.trim(),
+                    gender: selectedGender,
+                    neutered: selectedNeutered,
+                    birthDate: selectedBirthDate,
+                  );
+                  _updatePet(updated);
+                  Navigator.pop(dialogContext);
+                }
+              },
+              children: [
+                // Interactive Pet Profile Photo Button
+                Center(
+                  child: GestureDetector(
+                    onTap: () async {
+                      final source = await PhotoSourceBottomSheet.show(
+                        dialogContext,
+                        title: 'Change Pet Photo',
+                      );
+                      if (source == null) return;
+                      if (!mounted) return;
+                      final messenger = ScaffoldMessenger.of(context);
+                      try {
+                        final picker = ImagePicker();
+                        final file = await picker.pickImage(
+                          source: source,
+                        );
+                        if (file != null) {
+                          setDialogState(() {
+                            selectedAvatarUrl = file.path;
+                          });
+                        }
+                      } catch (e) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text('Error selecting image: $e'),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Pet Name
-                      const Text(
-                        'Pet Name',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: nameCtrl,
-                        decoration: InputDecoration(
-                          hintText: 'e.g. Luna',
-                          filled: true,
-                          fillColor: AppTheme.surfaceContainerLow,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Breed
-                      const Text(
-                        'Breed',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: breedCtrl,
-                        decoration: InputDecoration(
-                          hintText: 'Search or enter breed...',
-                          filled: true,
-                          fillColor: AppTheme.surfaceContainerLow,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Gender
-                      const Text(
-                        'Gender',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: buildOptionChip(
-                              'Male',
-                              Icons.male,
-                              selectedGender,
-                              (v) => setDialogState(() => selectedGender = v),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: buildOptionChip(
-                              'Female',
-                              Icons.female,
-                              selectedGender,
-                              (v) => setDialogState(() => selectedGender = v),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Neutered / Spayed
-                      const Text(
-                        'Neutered / Spayed',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: buildOptionChip(
-                              'Yes',
-                              null,
-                              selectedNeutered,
-                              (v) => setDialogState(() => selectedNeutered = v),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: buildOptionChip(
-                              'No',
-                              null,
-                              selectedNeutered,
-                              (v) => setDialogState(() => selectedNeutered = v),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Date of Birth
-                      const Text(
-                        'Date of Birth',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      GestureDetector(
-                        onTap: () async {
-                          final date = await showDatePicker(
-                            context: dialogContext,
-                            initialDate: selectedBirthDate,
-                            firstDate: DateTime(2000),
-                            lastDate: DateTime.now(),
-                          );
-                          if (date != null) {
-                            setDialogState(() => selectedBirthDate = date);
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
+                        );
+                      }
+                    },
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        Container(
+                          width: 96,
+                          height: 96,
                           decoration: BoxDecoration(
-                            color: AppTheme.surfaceContainerLow,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '${selectedBirthDate.day}/${selectedBirthDate.month}/${selectedBirthDate.year}',
-                                style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w500,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppTheme.primaryFixed,
+                              width: 3,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: 0.1,
                                 ),
-                              ),
-                              const Icon(
-                                Icons.calendar_today,
-                                color: AppTheme.primary,
-                                size: 18,
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
                               ),
                             ],
                           ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(48),
+                            child: _buildPetImageWidget(
+                              selectedAvatarUrl,
+                              width: 96,
+                              height: 96,
+                              iconSize: 32,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 2,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.edit,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                const SizedBox(height: 16),
+
+                // Pet Name
+                const Text(
+                  'Pet Name',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    final newName = nameCtrl.text.trim();
-                    if (newName.isNotEmpty) {
-                      final updated = _pet.copyWith(
-                        name: newName,
-                        avatarUrl: selectedAvatarUrl,
-                        breed: breedCtrl.text.trim(),
-                        gender: selectedGender,
-                        neutered: selectedNeutered,
-                        birthDate: selectedBirthDate,
-                      );
-                      _updatePet(updated);
-                      Navigator.pop(dialogContext);
+                const SizedBox(height: 6),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Luna',
+                    filled: true,
+                    fillColor: AppTheme.surfaceContainerLow,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Breed
+                const Text(
+                  'Breed',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: breedCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'Search or enter breed...',
+                    filled: true,
+                    fillColor: AppTheme.surfaceContainerLow,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Gender
+                const Text(
+                  'Gender',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: buildOptionChip(
+                        'Male',
+                        Icons.male,
+                        selectedGender,
+                        (v) => setDialogState(() => selectedGender = v),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: buildOptionChip(
+                        'Female',
+                        Icons.female,
+                        selectedGender,
+                        (v) => setDialogState(() => selectedGender = v),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Neutered / Spayed
+                const Text(
+                  'Neutered / Spayed',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: buildOptionChip(
+                        'Yes',
+                        null,
+                        selectedNeutered,
+                        (v) => setDialogState(() => selectedNeutered = v),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: buildOptionChip(
+                        'No',
+                        null,
+                        selectedNeutered,
+                        (v) => setDialogState(() => selectedNeutered = v),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Date of Birth
+                const Text(
+                  'Date of Birth',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                GestureDetector(
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: dialogContext,
+                      initialDate: selectedBirthDate,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now(),
+                    );
+                    if (date != null) {
+                      setDialogState(() => selectedBirthDate = date);
                     }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${selectedBirthDate.day}/${selectedBirthDate.month}/${selectedBirthDate.year}',
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const Icon(
+                          Icons.calendar_today,
+                          color: AppTheme.primary,
+                          size: 18,
+                        ),
+                      ],
+                    ),
                   ),
-                  child: const Text('Save'),
                 ),
               ],
             );
@@ -573,330 +545,301 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
               );
             }
 
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: const Text(
-                'Edit Health Profile',
-                style: TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primary,
-                  fontSize: 18,
+            return BaseFormDialog(
+              icon: Icons.healing_outlined,
+              title: 'Edit Health Profile',
+              subtitle: 'Update medical conditions & allergies',
+              primaryButtonText: 'Save',
+              primaryButtonIcon: Icons.check,
+              onPrimaryPressed: () {
+                final updated = _pet.copyWith(
+                  medicalConditions: selectedConditions,
+                  allergies: selectedAllergies,
+                );
+                _updatePet(updated);
+                Navigator.pop(dialogContext);
+              },
+              children: [
+                // Section 1: Medical Conditions
+                const Row(
+                  children: [
+                    Icon(
+                      Icons.healing_outlined,
+                      color: AppTheme.primary,
+                      size: 20,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Medical Conditions',
+                      style: TextStyle(
+                        fontFamily: 'Montserrat',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 12),
+
+                // 2-Column Grid Layout
+                Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: buildConditionButton('Diabetes')),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: buildConditionButton('Arthritis'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: buildConditionButton('Heart Murmur'),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(child: buildConditionButton('Epilepsy')),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(child: buildConditionButton('None')),
+                        const SizedBox(width: 8),
+                        Expanded(child: buildAddCustomButton()),
+                      ],
+                    ),
+                  ],
+                ),
+
+                // Custom Added Conditions Tags
+                if (selectedConditions.any(
+                  (c) =>
+                      c != 'diabetes' &&
+                      c != 'arthritis' &&
+                      c != 'heart murmur' &&
+                      c != 'epilepsy' &&
+                      c != 'none',
+                )) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: selectedConditions
+                        .where(
+                          (c) =>
+                              c != 'diabetes' &&
+                              c != 'arthritis' &&
+                              c != 'heart murmur' &&
+                              c != 'epilepsy' &&
+                              c != 'none',
+                        )
+                        .map((condition) {
+                          return Chip(
+                            label: Text(condition),
+                            deleteIcon: const Icon(Icons.close, size: 14),
+                            onDeleted: () => toggleCondition(condition),
+                            backgroundColor: AppTheme.primary.withValues(
+                              alpha: 0.1,
+                            ),
+                            labelStyle: const TextStyle(
+                              fontFamily: 'Montserrat',
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primary,
+                              fontSize: 11,
+                            ),
+                          );
+                        })
+                        .toList(),
+                  ),
+                ],
+
+                if (isCustomConditionVisible) ...[
+                  const SizedBox(height: 10),
+                  Row(
                     children: [
-                      // Section 1: Medical Conditions
-                      const Row(
-                        children: [
-                          Icon(
-                            Icons.healing_outlined,
-                            color: AppTheme.primary,
-                            size: 20,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Medical Conditions',
-                            style: TextStyle(
-                              fontFamily: 'Montserrat',
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // 2-Column Grid Layout
-                      Column(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(child: buildConditionButton('Diabetes')),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: buildConditionButton('Arthritis'),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: buildConditionButton('Heart Murmur'),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(child: buildConditionButton('Epilepsy')),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(child: buildConditionButton('None')),
-                              const SizedBox(width: 8),
-                              Expanded(child: buildAddCustomButton()),
-                            ],
-                          ),
-                        ],
-                      ),
-
-                      // Custom Added Conditions Tags
-                      if (selectedConditions.any(
-                        (c) =>
-                            c != 'diabetes' &&
-                            c != 'arthritis' &&
-                            c != 'heart murmur' &&
-                            c != 'epilepsy' &&
-                            c != 'none',
-                      )) ...[
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: selectedConditions
-                              .where(
-                                (c) =>
-                                    c != 'diabetes' &&
-                                    c != 'arthritis' &&
-                                    c != 'heart murmur' &&
-                                    c != 'epilepsy' &&
-                                    c != 'none',
-                              )
-                              .map((condition) {
-                                return Chip(
-                                  label: Text(condition),
-                                  deleteIcon: const Icon(Icons.close, size: 14),
-                                  onDeleted: () => toggleCondition(condition),
-                                  backgroundColor: AppTheme.primary.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                  labelStyle: const TextStyle(
-                                    fontFamily: 'Montserrat',
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.primary,
-                                    fontSize: 11,
-                                  ),
-                                );
-                              })
-                              .toList(),
-                        ),
-                      ],
-
-                      if (isCustomConditionVisible) ...[
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: customConditionCtrl,
-                                autofocus: true,
-                                decoration: const InputDecoration(
-                                  hintText: 'Enter condition...',
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            ElevatedButton(
-                              onPressed: () {
-                                final text = customConditionCtrl.text.trim();
-                                if (text.isNotEmpty) {
-                                  toggleCondition(text);
-                                  customConditionCtrl.clear();
-                                  setDialogState(
-                                    () => isCustomConditionVisible = false,
-                                  );
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
-                              ),
-                              child: const Text('Add'),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.close, size: 18),
-                              onPressed: () => setDialogState(
-                                () => isCustomConditionVisible = false,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-
-                      const SizedBox(height: 20),
-
-                      // Section 2: Allergies
-                      const Row(
-                        children: [
-                          Icon(
-                            Icons.eco_outlined,
-                            color: AppTheme.primary,
-                            size: 20,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Allergies',
-                            style: TextStyle(
-                              fontFamily: 'Montserrat',
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-
-                      TextField(
-                        controller: allergySearchCtrl,
-                        decoration: const InputDecoration(
-                          hintText: 'Search or type custom allergy...',
-                          isDense: true,
-                          prefixIcon: Icon(Icons.search, size: 18),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
-                        ),
-                        onSubmitted: (value) {
-                          final query = value.trim();
-                          if (query.isNotEmpty) {
-                            setDialogState(() {
-                              if (!selectedAllergies.contains(query)) {
-                                selectedAllergies.add(query);
-                              }
-                              allergySearchCtrl.clear();
-                              isAllergyDropdownVisible = false;
-                              filteredAllergies = [];
-                            });
-                          }
-                        },
-                        onChanged: (query) {
-                          if (query.isEmpty) {
-                            setDialogState(() {
-                              filteredAllergies = [];
-                              isAllergyDropdownVisible = false;
-                            });
-                            return;
-                          }
-                          final filtered = allergyLibrary
-                              .where(
-                                (a) =>
-                                    a.toLowerCase().contains(
-                                      query.toLowerCase(),
-                                    ) &&
-                                    !selectedAllergies.contains(a),
-                              )
-                              .toList();
-                          setDialogState(() {
-                            filteredAllergies = filtered;
-                            isAllergyDropdownVisible = true;
-                          });
-                        },
-                      ),
-
-                      if (isAllergyDropdownVisible &&
-                          filteredAllergies.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Container(
-                          constraints: const BoxConstraints(maxHeight: 150),
-                          decoration: BoxDecoration(
-                            color: AppTheme.surfaceContainerLowest,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppTheme.surfaceContainer,
-                            ),
-                          ),
-                          child: SingleChildScrollView(
-                            child: Column(
-                              children: filteredAllergies.map((allergy) {
-                                return ListTile(
-                                  dense: true,
-                                  title: Text(
-                                    allergy,
-                                    style: const TextStyle(fontSize: 13),
-                                  ),
-                                  onTap: () {
-                                    setDialogState(() {
-                                      if (!selectedAllergies.contains(
-                                        allergy,
-                                      )) {
-                                        selectedAllergies.add(allergy);
-                                      }
-                                      allergySearchCtrl.clear();
-                                      isAllergyDropdownVisible = false;
-                                      filteredAllergies = [];
-                                    });
-                                  },
-                                );
-                              }).toList(),
+                      Expanded(
+                        child: TextField(
+                          controller: customConditionCtrl,
+                          autofocus: true,
+                          decoration: const InputDecoration(
+                            hintText: 'Enter condition...',
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
                             ),
                           ),
                         ),
-                      ],
-
-                      if (selectedAllergies.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: selectedAllergies.map((allergy) {
-                            return Chip(
-                              label: Text(allergy),
-                              deleteIcon: const Icon(Icons.close, size: 14),
-                              onDeleted: () {
-                                setDialogState(() {
-                                  selectedAllergies.remove(allergy);
-                                });
-                              },
-                              backgroundColor: AppTheme.errorContainer,
-                              labelStyle: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.error,
-                              ),
+                      ),
+                      const SizedBox(width: 6),
+                      ElevatedButton(
+                        onPressed: () {
+                          final text = customConditionCtrl.text.trim();
+                          if (text.isNotEmpty) {
+                            toggleCondition(text);
+                            customConditionCtrl.clear();
+                            setDialogState(
+                              () => isCustomConditionVisible = false,
                             );
-                          }).toList(),
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                          ),
                         ),
-                      ],
+                        child: const Text('Add'),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 18),
+                        onPressed: () => setDialogState(
+                          () => isCustomConditionVisible = false,
+                        ),
+                      ),
                     ],
                   ),
+                ],
+
+                const SizedBox(height: 20),
+
+                // Section 2: Allergies
+                const Row(
+                  children: [
+                    Icon(
+                      Icons.eco_outlined,
+                      color: AppTheme.primary,
+                      size: 20,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Allergies',
+                      style: TextStyle(
+                        fontFamily: 'Montserrat',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final updated = _pet.copyWith(
-                      medicalConditions: selectedConditions,
-                      allergies: selectedAllergies,
-                    );
-                    _updatePet(updated);
-                    Navigator.pop(dialogContext);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
+                const SizedBox(height: 10),
+
+                TextField(
+                  controller: allergySearchCtrl,
+                  decoration: const InputDecoration(
+                    hintText: 'Search or type custom allergy...',
+                    isDense: true,
+                    prefixIcon: Icon(Icons.search, size: 18),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
-                  child: const Text('Save'),
+                  onSubmitted: (value) {
+                    final query = value.trim();
+                    if (query.isNotEmpty) {
+                      setDialogState(() {
+                        if (!selectedAllergies.contains(query)) {
+                          selectedAllergies.add(query);
+                        }
+                        allergySearchCtrl.clear();
+                        isAllergyDropdownVisible = false;
+                        filteredAllergies = [];
+                      });
+                    }
+                  },
+                  onChanged: (query) {
+                    if (query.isEmpty) {
+                      setDialogState(() {
+                        filteredAllergies = [];
+                        isAllergyDropdownVisible = false;
+                      });
+                      return;
+                    }
+                    final filtered = allergyLibrary
+                        .where(
+                          (a) =>
+                              a.toLowerCase().contains(
+                                query.toLowerCase(),
+                              ) &&
+                              !selectedAllergies.contains(a),
+                        )
+                        .toList();
+                    setDialogState(() {
+                      filteredAllergies = filtered;
+                      isAllergyDropdownVisible = true;
+                    });
+                  },
                 ),
+
+                if (isAllergyDropdownVisible &&
+                    filteredAllergies.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 150),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceContainerLowest,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.surfaceContainer,
+                      ),
+                    ),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: filteredAllergies.map((allergy) {
+                          return ListTile(
+                            dense: true,
+                            title: Text(
+                              allergy,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            onTap: () {
+                              setDialogState(() {
+                                if (!selectedAllergies.contains(
+                                  allergy,
+                                )) {
+                                  selectedAllergies.add(allergy);
+                                }
+                                allergySearchCtrl.clear();
+                                isAllergyDropdownVisible = false;
+                                filteredAllergies = [];
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ],
+
+                if (selectedAllergies.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: selectedAllergies.map((allergy) {
+                      return Chip(
+                        label: Text(allergy),
+                        deleteIcon: const Icon(Icons.close, size: 14),
+                        onDeleted: () {
+                          setDialogState(() {
+                            selectedAllergies.remove(allergy);
+                          });
+                        },
+                        backgroundColor: AppTheme.errorContainer,
+                        labelStyle: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.error,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
               ],
             );
           },
@@ -984,260 +927,231 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
               );
             }
 
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: const Text(
-                'Edit Lifestyle & Routine',
-                style: TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primary,
-                  fontSize: 18,
+            return BaseFormDialog(
+              icon: Icons.directions_run,
+              title: 'Edit Lifestyle & Routine',
+              subtitle: 'Update activity level, diet & behavior tags',
+              primaryButtonText: 'Save',
+              primaryButtonIcon: Icons.check,
+              onPrimaryPressed: () {
+                final updated = _pet.copyWith(
+                  activityLevel: selectedActivity,
+                  dietEnabled: isDietEnabled,
+                  foodType: selectedFoodType,
+                  feedingNotes: notesCtrl.text.trim(),
+                  behaviorTags: selectedBehaviorTags,
+                );
+                _updatePet(updated);
+                Navigator.pop(dialogContext);
+              },
+              children: [
+                // Section 1: Activity Level
+                const Text(
+                  'Activity Level',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: AppTheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: SingleChildScrollView(
+                const SizedBox(height: 10),
+                GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 1.3,
+                  children: [
+                    buildActivityCard('Low', Icons.bed_outlined, 'Low'),
+                    buildActivityCard(
+                      'Moderate',
+                      Icons.directions_walk,
+                      'Moderate',
+                    ),
+                    buildActivityCard(
+                      'High',
+                      Icons.run_circle_outlined,
+                      'High',
+                    ),
+                    buildActivityCard(
+                      'Very High',
+                      Icons.bolt,
+                      'Very High',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Section 2: Diet & Nutrition Card
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.surfaceContainer),
+                  ),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Section 1: Activity Level
-                      const Text(
-                        'Activity Level',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: AppTheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      GridView.count(
-                        crossAxisCount: 2,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        mainAxisSpacing: 10,
-                        crossAxisSpacing: 10,
-                        childAspectRatio: 1.3,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          buildActivityCard('Low', Icons.bed_outlined, 'Low'),
-                          buildActivityCard(
-                            'Moderate',
-                            Icons.directions_walk,
-                            'Moderate',
+                          const Text(
+                            'Diet & Nutrition',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                           ),
-                          buildActivityCard(
-                            'High',
-                            Icons.run_circle_outlined,
-                            'High',
-                          ),
-                          buildActivityCard(
-                            'Very High',
-                            Icons.bolt,
-                            'Very High',
+                          Switch(
+                            value: isDietEnabled,
+                            activeThumbColor: AppTheme.primary,
+                            onChanged: (val) {
+                              setDialogState(() => isDietEnabled = val);
+                            },
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
-
-                      // Section 2: Diet & Nutrition Card
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppTheme.surfaceContainer),
+                      if (isDietEnabled) ...[
+                        const SizedBox(height: 14),
+                        const Text(
+                          'Main food type',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12,
+                            color: AppTheme.onSurfaceVariant,
+                          ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Diet & Nutrition',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                Switch(
-                                  value: isDietEnabled,
-                                  activeThumbColor: AppTheme.primary,
-                                  onChanged: (val) {
-                                    setDialogState(() => isDietEnabled = val);
-                                  },
-                                ),
-                              ],
+                        const SizedBox(height: 6),
+                        DropdownButtonFormField<String>(
+                          initialValue:
+                              foodTypeItems.contains(selectedFoodType)
+                              ? selectedFoodType
+                              : 'Dry Kibble',
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
                             ),
-                            if (isDietEnabled) ...[
-                              const SizedBox(height: 14),
-                              const Text(
-                                'Main food type',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 12,
-                                  color: AppTheme.onSurfaceVariant,
+                          ),
+                          items: foodTypeItems
+                              .map(
+                                (type) => DropdownMenuItem(
+                                  value: type,
+                                  child: Text(type),
                                 ),
-                              ),
-                              const SizedBox(height: 6),
-                              DropdownButtonFormField<String>(
-                                initialValue:
-                                    foodTypeItems.contains(selectedFoodType)
-                                    ? selectedFoodType
-                                    : 'Dry Kibble',
-                                decoration: const InputDecoration(
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 10,
-                                  ),
-                                ),
-                                items: foodTypeItems
-                                    .map(
-                                      (type) => DropdownMenuItem(
-                                        value: type,
-                                        child: Text(type),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (val) {
-                                  if (val != null) {
-                                    setDialogState(
-                                      () => selectedFoodType = val,
-                                    );
-                                  }
-                                },
-                              ),
-                              const SizedBox(height: 14),
-                              const Text(
-                                'Feeding Schedule/Notes',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 12,
-                                  color: AppTheme.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              TextField(
-                                controller: notesCtrl,
-                                maxLines: 3,
-                                minLines: 2,
-                                style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 13,
-                                ),
-                                decoration: InputDecoration(
-                                  hintText:
-                                      'e.g. 1/2 cup twice a day, morning and evening.',
-                                  hintStyle: TextStyle(
-                                    color: AppTheme.secondary.withValues(
-                                      alpha: 0.5,
-                                    ),
-                                    fontSize: 12,
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 12,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: AppTheme.surfaceContainer,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: AppTheme.surfaceContainer,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: AppTheme.primary,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
+                              )
+                              .toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setDialogState(
+                                () => selectedFoodType = val,
+                              );
+                            }
+                          },
                         ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Section 3: Behavior Tags
-                      const Text(
-                        'Behavior Tags (Optional)',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: AppTheme.onSurfaceVariant,
+                        const SizedBox(height: 14),
+                        const Text(
+                          'Feeding Schedule/Notes',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12,
+                            color: AppTheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: presetBehaviorTags.map((tag) {
-                          final isSelected = selectedBehaviorTags.contains(tag);
-                          return FilterChip(
-                            label: Text(tag),
-                            selected: isSelected,
-                            onSelected: (val) {
-                              setDialogState(() {
-                                if (isSelected) {
-                                  selectedBehaviorTags.remove(tag);
-                                } else {
-                                  selectedBehaviorTags.add(tag);
-                                }
-                              });
-                            },
-                            selectedColor: AppTheme.secondaryContainer,
-                            checkmarkColor: AppTheme.secondary,
-                            labelStyle: TextStyle(
-                              fontFamily: 'Inter',
-                              color: isSelected
-                                  ? AppTheme.onSurface
-                                  : AppTheme.secondary,
-                              fontWeight: FontWeight.bold,
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: notesCtrl,
+                          maxLines: 3,
+                          minLines: 2,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                          ),
+                          decoration: InputDecoration(
+                            hintText:
+                                'e.g. 1/2 cup twice a day, morning and evening.',
+                            hintStyle: TextStyle(
+                              color: AppTheme.secondary.withValues(
+                                alpha: 0.5,
+                              ),
                               fontSize: 12,
                             ),
-                          );
-                        }).toList(),
-                      ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: AppTheme.surfaceContainer,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: AppTheme.surfaceContainer,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: AppTheme.primary,
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final updated = _pet.copyWith(
-                      activityLevel: selectedActivity,
-                      dietEnabled: isDietEnabled,
-                      foodType: selectedFoodType,
-                      feedingNotes: notesCtrl.text.trim(),
-                      behaviorTags: selectedBehaviorTags,
-                    );
-                    _updatePet(updated);
-                    Navigator.pop(dialogContext);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
+                const SizedBox(height: 20),
+
+                // Section 3: Behavior Tags
+                const Text(
+                  'Behavior Tags (Optional)',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: AppTheme.onSurfaceVariant,
                   ),
-                  child: const Text('Save'),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: presetBehaviorTags.map((tag) {
+                    final isSelected = selectedBehaviorTags.contains(tag);
+                    return FilterChip(
+                      label: Text(tag),
+                      selected: isSelected,
+                      onSelected: (val) {
+                        setDialogState(() {
+                          if (isSelected) {
+                            selectedBehaviorTags.remove(tag);
+                          } else {
+                            selectedBehaviorTags.add(tag);
+                          }
+                        });
+                      },
+                      selectedColor: AppTheme.secondaryContainer,
+                      checkmarkColor: AppTheme.secondary,
+                      labelStyle: TextStyle(
+                        fontFamily: 'Inter',
+                        color: isSelected
+                            ? AppTheme.onSurface
+                            : AppTheme.secondary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    );
+                  }).toList(),
                 ),
               ],
             );
