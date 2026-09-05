@@ -374,6 +374,7 @@ class _DiaryTabState extends State<DiaryTab> {
                               severity != 'EMERGENCY') {
                             severity = 'CONCERNING';
                           }
+                          isActive = true;
                         } else if (val == 'vet') {
                           severity = 'UNUSUAL';
                         } else if (val == 'food' || val == 'med') {
@@ -401,8 +402,10 @@ class _DiaryTabState extends State<DiaryTab> {
                         isSelected: severity == 'CONCERNING',
                         color: AppTheme.statusConcerning,
                         bgColor: AppTheme.statusConcerningBg,
-                        onTap: () =>
-                            setDialogState(() => severity = 'CONCERNING'),
+                        onTap: () => setDialogState(() {
+                          severity = 'CONCERNING';
+                          isActive = true;
+                        }),
                       ),
                       const SizedBox(width: 8),
                       _buildSeverityOption(
@@ -410,8 +413,10 @@ class _DiaryTabState extends State<DiaryTab> {
                         isSelected: severity == 'EMERGENCY',
                         color: const Color(0xFFE74C3C),
                         bgColor: const Color(0xFFFDEDEC),
-                        onTap: () =>
-                            setDialogState(() => severity = 'EMERGENCY'),
+                        onTap: () => setDialogState(() {
+                          severity = 'EMERGENCY';
+                          isActive = true;
+                        }),
                       ),
                     ],
                   )
@@ -525,20 +530,34 @@ class _DiaryTabState extends State<DiaryTab> {
                   },
                 ),
 
-                // Special Section for Medical Event: Deactivation Info & Toggle
-                if (category == 'medical_event') ...[
+                // Special Section for Medical/Concerning Incident: Status Control & Info
+                if (category == 'medical_event' ||
+                    severity == 'CONCERNING' ||
+                    severity == 'EMERGENCY') ...[
                   const SizedBox(height: 16),
-                  Container(
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? AppTheme.statusAdministeredDarkBg.withValues(alpha: 0.4)
-                          : AppTheme.statusAdministeredBg.withValues(alpha: 0.7),
+                      color: isActive
+                          ? (severity == 'EMERGENCY'
+                              ? (isDark
+                                  ? const Color(0xFF3E1D22)
+                                  : const Color(0xFFFDEDEC))
+                              : (isDark
+                                  ? const Color(0xFF3E321D)
+                                  : const Color(0xFFFEF9E7)))
+                          : (isDark
+                              ? AppTheme.statusAdministeredDarkBg.withValues(alpha: 0.4)
+                              : AppTheme.statusAdministeredBg),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: isDark
-                            ? AppTheme.statusAdministeredDark.withValues(alpha: 0.3)
-                            : AppTheme.statusAdministered.withValues(alpha: 0.3),
+                        color: isActive
+                            ? (severity == 'EMERGENCY'
+                                ? const Color(0xFFE74C3C).withValues(alpha: 0.5)
+                                : AppTheme.statusConcerning.withValues(alpha: 0.5))
+                            : AppTheme.statusAdministered.withValues(alpha: 0.5),
+                        width: 1.5,
                       ),
                     ),
                     child: Column(
@@ -546,25 +565,68 @@ class _DiaryTabState extends State<DiaryTab> {
                       children: [
                         Row(
                           children: [
-                            Icon(
-                              Icons.info_outline_rounded,
-                              size: 18,
-                              color: isDark
-                                  ? AppTheme.statusAdministeredDark
-                                  : AppTheme.statusAdministered,
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: (isActive
+                                        ? (severity == 'EMERGENCY'
+                                            ? const Color(0xFFE74C3C)
+                                            : AppTheme.statusConcerning)
+                                        : AppTheme.statusAdministered)
+                                    .withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                isActive
+                                    ? (severity == 'EMERGENCY'
+                                        ? Icons.warning_amber_rounded
+                                        : Icons.error_outline_rounded)
+                                    : Icons.check_circle_outline_rounded,
+                                size: 20,
+                                color: isActive
+                                    ? (severity == 'EMERGENCY'
+                                        ? const Color(0xFFE74C3C)
+                                        : AppTheme.statusConcerning)
+                                    : AppTheme.statusAdministered,
+                              ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 10),
                             Expanded(
-                              child: Text(
-                                'If your pet is healthy again, deactivate this log.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: textPrimary,
-                                ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    isActive
+                                        ? 'Active Incident Log'
+                                        : 'Resolved Incident',
+                                    style: TextStyle(
+                                      fontFamily: 'Montserrat',
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    isActive
+                                        ? 'Active logs affect pet health status. Deactivate once your pet has recovered.'
+                                        : 'This log is deactivated and your pet is considered healthy.',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 11,
+                                      color: textSecondary,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 12),
+                        Divider(
+                          height: 1,
+                          thickness: 0.5,
+                          color: textSecondary.withValues(alpha: 0.2),
                         ),
                         const SizedBox(height: 10),
                         Row(
@@ -572,30 +634,30 @@ class _DiaryTabState extends State<DiaryTab> {
                           children: [
                             Row(
                               children: [
-                                Icon(
-                                  !isActive
-                                      ? Icons.check_circle_rounded
-                                      : Icons.priority_high_rounded,
-                                  size: 16,
-                                  color: !isActive
-                                      ? AppTheme.statusAdministered
-                                      : (severity == 'EMERGENCY'
-                                          ? const Color(0xFFE74C3C)
-                                          : AppTheme.statusConcerning),
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: isActive
+                                        ? (severity == 'EMERGENCY'
+                                            ? const Color(0xFFE74C3C)
+                                            : AppTheme.statusConcerning)
+                                        : AppTheme.statusAdministered,
+                                  ),
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  !isActive
-                                      ? 'Deactivated (Healthy)'
-                                      : 'Active Incident Log',
+                                  isActive ? 'Status: Active' : 'Status: Resolved',
                                   style: TextStyle(
+                                    fontFamily: 'Inter',
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: !isActive
-                                        ? AppTheme.statusAdministered
-                                        : (severity == 'EMERGENCY'
+                                    color: isActive
+                                        ? (severity == 'EMERGENCY'
                                             ? const Color(0xFFE74C3C)
-                                            : AppTheme.statusConcerning),
+                                            : AppTheme.statusConcerning)
+                                        : AppTheme.statusAdministered,
                                   ),
                                 ),
                               ],
@@ -603,11 +665,11 @@ class _DiaryTabState extends State<DiaryTab> {
                             Row(
                               children: [
                                 Text(
-                                  !isActive ? 'Deactivated' : 'Deactivate',
+                                  isActive ? 'Deactivate' : 'Deactivated',
                                   style: TextStyle(
                                     fontSize: 12,
+                                    fontWeight: FontWeight.w600,
                                     color: textSecondary,
-                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                                 const SizedBox(width: 4),
