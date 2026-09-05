@@ -155,7 +155,22 @@ class FirebaseRepository implements BaseRepository {
         });
       }
       return true;
-    } catch (_) {
+    } on fb.FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        throw Exception('This email already has an account.');
+      } else if (e.code == 'invalid-email') {
+        throw Exception('The email address is invalid.');
+      } else if (e.code == 'weak-password') {
+        throw Exception('The password is too weak.');
+      }
+      throw Exception(e.message ?? 'Registration failed. Please try again.');
+    } catch (e) {
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('email-already-in-use') ||
+          errStr.contains('email already in use') ||
+          errStr.contains('email already exists')) {
+        throw Exception('This email already has an account.');
+      }
       rethrow;
     }
   }

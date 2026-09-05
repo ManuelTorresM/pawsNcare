@@ -81,10 +81,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _isSubmitting = false;
       });
 
+      var errorMsg = e.toString().replaceAll(RegExp(r'^Exception:\s*'), '');
+      if (errorMsg.contains('email-already-in-use') ||
+          errorMsg.toLowerCase().contains('email already')) {
+        errorMsg = 'This email already has an account.';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Registration Error: ${e.toString()}'),
+          content: Text(errorMsg),
           backgroundColor: AppTheme.error,
+          duration: const Duration(seconds: 4),
         ),
       );
     }
@@ -167,10 +174,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
             // Dismiss screens to dashboard
             Navigator.of(context).popUntil((route) => route.isFirst);
           } else if (state is AuthFailure) {
+            var rawStr = state.error.replaceAll(RegExp(r'^Exception:\s*'), '');
+            if (rawStr.contains('email-already-in-use') ||
+                rawStr.toLowerCase().contains('email already')) {
+              rawStr = 'This email already has an account.';
+            }
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.error),
+                content: Text(rawStr),
                 backgroundColor: AppTheme.error,
+                duration: const Duration(seconds: 4),
               ),
             );
           }
@@ -482,7 +495,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     label: const Text(
-                      'Sign up with Google',
+                      'Create with Google',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
