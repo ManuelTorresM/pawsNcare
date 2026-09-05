@@ -228,6 +228,24 @@ class _DiaryTabState extends State<DiaryTab> {
                   );
                   context.read<DiaryBloc>().add(AddDiaryEntryEvent(entry));
                 }
+
+                // Automatically update Pet status if log severity is CONCERNING or EMERGENCY
+                final entrySeverity = severity.toUpperCase();
+                if (entrySeverity == 'CONCERNING' || entrySeverity == 'EMERGENCY') {
+                  final petState = context.read<PetBloc>().state;
+                  if (petState is PetLoaded) {
+                    final matchingPets =
+                        petState.pets.where((p) => p.id == petId).toList();
+                    if (matchingPets.isNotEmpty) {
+                      final pet = matchingPets.first;
+                      if (pet.status != entrySeverity) {
+                        context.read<PetBloc>().add(
+                              UpdatePet(pet.copyWith(status: entrySeverity)),
+                            );
+                      }
+                    }
+                  }
+                }
                 Navigator.of(dialogContext).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
