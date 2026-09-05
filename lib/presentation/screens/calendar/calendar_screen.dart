@@ -1032,10 +1032,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final scheduleTitle = isSelectedDateToday
         ? "Today's Schedule"
         : "${_formatDate(_selectedDate)}'s Schedule";
+    final isWide = ResponsiveLayout.isWide(context);
+    final isTabletDevice = ResponsiveLayout.isTabletDevice(context);
 
     final monthCalendarBox = Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isTabletDevice ? 22 : 16),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(24),
@@ -1054,7 +1056,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                icon: Icon(Icons.chevron_left, color: textSecondary),
+                icon: Icon(
+                  Icons.chevron_left,
+                  color: textSecondary,
+                  size: isTabletDevice ? 32 : 24,
+                ),
                 onPressed: () {
                   setState(() {
                     _currentMonth = DateTime(
@@ -1069,12 +1075,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 style: TextStyle(
                   fontFamily: 'Montserrat',
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: isTabletDevice ? 22 : 16,
                   color: headerColor,
                 ),
               ),
               IconButton(
-                icon: Icon(Icons.chevron_right, color: textSecondary),
+                icon: Icon(
+                  Icons.chevron_right,
+                  color: textSecondary,
+                  size: isTabletDevice ? 32 : 24,
+                ),
                 onPressed: () {
                   setState(() {
                     _currentMonth = DateTime(
@@ -1093,14 +1103,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: daysOfWeek.map((day) {
               return SizedBox(
-                width: 32,
+                width: isTabletDevice ? 44 : 32,
                 child: Text(
                   day,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'Montserrat',
                     fontWeight: FontWeight.bold,
-                    fontSize: 11,
+                    fontSize: isTabletDevice ? 16 : 11,
                     color: textSecondary,
                   ),
                 ),
@@ -1113,11 +1123,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 7,
-              mainAxisSpacing: 6,
-              crossAxisSpacing: 6,
-              childAspectRatio: 1.1,
+              mainAxisSpacing: isTabletDevice ? 10 : 6,
+              crossAxisSpacing: isTabletDevice ? 10 : 6,
+              childAspectRatio: isTabletDevice ? 1.25 : 1.1,
             ),
             itemCount: totalSlots,
             itemBuilder: (context, index) {
@@ -1170,7 +1180,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                          fontSize: isTabletDevice ? 17 : 12,
                           color: isSelected
                               ? Colors.white
                               : (isToday ? headerColor : textPrimary),
@@ -1179,8 +1189,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       if (hasEvents) ...[
                         const SizedBox(height: 2),
                         Container(
-                          width: 4,
-                          height: 4,
+                          width: isTabletDevice ? 6 : 4,
+                          height: isTabletDevice ? 6 : 4,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: isSelected
@@ -1211,7 +1221,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 children: [
                   Icon(
                     Icons.calendar_today_outlined,
-                    size: 24,
+                    size: isTabletDevice ? 28 : 24,
                     color: textSecondary.withValues(alpha: 0.6),
                   ),
                   const SizedBox(width: 10),
@@ -1220,7 +1230,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontStyle: FontStyle.italic,
-                      fontSize: 14,
+                      fontSize: isTabletDevice ? 17 : 14,
                       color: textSecondary,
                     ),
                   ),
@@ -1270,8 +1280,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
       );
     }
 
-    final isWide = ResponsiveLayout.isWide(context);
-
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
@@ -1300,7 +1308,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               'Calendar & Schedules',
               style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                fontSize: 20,
+                fontSize: isTabletDevice ? 26 : 20,
               ),
             ),
           ),
@@ -1336,10 +1344,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Text(
                             scheduleTitle,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Montserrat',
                               fontWeight: FontWeight.bold,
-                              fontSize: 18,
+                              fontSize: isTabletDevice ? 22 : 18,
                             ),
                           ),
                         ),
@@ -1365,10 +1373,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Text(
                         scheduleTitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Montserrat',
                           fontWeight: FontWeight.bold,
-                          fontSize: 18,
+                          fontSize: isTabletDevice ? 22 : 18,
                         ),
                       ),
                     ),
