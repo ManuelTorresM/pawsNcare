@@ -151,7 +151,9 @@ class _DiaryTabState extends State<DiaryTab> {
     if (category == 'special_event') {
       category = 'medical_event';
     }
-    String severity = initialEntry?.severity ?? (category == 'medical_event' ? 'CONCERNING' : 'NORMAL');
+    String severity =
+        initialEntry?.severity ??
+        (category == 'medical_event' ? 'CONCERNING' : 'NORMAL');
     String? validationError;
 
     showDialog(
@@ -160,10 +162,12 @@ class _DiaryTabState extends State<DiaryTab> {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
             final isDark = context.read<ThemeCubit>().state;
-            final textPrimary =
-                isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
-            final textSecondary =
-                isDark ? AppTheme.darkOnSurfaceVariant : AppTheme.secondary;
+            final textPrimary = isDark
+                ? AppTheme.darkOnSurface
+                : AppTheme.onSurface;
+            final textSecondary = isDark
+                ? AppTheme.darkOnSurfaceVariant
+                : AppTheme.secondary;
 
             return BaseFormDialog(
               icon: Icons.book_outlined,
@@ -172,8 +176,9 @@ class _DiaryTabState extends State<DiaryTab> {
                   ? 'Update entry details'
                   : 'Log a new pet diary incident',
               validationError: validationError,
-              primaryButtonText:
-                  initialEntry != null ? 'Save Changes' : 'Save Log',
+              primaryButtonText: initialEntry != null
+                  ? 'Save Changes'
+                  : 'Save Log',
               headerAction: initialEntry != null
                   ? IconButton(
                       icon: const Icon(
@@ -214,11 +219,11 @@ class _DiaryTabState extends State<DiaryTab> {
                     severity: severity,
                   );
                   context.read<DiaryBloc>().add(
-                        UpdateDiaryEntryEvent(
-                          updatedEntry,
-                          currentPetId: _selectedPetId,
-                        ),
-                      );
+                    UpdateDiaryEntryEvent(
+                      updatedEntry,
+                      currentPetId: _selectedPetId,
+                    ),
+                  );
                 } else {
                   final entry = DiaryEntry(
                     id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -234,17 +239,19 @@ class _DiaryTabState extends State<DiaryTab> {
 
                 // Automatically update Pet status if log severity is CONCERNING or EMERGENCY
                 final entrySeverity = severity.toUpperCase();
-                if (entrySeverity == 'CONCERNING' || entrySeverity == 'EMERGENCY') {
+                if (entrySeverity == 'CONCERNING' ||
+                    entrySeverity == 'EMERGENCY') {
                   final petState = context.read<PetBloc>().state;
                   if (petState is PetLoaded) {
-                    final matchingPets =
-                        petState.pets.where((p) => p.id == petId).toList();
+                    final matchingPets = petState.pets
+                        .where((p) => p.id == petId)
+                        .toList();
                     if (matchingPets.isNotEmpty) {
                       final pet = matchingPets.first;
                       if (pet.status != entrySeverity) {
                         context.read<PetBloc>().add(
-                              UpdatePet(pet.copyWith(status: entrySeverity)),
-                            );
+                          UpdatePet(pet.copyWith(status: entrySeverity)),
+                        );
                       }
                     }
                   }
@@ -286,10 +293,7 @@ class _DiaryTabState extends State<DiaryTab> {
                     ),
                   ),
                   items: petState.pets.map((p) {
-                    return DropdownMenuItem(
-                      value: p.id,
-                      child: Text(p.name),
-                    );
+                    return DropdownMenuItem(value: p.id, child: Text(p.name));
                   }).toList(),
                   onChanged: (val) {
                     if (val != null) {
@@ -335,10 +339,7 @@ class _DiaryTabState extends State<DiaryTab> {
                       value: 'hydration',
                       child: Text('Hydration (Water)'),
                     ),
-                    DropdownMenuItem(
-                      value: 'med',
-                      child: Text('Medication'),
-                    ),
+                    DropdownMenuItem(value: 'med', child: Text('Medication')),
                     DropdownMenuItem(
                       value: 'vet',
                       child: Text('Symptom (Vet Visit)'),
@@ -353,7 +354,8 @@ class _DiaryTabState extends State<DiaryTab> {
                       setDialogState(() {
                         category = val;
                         if (val == 'medical_event' || val == 'special_event') {
-                          if (severity != 'CONCERNING' && severity != 'EMERGENCY') {
+                          if (severity != 'CONCERNING' &&
+                              severity != 'EMERGENCY') {
                             severity = 'CONCERNING';
                           }
                         } else if (val == 'vet') {
@@ -371,7 +373,9 @@ class _DiaryTabState extends State<DiaryTab> {
 
                 // Severity / Event level selection
                 FormSectionLabel(
-                  (category == 'medical_event' || category == 'special_event') ? 'Event Level' : 'Severity Level',
+                  (category == 'medical_event' || category == 'special_event')
+                      ? 'Event Level'
+                      : 'Severity Level',
                 ),
                 if (category == 'medical_event' || category == 'special_event')
                   Row(
@@ -381,7 +385,8 @@ class _DiaryTabState extends State<DiaryTab> {
                         isSelected: severity == 'CONCERNING',
                         color: AppTheme.statusConcerning,
                         bgColor: AppTheme.statusConcerningBg,
-                        onTap: () => setDialogState(() => severity = 'CONCERNING'),
+                        onTap: () =>
+                            setDialogState(() => severity = 'CONCERNING'),
                       ),
                       const SizedBox(width: 8),
                       _buildSeverityOption(
@@ -389,7 +394,8 @@ class _DiaryTabState extends State<DiaryTab> {
                         isSelected: severity == 'EMERGENCY',
                         color: const Color(0xFFE74C3C),
                         bgColor: const Color(0xFFFDEDEC),
-                        onTap: () => setDialogState(() => severity = 'EMERGENCY'),
+                        onTap: () =>
+                            setDialogState(() => severity = 'EMERGENCY'),
                       ),
                     ],
                   )
@@ -449,7 +455,8 @@ class _DiaryTabState extends State<DiaryTab> {
                             : AppTheme.surfaceContainer,
                       ),
                     ),
-                    errorText: validationError != null &&
+                    errorText:
+                        validationError != null &&
                             titleController.text.trim().isEmpty
                         ? 'Title is required'
                         : null,
@@ -489,7 +496,8 @@ class _DiaryTabState extends State<DiaryTab> {
                             : AppTheme.surfaceContainer,
                       ),
                     ),
-                    errorText: validationError != null &&
+                    errorText:
+                        validationError != null &&
                             noteController.text.trim().isEmpty
                         ? 'Notes are required'
                         : null,
@@ -634,10 +642,7 @@ class _DiaryTabState extends State<DiaryTab> {
                       children: [
                         Text(
                           'Total Entries',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: textSecondary,
-                          ),
+                          style: TextStyle(fontSize: 12, color: textSecondary),
                         ),
                         const SizedBox(height: 6),
                         Text(
@@ -665,10 +670,7 @@ class _DiaryTabState extends State<DiaryTab> {
                       children: [
                         Text(
                           'Last Incident',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: textSecondary,
-                          ),
+                          style: TextStyle(fontSize: 12, color: textSecondary),
                         ),
                         const SizedBox(height: 6),
                         Text(
@@ -745,9 +747,7 @@ class _DiaryTabState extends State<DiaryTab> {
           );
 
           final entriesListView = isLoading
-              ? Center(
-                  child: CircularProgressIndicator(color: primaryColor),
-                )
+              ? Center(child: CircularProgressIndicator(color: primaryColor))
               : (entries.isEmpty
                     ? Center(
                         child: Text(
@@ -813,10 +813,7 @@ class _DiaryTabState extends State<DiaryTab> {
                     ),
                   ),
                 ),
-                Container(
-                  width: 1,
-                  color: dividerColor.withValues(alpha: 0.5),
-                ),
+                Container(width: 1, color: dividerColor.withValues(alpha: 0.5)),
                 // Right Half: All Diaries entries
                 Expanded(
                   flex: 7,
@@ -926,7 +923,9 @@ class _DiaryTabState extends State<DiaryTab> {
                 backgroundImage: LocalMediaService.resolveImageProvider(
                   resolvedAvatarUrl,
                 ),
-                child: LocalMediaService.resolveImageProvider(resolvedAvatarUrl) == null
+                child:
+                    LocalMediaService.resolveImageProvider(resolvedAvatarUrl) ==
+                        null
                     ? (filter == 'all'
                           ? Icon(Icons.group, color: primaryColor, size: 30)
                           : Text(
@@ -1010,17 +1009,29 @@ class _DiaryTabState extends State<DiaryTab> {
     switch (severity.toUpperCase()) {
       case 'EMERGENCY':
       case 'SEVERE':
-        badgeColor = isDark ? AppTheme.statusOverdueDarkBg : AppTheme.statusOverdueBg;
-        badgeText = isDark ? AppTheme.statusOverdueDark : AppTheme.statusOverdue;
+        badgeColor = isDark
+            ? AppTheme.statusOverdueDarkBg
+            : AppTheme.statusOverdueBg;
+        badgeText = isDark
+            ? AppTheme.statusOverdueDark
+            : AppTheme.statusOverdue;
         break;
       case 'CONCERNING':
-        badgeColor = isDark ? AppTheme.statusConcerningDarkBg : AppTheme.statusConcerningBg;
-        badgeText = isDark ? AppTheme.statusConcerningDark : AppTheme.statusConcerning;
+        badgeColor = isDark
+            ? AppTheme.statusConcerningDarkBg
+            : AppTheme.statusConcerningBg;
+        badgeText = isDark
+            ? AppTheme.statusConcerningDark
+            : AppTheme.statusConcerning;
         break;
       case 'UNUSUAL':
       case 'MODERATE':
-        badgeColor = isDark ? AppTheme.statusScheduledDarkBg : AppTheme.statusScheduledBg;
-        badgeText = isDark ? AppTheme.statusScheduledDark : AppTheme.statusScheduled;
+        badgeColor = isDark
+            ? AppTheme.statusScheduledDarkBg
+            : AppTheme.statusScheduledBg;
+        badgeText = isDark
+            ? AppTheme.statusScheduledDark
+            : AppTheme.statusScheduled;
         break;
       case 'MILD':
         badgeColor = isDark ? AppTheme.statusMildDarkBg : AppTheme.statusMildBg;
@@ -1028,8 +1039,12 @@ class _DiaryTabState extends State<DiaryTab> {
         break;
       case 'NORMAL':
       default:
-        badgeColor = isDark ? AppTheme.statusAdministeredDarkBg : AppTheme.statusAdministeredBg;
-        badgeText = isDark ? AppTheme.statusAdministeredDark : AppTheme.statusAdministered;
+        badgeColor = isDark
+            ? AppTheme.statusAdministeredDarkBg
+            : AppTheme.statusAdministeredBg;
+        badgeText = isDark
+            ? AppTheme.statusAdministeredDark
+            : AppTheme.statusAdministered;
         break;
     }
 

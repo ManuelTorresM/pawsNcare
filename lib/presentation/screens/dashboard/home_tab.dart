@@ -10,6 +10,7 @@ import '../../../core/utils/responsive_layout.dart';
 import '../../../core/services/local_media_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/accent_left_card.dart';
+import '../../widgets/health_status_card.dart';
 import '../../widgets/memory_image_card.dart';
 import '../../widgets/dashboard/home_invitation_banner.dart';
 import '../../widgets/guides/winter_pet_safety_guide_widget.dart';
@@ -102,85 +103,7 @@ class _HomeTabState extends State<HomeTab> {
       child: Column(
         children: [
           // Health Card
-          BlocBuilder<PetBloc, PetState>(
-            builder: (context, petState) {
-              String healthTitle = 'All pets healthy';
-              String healthSubtitle = 'Medical sync up to date';
-
-              if (petState is PetLoaded) {
-                if (petState.pets.isEmpty) {
-                  healthTitle = 'No pets registered';
-                  healthSubtitle = 'Add your first pet to sync health profile';
-                } else {
-                  final hasAttention = petState.pets.any(
-                    (p) => p.status == 'CONCERNING' || p.status == 'EMERGENCY',
-                  );
-                  if (hasAttention) {
-                    healthTitle = 'Attention needed';
-                    healthSubtitle = 'Check pet health profiles and diary';
-                  }
-                }
-              }
-
-              return AccentLeftCard(
-                accentColor: headerColor,
-                backgroundColor: isDark
-                    ? const Color(0xFF2E4E30).withValues(alpha: 0.5)
-                    : AppTheme.primaryFixed.withValues(alpha: 0.3),
-                margin: EdgeInsets.zero,
-                padding: const EdgeInsets.all(20),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      right: -10,
-                      bottom: -10,
-                      child: Icon(
-                        Icons.shield,
-                        size: 80,
-                        color: headerColor.withValues(alpha: 0.08),
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.verified_user,
-                              color: headerColor,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'HEALTH STATUS',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: headerColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          healthTitle,
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: headerColor,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          healthSubtitle,
-                          style: TextStyle(fontSize: 13, color: textSecondary),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+          const HealthStatusCard(),
           const SizedBox(height: 16),
 
           // Quick Stats Cards Row
