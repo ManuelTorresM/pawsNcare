@@ -1260,26 +1260,30 @@ class _PetProfileScreenState extends State<PetProfileScreen>
       case 'EMERGENCY':
       case 'SEVERE':
         accentColor = isDark
-            ? const Color(0xFFFFB4A3)
-            : const Color(0xFFE74C3C);
+            ? AppTheme.statusOverdueDark
+            : AppTheme.statusOverdue;
         break;
       case 'CONCERNING':
+        accentColor = isDark
+            ? AppTheme.statusConcerningDark
+            : AppTheme.statusConcerning;
+        break;
       case 'UNUSUAL':
       case 'MODERATE':
         accentColor = isDark
-            ? const Color(0xFFFFD580)
-            : const Color(0xFFF39C12);
+            ? AppTheme.statusScheduledDark
+            : AppTheme.statusScheduled;
         break;
       case 'MILD':
         accentColor = isDark
-            ? const Color(0xFF90CAF9)
-            : const Color(0xFF5D9CEC);
+            ? AppTheme.statusMildDark
+            : AppTheme.statusMild;
         break;
       case 'NORMAL':
       default:
         accentColor = isDark
-            ? const Color(0xFF81C784)
-            : const Color(0xFF2ECC71);
+            ? AppTheme.statusAdministeredDark
+            : AppTheme.statusAdministered;
         break;
     }
 

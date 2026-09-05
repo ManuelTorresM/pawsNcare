@@ -76,10 +76,10 @@ class _DiaryTabState extends State<DiaryTab> {
         return {
           'label': 'Special Event',
           'icon': Icons.stars,
-          'color': const Color(0xFFF39C12),
+          'color': AppTheme.statusConcerning,
           'severity': 'CONCERNING',
-          'badgeColor': const Color(0xFFFEF9E7),
-          'badgeText': const Color(0xFFF39C12),
+          'badgeColor': AppTheme.statusConcerningBg,
+          'badgeText': AppTheme.statusConcerning,
         };
       case 'vet':
         return {
@@ -112,20 +112,20 @@ class _DiaryTabState extends State<DiaryTab> {
         return {
           'label': 'Behavioral',
           'icon': Icons.psychology,
-          'color': const Color(0xFF2ECC71),
+          'color': AppTheme.statusAdministered,
           'severity': 'NORMAL',
-          'badgeColor': const Color(0xFFE8F8F5),
-          'badgeText': const Color(0xFF2ECC71),
+          'badgeColor': AppTheme.statusAdministeredBg,
+          'badgeText': AppTheme.statusAdministered,
         };
       case 'hydration':
       default:
         return {
           'label': 'Hydration',
           'icon': Icons.water_drop,
-          'color': const Color(0xFF2ECC71),
+          'color': AppTheme.statusAdministered,
           'severity': 'NORMAL',
-          'badgeColor': const Color(0xFFE8F8F5),
-          'badgeText': const Color(0xFF2ECC71),
+          'badgeColor': AppTheme.statusAdministeredBg,
+          'badgeText': AppTheme.statusAdministered,
         };
     }
   }
@@ -357,8 +357,8 @@ class _DiaryTabState extends State<DiaryTab> {
                       _buildSeverityOption(
                         label: 'CONCERNING',
                         isSelected: severity == 'CONCERNING',
-                        color: const Color(0xFFF39C12),
-                        bgColor: const Color(0xFFFEF9E7),
+                        color: AppTheme.statusConcerning,
+                        bgColor: AppTheme.statusConcerningBg,
                         onTap: () => setDialogState(() => severity = 'CONCERNING'),
                       ),
                       const SizedBox(width: 8),
@@ -377,8 +377,8 @@ class _DiaryTabState extends State<DiaryTab> {
                       _buildSeverityOption(
                         label: 'NORMAL',
                         isSelected: severity == 'NORMAL',
-                        color: const Color(0xFF2ECC71),
-                        bgColor: const Color(0xFFE8F8F5),
+                        color: AppTheme.statusAdministered,
+                        bgColor: AppTheme.statusAdministeredBg,
                         onTap: () => setDialogState(() => severity = 'NORMAL'),
                       ),
                       const SizedBox(width: 8),
@@ -988,23 +988,26 @@ class _DiaryTabState extends State<DiaryTab> {
     switch (severity.toUpperCase()) {
       case 'EMERGENCY':
       case 'SEVERE':
-        badgeColor = isDark ? const Color(0xFF5C2B1D) : const Color(0xFFFDEDEC);
-        badgeText = isDark ? const Color(0xFFFFB4A3) : const Color(0xFFE74C3C);
+        badgeColor = isDark ? AppTheme.statusOverdueDarkBg : AppTheme.statusOverdueBg;
+        badgeText = isDark ? AppTheme.statusOverdueDark : AppTheme.statusOverdue;
         break;
       case 'CONCERNING':
+        badgeColor = isDark ? AppTheme.statusConcerningDarkBg : AppTheme.statusConcerningBg;
+        badgeText = isDark ? AppTheme.statusConcerningDark : AppTheme.statusConcerning;
+        break;
       case 'UNUSUAL':
       case 'MODERATE':
-        badgeColor = isDark ? const Color(0xFF523B17) : const Color(0xFFFEF9E7);
-        badgeText = isDark ? const Color(0xFFFFD580) : const Color(0xFFF39C12);
+        badgeColor = isDark ? AppTheme.statusScheduledDarkBg : AppTheme.statusScheduledBg;
+        badgeText = isDark ? AppTheme.statusScheduledDark : AppTheme.statusScheduled;
         break;
       case 'MILD':
-        badgeColor = isDark ? const Color(0xFF1D3B5C) : const Color(0xFFEBF5FB);
-        badgeText = isDark ? const Color(0xFF90CAF9) : const Color(0xFF5D9CEC);
+        badgeColor = isDark ? AppTheme.statusMildDarkBg : AppTheme.statusMildBg;
+        badgeText = isDark ? AppTheme.statusMildDark : AppTheme.statusMild;
         break;
       case 'NORMAL':
       default:
-        badgeColor = isDark ? const Color(0xFF1E4620) : const Color(0xFFE8F8F5);
-        badgeText = isDark ? const Color(0xFF81C784) : const Color(0xFF2ECC71);
+        badgeColor = isDark ? AppTheme.statusAdministeredDarkBg : AppTheme.statusAdministeredBg;
+        badgeText = isDark ? AppTheme.statusAdministeredDark : AppTheme.statusAdministered;
         break;
     }
 

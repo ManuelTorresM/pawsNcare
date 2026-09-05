@@ -61,6 +61,9 @@ class AppTheme {
   static const Color statusMild = Color(0xFF5D9CEC);
   static const Color statusMildBg = Color(0xFFEBF5FB);
 
+  static const Color statusConcerning = Color(0xFFE67E22);
+  static const Color statusConcerningBg = Color(0xFFFDEBD0);
+
   // Status & Severity Color Tokens (Dark Mode)
   static const Color statusAdministeredDark = Color(0xFF81C784);
   static const Color statusAdministeredDarkBg = Color(0xFF1B382B);
@@ -73,6 +76,9 @@ class AppTheme {
 
   static const Color statusMildDark = Color(0xFF90CAF9);
   static const Color statusMildDarkBg = Color(0xFF1D3B5C);
+
+  static const Color statusConcerningDark = Color(0xFFFFB74D);
+  static const Color statusConcerningDarkBg = Color(0xFF4A2E00);
 
   // Concept Color Tokens
   static const Color foodConcept = Color(0xFFD9A441);

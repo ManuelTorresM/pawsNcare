@@ -585,11 +585,11 @@ class _HomeTabState extends State<HomeTab> {
                               : const Color(0xFFFDEDEC);
                         } else if (pet.status == 'CONCERNING') {
                           statusColor = isDark
-                              ? const Color(0xFFFFD580)
-                              : const Color(0xFFF39C12);
+                              ? AppTheme.statusConcerningDark
+                              : AppTheme.statusConcerning;
                           statusBgColor = isDark
-                              ? const Color(0xFF523B17)
-                              : const Color(0xFFFEF9E7);
+                              ? AppTheme.statusConcerningDarkBg
+                              : AppTheme.statusConcerningBg;
                         } else {
                           // HEALTHY
                           statusColor = isDark
