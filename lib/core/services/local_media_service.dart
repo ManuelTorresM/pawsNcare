@@ -33,9 +33,13 @@ class LocalMediaService {
   }
 
   /// Save a media file into the local pawsncare directory.
-  static Future<File> saveToPawsNCareDirectory(File sourceFile, {String? customFileName}) async {
+  static Future<File> saveToPawsNCareDirectory(
+    File sourceFile, {
+    String? customFileName,
+  }) async {
     final pawsDir = await getPawsNCareDirectory();
-    final fileName = customFileName ??
+    final fileName =
+        customFileName ??
         'media_${DateTime.now().millisecondsSinceEpoch}_${sourceFile.path.split('/').last.split('\\').last}';
     final targetPath = '${pawsDir.path}/$fileName';
     return await sourceFile.copy(targetPath);
@@ -95,23 +99,13 @@ class LocalMediaService {
     String fallbackAsset = 'assets/avatars/dog.png',
   }) {
     if (path == null || path.trim().isEmpty) {
-      return Image.asset(
-        fallbackAsset,
-        width: width,
-        height: height,
-        fit: fit,
-      );
+      return Image.asset(fallbackAsset, width: width, height: height, fit: fit);
     }
 
     final cleanPath = path.trim();
 
     if (cleanPath.startsWith('assets/')) {
-      return Image.asset(
-        cleanPath,
-        width: width,
-        height: height,
-        fit: fit,
-      );
+      return Image.asset(cleanPath, width: width, height: height, fit: fit);
     }
 
     if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
@@ -120,12 +114,8 @@ class LocalMediaService {
         width: width,
         height: height,
         fit: fit,
-        errorBuilder: (context, error, stackTrace) => Image.asset(
-          fallbackAsset,
-          width: width,
-          height: height,
-          fit: fit,
-        ),
+        errorBuilder: (context, error, stackTrace) =>
+            Image.asset(fallbackAsset, width: width, height: height, fit: fit),
       );
     }
 
@@ -136,21 +126,12 @@ class LocalMediaService {
         width: width,
         height: height,
         fit: fit,
-        errorBuilder: (context, error, stackTrace) => Image.asset(
-          fallbackAsset,
-          width: width,
-          height: height,
-          fit: fit,
-        ),
+        errorBuilder: (context, error, stackTrace) =>
+            Image.asset(fallbackAsset, width: width, height: height, fit: fit),
       );
     }
 
     // Secondary device or missing file: show fallback asset
-    return Image.asset(
-      fallbackAsset,
-      width: width,
-      height: height,
-      fit: fit,
-    );
+    return Image.asset(fallbackAsset, width: width, height: height, fit: fit);
   }
 }

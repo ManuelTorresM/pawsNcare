@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,6 +7,7 @@ import '../../../logic/theme/theme_cubit.dart';
 import '../../../logic/auth/auth_bloc.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../../core/utils/responsive_layout.dart';
+import '../../../core/services/local_media_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/accent_left_card.dart';
 import '../../widgets/memory_image_card.dart';
@@ -605,79 +605,10 @@ class _HomeTabState extends State<HomeTab> {
                               Expanded(
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
-                                  child: pet.avatarUrl.startsWith('assets/')
-                                      ? Image.asset(
-                                          pet.avatarUrl,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : (pet.avatarUrl.startsWith('http') ||
-                                                pet.avatarUrl.startsWith(
-                                                  'https',
-                                                )
-                                            ? Image.network(
-                                                pet.avatarUrl,
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (_, _, _) =>
-                                                    Container(
-                                                      color: isDark
-                                                          ? const Color(
-                                                              0xFF383634,
-                                                            )
-                                                          : AppTheme
-                                                                .primaryFixed
-                                                                .withValues(
-                                                                  alpha: 0.3,
-                                                                ),
-                                                      child: const Icon(
-                                                        Icons.pets,
-                                                        size: 32,
-                                                        color: AppTheme.primary,
-                                                      ),
-                                                    ),
-                                              )
-                                            : (pet.avatarUrl.isNotEmpty &&
-                                                      File(
-                                                        pet.avatarUrl,
-                                                      ).existsSync()
-                                                  ? Image.file(
-                                                      File(pet.avatarUrl),
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder: (_, _, _) =>
-                                                          Container(
-                                                            color: isDark
-                                                                ? const Color(
-                                                                    0xFF383634,
-                                                                  )
-                                                                : AppTheme
-                                                                      .primaryFixed
-                                                                      .withValues(
-                                                                        alpha:
-                                                                            0.3,
-                                                                      ),
-                                                            child: const Icon(
-                                                              Icons.pets,
-                                                              size: 32,
-                                                              color: AppTheme
-                                                                  .primary,
-                                                            ),
-                                                          ),
-                                                    )
-                                                  : Container(
-                                                      color: isDark
-                                                          ? const Color(
-                                                              0xFF383634,
-                                                            )
-                                                          : AppTheme
-                                                                .primaryFixed
-                                                                .withValues(
-                                                                  alpha: 0.3,
-                                                                ),
-                                                      child: const Icon(
-                                                        Icons.pets,
-                                                        size: 32,
-                                                        color: AppTheme.primary,
-                                                      ),
-                                                    ))),
+                                  child: LocalMediaService.buildSmartImage(
+                                    path: pet.avatarUrl,
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 8),

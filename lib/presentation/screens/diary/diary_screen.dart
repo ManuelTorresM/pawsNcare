@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../logic/theme/theme_cubit.dart';
@@ -7,6 +6,7 @@ import '../../../logic/pet/pet_bloc.dart';
 import '../../../data/models/diary_entry.dart';
 import '../../../data/models/pet.dart';
 import '../../../core/utils/responsive_layout.dart';
+import '../../../core/services/local_media_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/accent_left_card.dart';
 import '../../widgets/base_form_dialog.dart';
@@ -861,14 +861,9 @@ class _DiaryTabState extends State<DiaryTab> {
                 backgroundColor: isDark
                     ? const Color(0xFF383634)
                     : AppTheme.surfaceContainerHigh,
-                backgroundImage: resolvedAvatarUrl != null
-                    ? (resolvedAvatarUrl.startsWith('assets/')
-                          ? AssetImage(resolvedAvatarUrl)
-                          : (resolvedAvatarUrl.startsWith('http')
-                              ? NetworkImage(resolvedAvatarUrl)
-                              : FileImage(File(resolvedAvatarUrl))))
-                        as ImageProvider
-                    : null,
+                backgroundImage: LocalMediaService.resolveImageProvider(
+                  resolvedAvatarUrl,
+                ),
                 child: resolvedAvatarUrl == null
                     ? (filter == 'all'
                           ? Icon(Icons.group, color: primaryColor, size: 30)

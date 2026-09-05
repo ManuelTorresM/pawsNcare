@@ -1,6 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../../core/services/local_media_service.dart';
 
 /// Reusable card widget for rendering pet memory photos safely across
 /// both network URLs and local file system paths.
@@ -37,23 +36,12 @@ class MemoryImageCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
-        child: url.startsWith('http') || url.startsWith('https')
-            ? Image.network(
-                url,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  color: AppTheme.surfaceContainer,
-                  child: const Icon(Icons.photo, color: AppTheme.secondary),
-                ),
-              )
-            : Image.file(
-                File(url),
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  color: AppTheme.surfaceContainer,
-                  child: const Icon(Icons.photo, color: AppTheme.secondary),
-                ),
-              ),
+        child: LocalMediaService.buildSmartImage(
+          path: url,
+          fit: BoxFit.cover,
+          width: width,
+          height: height,
+        ),
       ),
     );
 

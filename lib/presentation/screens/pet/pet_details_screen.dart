@@ -10,6 +10,7 @@ import '../../../data/models/pet_role.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../../logic/theme/theme_cubit.dart';
 import '../../../core/utils/responsive_layout.dart';
+import '../../../core/services/local_media_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/role_badge.dart';
 import 'medical_history_screen.dart';
@@ -90,7 +91,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     }
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return Image.network(
-        url,
+        LocalMediaService.formatDirectImageUrl(url),
         width: width,
         height: height,
         fit: fit,

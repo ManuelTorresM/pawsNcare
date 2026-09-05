@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../logic/pet/pet_bloc.dart';
@@ -6,6 +5,7 @@ import '../../../logic/theme/theme_cubit.dart';
 import '../../../data/models/pet.dart';
 import '../../../data/models/medication.dart';
 import '../../theme/app_theme.dart';
+import '../../../core/services/local_media_service.dart';
 import 'meds_vaccines_screen.dart';
 
 class MedicalHistoryScreen extends StatefulWidget {
@@ -190,14 +190,9 @@ class _MedicalHistoryScreenState extends State<MedicalHistoryScreen> {
                                 backgroundColor: Colors.white.withValues(
                                   alpha: 0.2,
                                 ),
-                                backgroundImage: _pet.avatarUrl.isNotEmpty
-                                    ? (_pet.avatarUrl.startsWith('assets/')
-                                          ? AssetImage(_pet.avatarUrl)
-                                          : (_pet.avatarUrl.startsWith('http')
-                                              ? NetworkImage(_pet.avatarUrl)
-                                              : FileImage(File(_pet.avatarUrl))))
-                                        as ImageProvider
-                                    : null,
+                                backgroundImage: LocalMediaService.resolveImageProvider(
+                                  _pet.avatarUrl,
+                                ),
                                 child: _pet.avatarUrl.isEmpty
                                     ? const Icon(
                                         Icons.pets,

@@ -289,7 +289,9 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                                   memory.imageUrl.startsWith('http') ||
                                       memory.imageUrl.startsWith('https')
                                   ? Image.network(
-                                      memory.imageUrl,
+                                      LocalMediaService.formatDirectImageUrl(
+                                        memory.imageUrl,
+                                      ),
                                       fit: BoxFit.contain,
                                       loadingBuilder:
                                           (context, child, loadingProgress) {
@@ -848,14 +850,9 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
               padding: const EdgeInsets.all(2),
               child: CircleAvatar(
                 backgroundColor: AppTheme.surfaceContainerHigh,
-                backgroundImage: resolvedAvatarUrl != null
-                    ? (resolvedAvatarUrl.startsWith('assets/')
-                          ? AssetImage(resolvedAvatarUrl)
-                          : (resolvedAvatarUrl.startsWith('http')
-                              ? NetworkImage(resolvedAvatarUrl)
-                              : FileImage(File(resolvedAvatarUrl))))
-                        as ImageProvider
-                    : null,
+                backgroundImage: LocalMediaService.resolveImageProvider(
+                  resolvedAvatarUrl,
+                ),
                 child: resolvedAvatarUrl == null
                     ? (filter == 'all'
                           ? const Icon(
@@ -968,12 +965,9 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                   image: DecorationImage(
-                    image:
-                        (item.imageUrl.startsWith('http') ||
-                                    item.imageUrl.startsWith('https')
-                                ? NetworkImage(item.imageUrl)
-                                : FileImage(File(item.imageUrl)))
-                            as ImageProvider,
+                    image: LocalMediaService.resolveImageProvider(
+                      item.imageUrl,
+                    ),
                     fit: BoxFit.cover,
                   ),
                 ),

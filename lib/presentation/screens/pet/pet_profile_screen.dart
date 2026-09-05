@@ -463,25 +463,10 @@ class _PetProfileScreenState extends State<PetProfileScreen>
     double? height,
   }) {
     Widget buildRawImage(BoxFit fit) {
-      if (_pet.avatarUrl.startsWith('assets/')) {
-        return Image.asset(_pet.avatarUrl, fit: fit);
-      } else if (_pet.avatarUrl.startsWith('http')) {
-        return Image.network(
-          _pet.avatarUrl,
-          fit: fit,
-          errorBuilder: (context, error, stackTrace) => Container(
-            color: isDark ? const Color(0xFF383634) : AppTheme.primaryContainer,
-            child: Icon(Icons.pets, size: 64, color: textSecondary),
-          ),
-        );
-      } else if (File(_pet.avatarUrl).existsSync()) {
-        return Image.file(File(_pet.avatarUrl), fit: fit);
-      } else {
-        return Container(
-          color: isDark ? const Color(0xFF383634) : AppTheme.primaryContainer,
-          child: Icon(Icons.pets, size: 64, color: textSecondary),
-        );
-      }
+      return LocalMediaService.buildSmartImage(
+        path: _pet.avatarUrl,
+        fit: fit,
+      );
     }
 
     return Padding(
@@ -1065,41 +1050,10 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: InteractiveViewer(
-                      child:
-                          photoUrl.startsWith('http') ||
-                              photoUrl.startsWith('https')
-                          ? Image.network(
-                              photoUrl,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Container(
-                                    height: 300,
-                                    color: AppTheme.surfaceContainerLow,
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.broken_image,
-                                        size: 48,
-                                        color: AppTheme.secondary,
-                                      ),
-                                    ),
-                                  ),
-                            )
-                          : Image.file(
-                              File(photoUrl),
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Container(
-                                    height: 300,
-                                    color: AppTheme.surfaceContainerLow,
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.broken_image,
-                                        size: 48,
-                                        color: AppTheme.secondary,
-                                      ),
-                                    ),
-                                  ),
-                            ),
+                      child: LocalMediaService.buildSmartImage(
+                        path: photoUrl,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
