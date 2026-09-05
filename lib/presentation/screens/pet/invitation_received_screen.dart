@@ -44,7 +44,7 @@ class _InvitationReceivedScreenState
         ageString: 'Companion',
         birthDate: DateTime.now(),
         avatarUrl: pi.petAvatarUrl,
-        status: 'Healthy',
+        status: 'HEALTHY',
         weight: 0.0,
         ownerId: pi.ownerId,
       );
@@ -67,7 +67,7 @@ class _InvitationReceivedScreenState
             ageString: '',
             birthDate: DateTime.now(),
             avatarUrl: '',
-            status: 'Healthy',
+            status: 'HEALTHY',
             weight: 0.0,
           );
       _invitation = widget.invitation ??

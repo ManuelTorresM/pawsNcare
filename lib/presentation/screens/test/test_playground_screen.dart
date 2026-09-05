@@ -114,7 +114,7 @@ class _TestPlaygroundScreenState extends State<TestPlaygroundScreen> {
                   ),
                   const SizedBox(height: 8),
                   Row(
-                    children: ['MILD', 'MODERATE', 'SEVERE'].map((sev) {
+                    children: ['NORMAL', 'MILD', 'UNUSUAL', 'CONCERNING', 'EMERGENCY'].map((sev) {
                       final isSel = _selectedSeverity == sev;
                       return Padding(
                         padding: const EdgeInsets.only(right: 8.0),
@@ -267,18 +267,25 @@ class _TestPlaygroundScreenState extends State<TestPlaygroundScreen> {
     Color badgeColor;
     Color badgeText;
     switch (entry.severity.toUpperCase()) {
+      case 'EMERGENCY':
       case 'SEVERE':
         badgeColor = isDark ? const Color(0xFF5C2B1D) : const Color(0xFFFDEDEC);
         badgeText = isDark ? const Color(0xFFFFB4A3) : const Color(0xFFE74C3C);
         break;
+      case 'CONCERNING':
+      case 'UNUSUAL':
       case 'MODERATE':
         badgeColor = isDark ? const Color(0xFF523B17) : const Color(0xFFFEF9E7);
         badgeText = isDark ? const Color(0xFFFFD580) : const Color(0xFFF39C12);
         break;
       case 'MILD':
-      default:
         badgeColor = isDark ? const Color(0xFF1D3B5C) : const Color(0xFFEBF5FB);
         badgeText = isDark ? const Color(0xFF90CAF9) : const Color(0xFF5D9CEC);
+        break;
+      case 'NORMAL':
+      default:
+        badgeColor = isDark ? const Color(0xFF1E4620) : const Color(0xFFE8F8F5);
+        badgeText = isDark ? const Color(0xFF81C784) : const Color(0xFF2ECC71);
         break;
     }
 

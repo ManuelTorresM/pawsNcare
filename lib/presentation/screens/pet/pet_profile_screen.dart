@@ -1257,21 +1257,29 @@ class _PetProfileScreenState extends State<PetProfileScreen>
 
     Color accentColor;
     switch (entry.severity.toUpperCase()) {
+      case 'EMERGENCY':
       case 'SEVERE':
         accentColor = isDark
             ? const Color(0xFFFFB4A3)
             : const Color(0xFFE74C3C);
         break;
+      case 'CONCERNING':
+      case 'UNUSUAL':
       case 'MODERATE':
         accentColor = isDark
             ? const Color(0xFFFFD580)
             : const Color(0xFFF39C12);
         break;
       case 'MILD':
-      default:
         accentColor = isDark
             ? const Color(0xFF90CAF9)
             : const Color(0xFF5D9CEC);
+        break;
+      case 'NORMAL':
+      default:
+        accentColor = isDark
+            ? const Color(0xFF81C784)
+            : const Color(0xFF2ECC71);
         break;
     }
 

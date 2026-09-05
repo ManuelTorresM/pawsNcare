@@ -90,7 +90,10 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
     final emergency = prefs.getString(_emergencyKey);
     final address = prefs.getString(_addressKey);
     final avatar = prefs.getString(_avatarKey);
-    final userCode = await FirebaseRepository().getCurrentUserCode();
+    String userCode = '10000001';
+    try {
+      userCode = await FirebaseRepository().getCurrentUserCode();
+    } catch (_) {}
 
     if (!mounted) return;
     setState(() {

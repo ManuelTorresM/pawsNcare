@@ -72,51 +72,60 @@ class _DiaryTabState extends State<DiaryTab> {
 
   Map<String, dynamic> _getCategoryStyles(String category) {
     switch (category) {
+      case 'special_event':
+        return {
+          'label': 'Special Event',
+          'icon': Icons.stars,
+          'color': const Color(0xFFF39C12),
+          'severity': 'CONCERNING',
+          'badgeColor': const Color(0xFFFEF9E7),
+          'badgeText': const Color(0xFFF39C12),
+        };
       case 'vet':
         return {
           'label': 'Symptom',
           'icon': Icons.warning,
-          'color': const Color(0xFFE74C3C), // Red accent
-          'severity': 'SEVERE',
-          'badgeColor': const Color(0xFFFDEDEC),
-          'badgeText': const Color(0xFFE74C3C),
+          'color': const Color(0xFFF39C12),
+          'severity': 'UNUSUAL',
+          'badgeColor': const Color(0xFFFEF9E7),
+          'badgeText': const Color(0xFFF39C12),
         };
       case 'food':
         return {
           'label': 'Dietary',
           'icon': Icons.restaurant,
-          'color': const Color(0xFFF39C12), // Orange accent
-          'severity': 'MODERATE',
-          'badgeColor': const Color(0xFFFEF9E7),
-          'badgeText': const Color(0xFFF39C12),
+          'color': const Color(0xFF5D9CEC),
+          'severity': 'MILD',
+          'badgeColor': const Color(0xFFEBF5FB),
+          'badgeText': const Color(0xFF5D9CEC),
         };
       case 'med':
         return {
           'label': 'Medication',
           'icon': Icons.medical_services,
-          'color': const Color(0xFFF39C12), // Orange accent
-          'severity': 'MODERATE',
-          'badgeColor': const Color(0xFFFEF9E7),
-          'badgeText': const Color(0xFFF39C12),
+          'color': const Color(0xFF5D9CEC),
+          'severity': 'MILD',
+          'badgeColor': const Color(0xFFEBF5FB),
+          'badgeText': const Color(0xFF5D9CEC),
         };
       case 'walk':
         return {
           'label': 'Behavioral',
           'icon': Icons.psychology,
-          'color': const Color(0xFF5D9CEC), // Blue accent
-          'severity': 'MILD',
-          'badgeColor': const Color(0xFFEBF5FB),
-          'badgeText': const Color(0xFF5D9CEC),
+          'color': const Color(0xFF2ECC71),
+          'severity': 'NORMAL',
+          'badgeColor': const Color(0xFFE8F8F5),
+          'badgeText': const Color(0xFF2ECC71),
         };
       case 'hydration':
       default:
         return {
           'label': 'Hydration',
           'icon': Icons.water_drop,
-          'color': const Color(0xFF5D9CEC), // Blue accent
-          'severity': 'MILD',
-          'badgeColor': const Color(0xFFEBF5FB),
-          'badgeText': const Color(0xFF5D9CEC),
+          'color': const Color(0xFF2ECC71),
+          'severity': 'NORMAL',
+          'badgeColor': const Color(0xFFE8F8F5),
+          'badgeText': const Color(0xFF2ECC71),
         };
     }
   }
@@ -138,7 +147,7 @@ class _DiaryTabState extends State<DiaryTab> {
     );
     String petId = initialEntry?.petId ?? petState.pets.first.id;
     String category = initialEntry?.category ?? 'walk';
-    String severity = initialEntry?.severity ?? 'MILD';
+    String severity = initialEntry?.severity ?? (category == 'special_event' ? 'CONCERNING' : 'NORMAL');
     String? validationError;
 
     showDialog(
@@ -312,17 +321,25 @@ class _DiaryTabState extends State<DiaryTab> {
                       value: 'vet',
                       child: Text('Symptom (Vet Visit)'),
                     ),
+                    DropdownMenuItem(
+                      value: 'special_event',
+                      child: Text('Special Event'),
+                    ),
                   ],
                   onChanged: (val) {
                     if (val != null) {
                       setDialogState(() {
                         category = val;
-                        if (val == 'vet') {
-                          severity = 'SEVERE';
+                        if (val == 'special_event') {
+                          if (severity != 'CONCERNING' && severity != 'EMERGENCY') {
+                            severity = 'CONCERNING';
+                          }
+                        } else if (val == 'vet') {
+                          severity = 'UNUSUAL';
                         } else if (val == 'food' || val == 'med') {
-                          severity = 'MODERATE';
-                        } else {
                           severity = 'MILD';
+                        } else {
+                          severity = 'NORMAL';
                         }
                       });
                     }
@@ -330,35 +347,58 @@ class _DiaryTabState extends State<DiaryTab> {
                 ),
                 const SizedBox(height: 14),
 
-                // Severity selection
-                const FormSectionLabel('Severity Level'),
-                Row(
-                  children: [
-                    _buildSeverityOption(
-                      label: 'MILD',
-                      isSelected: severity == 'MILD',
-                      color: const Color(0xFF5D9CEC),
-                      bgColor: const Color(0xFFEBF5FB),
-                      onTap: () => setDialogState(() => severity = 'MILD'),
-                    ),
-                    const SizedBox(width: 8),
-                    _buildSeverityOption(
-                      label: 'MODERATE',
-                      isSelected: severity == 'MODERATE',
-                      color: const Color(0xFFF39C12),
-                      bgColor: const Color(0xFFFEF9E7),
-                      onTap: () => setDialogState(() => severity = 'MODERATE'),
-                    ),
-                    const SizedBox(width: 8),
-                    _buildSeverityOption(
-                      label: 'SEVERE',
-                      isSelected: severity == 'SEVERE',
-                      color: const Color(0xFFE74C3C),
-                      bgColor: const Color(0xFFFDEDEC),
-                      onTap: () => setDialogState(() => severity = 'SEVERE'),
-                    ),
-                  ],
+                // Severity / Event level selection
+                FormSectionLabel(
+                  category == 'special_event' ? 'Event Level' : 'Severity Level',
                 ),
+                if (category == 'special_event')
+                  Row(
+                    children: [
+                      _buildSeverityOption(
+                        label: 'CONCERNING',
+                        isSelected: severity == 'CONCERNING',
+                        color: const Color(0xFFF39C12),
+                        bgColor: const Color(0xFFFEF9E7),
+                        onTap: () => setDialogState(() => severity = 'CONCERNING'),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildSeverityOption(
+                        label: 'EMERGENCY',
+                        isSelected: severity == 'EMERGENCY',
+                        color: const Color(0xFFE74C3C),
+                        bgColor: const Color(0xFFFDEDEC),
+                        onTap: () => setDialogState(() => severity = 'EMERGENCY'),
+                      ),
+                    ],
+                  )
+                else
+                  Row(
+                    children: [
+                      _buildSeverityOption(
+                        label: 'NORMAL',
+                        isSelected: severity == 'NORMAL',
+                        color: const Color(0xFF2ECC71),
+                        bgColor: const Color(0xFFE8F8F5),
+                        onTap: () => setDialogState(() => severity = 'NORMAL'),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildSeverityOption(
+                        label: 'MILD',
+                        isSelected: severity == 'MILD',
+                        color: const Color(0xFF5D9CEC),
+                        bgColor: const Color(0xFFEBF5FB),
+                        onTap: () => setDialogState(() => severity = 'MILD'),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildSeverityOption(
+                        label: 'UNUSUAL',
+                        isSelected: severity == 'UNUSUAL',
+                        color: const Color(0xFFF39C12),
+                        bgColor: const Color(0xFFFEF9E7),
+                        onTap: () => setDialogState(() => severity = 'UNUSUAL'),
+                      ),
+                    ],
+                  ),
                 const SizedBox(height: 14),
 
                 // Title
@@ -946,18 +986,25 @@ class _DiaryTabState extends State<DiaryTab> {
     Color badgeColor;
     Color badgeText;
     switch (severity.toUpperCase()) {
+      case 'EMERGENCY':
       case 'SEVERE':
         badgeColor = isDark ? const Color(0xFF5C2B1D) : const Color(0xFFFDEDEC);
         badgeText = isDark ? const Color(0xFFFFB4A3) : const Color(0xFFE74C3C);
         break;
+      case 'CONCERNING':
+      case 'UNUSUAL':
       case 'MODERATE':
         badgeColor = isDark ? const Color(0xFF523B17) : const Color(0xFFFEF9E7);
         badgeText = isDark ? const Color(0xFFFFD580) : const Color(0xFFF39C12);
         break;
       case 'MILD':
-      default:
         badgeColor = isDark ? const Color(0xFF1D3B5C) : const Color(0xFFEBF5FB);
         badgeText = isDark ? const Color(0xFF90CAF9) : const Color(0xFF5D9CEC);
+        break;
+      case 'NORMAL':
+      default:
+        badgeColor = isDark ? const Color(0xFF1E4620) : const Color(0xFFE8F8F5);
+        badgeText = isDark ? const Color(0xFF81C784) : const Color(0xFF2ECC71);
         break;
     }
 

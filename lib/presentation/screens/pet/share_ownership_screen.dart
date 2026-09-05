@@ -228,12 +228,17 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
     _addContactToSuggested(matchedUser);
 
     final invId = 'inv_${DateTime.now().millisecondsSinceEpoch}';
-    final currentUser = FirebaseAuth.instance.currentUser;
-    final inviterName = (currentUser?.displayName?.isNotEmpty == true)
-        ? currentUser!.displayName!
-        : (currentUser?.email?.isNotEmpty == true
-              ? currentUser!.email!
-              : 'Pet Owner');
+    String inviterName = 'Pet Owner';
+    String currentUid = '';
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      inviterName = (currentUser?.displayName?.isNotEmpty == true)
+          ? currentUser!.displayName!
+          : (currentUser?.email?.isNotEmpty == true
+                ? currentUser!.email!
+                : 'Pet Owner');
+      currentUid = currentUser?.uid ?? '';
+    } catch (_) {}
 
     final invitation = PetInvitation(
       id: invId,
@@ -243,7 +248,7 @@ class _ShareOwnershipScreenState extends State<ShareOwnershipScreen> {
       petAvatarUrl: _pet.avatarUrl,
       ownerId: _pet.ownerId.isNotEmpty
           ? _pet.ownerId
-          : (currentUser?.uid ?? ''),
+          : currentUid,
       ownerName: inviterName,
       recipientEmail: targetEmail,
       recipientUsername: matchedUser['username'] ?? targetEmail.split('@').first,

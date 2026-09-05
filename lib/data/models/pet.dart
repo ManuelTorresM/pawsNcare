@@ -11,7 +11,7 @@ class Pet extends Equatable {
   final String ageString;
   final DateTime birthDate;
   final String avatarUrl;
-  final String status; // 'Healthy', 'Check Diary', 'Puppy'
+  final String status; // 'HEALTHY', 'CONCERNING', 'EMERGENCY'
   final double weight; // current weight in kg
   final List<WeightLog> weightHistory;
   final List<Medication> medications;
@@ -40,7 +40,7 @@ class Pet extends Equatable {
     required this.ageString,
     required this.birthDate,
     required this.avatarUrl,
-    required this.status,
+    this.status = 'HEALTHY',
     required this.weight,
     this.weightHistory = const [],
     this.medications = const [],
@@ -172,7 +172,7 @@ class Pet extends Equatable {
       ageString: map['ageString'] ?? '',
       birthDate: DateTime.parse(map['birthDate']),
       avatarUrl: map['avatarUrl'] ?? '',
-      status: map['status'] ?? 'Healthy',
+      status: map['status'] ?? 'HEALTHY',
       weight: (map['weight'] as num).toDouble(),
       weightHistory: map['weightHistory'] != null
           ? List<WeightLog>.from(

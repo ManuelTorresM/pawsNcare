@@ -29,9 +29,13 @@ class HomeInvitationBanner extends StatelessWidget {
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           Pet? pendingPet;
           SharedMember? pendingInvite;
-          final user = FirebaseAuth.instance.currentUser;
-          final userEmail = user?.email ?? '';
-          final userId = user?.uid ?? '';
+          String userEmail = '';
+          String userId = '';
+          try {
+            final user = FirebaseAuth.instance.currentUser;
+            userEmail = user?.email ?? '';
+            userId = user?.uid ?? '';
+          } catch (_) {}
 
           for (final pet in allPets) {
             for (final member in pet.members) {

@@ -12,7 +12,7 @@ class DemoDataSupplier {
           ageString: '2 yrs',
           birthDate: DateTime.now().subtract(const Duration(days: 365 * 2)),
           avatarUrl: 'assets/avatars/dog.png',
-          status: 'Healthy',
+          status: 'HEALTHY',
           weight: 28.5,
           weightHistory: [
             WeightLog(
@@ -58,7 +58,7 @@ class DemoDataSupplier {
           ageString: '4 yrs',
           birthDate: DateTime.now().subtract(const Duration(days: 365 * 4)),
           avatarUrl: 'assets/avatars/cat.png',
-          status: 'Healthy',
+          status: 'CONCERNING',
           weight: 4.2,
           weightHistory: [
             WeightLog(
@@ -99,7 +99,7 @@ class DemoDataSupplier {
           birthDate: DateTime.now().subtract(const Duration(days: 365)),
           avatarUrl:
               'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=400',
-          status: 'Puppy',
+          status: 'EMERGENCY',
           weight: 11.0,
           weightHistory: [
             WeightLog(

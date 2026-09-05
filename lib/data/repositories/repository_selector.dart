@@ -7,7 +7,7 @@ import 'demo_repository.dart';
 class RepositorySelector {
   static const String _key = 'pawsncare_db_source';
 
-  final FirebaseRepository _firebaseRepository = FirebaseRepository();
+  FirebaseRepository? _firebaseRepository;
   final DemoRepository _demoRepository = DemoRepository();
 
   static Future<String> getDbSource() async {
@@ -23,6 +23,7 @@ class RepositorySelector {
     if (AppConfig.isDemoMode) {
       return _demoRepository;
     }
-    return _firebaseRepository;
+    return _firebaseRepository ??= FirebaseRepository();
   }
 }
+

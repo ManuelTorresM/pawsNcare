@@ -11,8 +11,8 @@ import '../models/app_user.dart';
 import 'base_repository.dart';
 
 class FirebaseRepository implements BaseRepository {
-  final fb.FirebaseAuth _auth = fb.FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  fb.FirebaseAuth get _auth => fb.FirebaseAuth.instance;
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
 
   @override
   Future<String?> uploadImage(File file, String storagePath) async => file.path;

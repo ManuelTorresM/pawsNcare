@@ -66,12 +66,14 @@ class _HomeTabState extends State<HomeTab> {
           if (state is Authenticated && state.name.isNotEmpty) {
             name = state.name;
           } else {
-            final currentUser = FirebaseAuth.instance.currentUser;
-            if (currentUser?.displayName?.isNotEmpty == true) {
-              name = currentUser!.displayName!;
-            } else if (currentUser?.email?.isNotEmpty == true) {
-              name = currentUser!.email!.split('@').first;
-            }
+            try {
+              final currentUser = FirebaseAuth.instance.currentUser;
+              if (currentUser?.displayName?.isNotEmpty == true) {
+                name = currentUser!.displayName!;
+              } else if (currentUser?.email?.isNotEmpty == true) {
+                name = currentUser!.email!.split('@').first;
+              }
+            } catch (_) {}
           }
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,11 +113,11 @@ class _HomeTabState extends State<HomeTab> {
                   healthSubtitle = 'Add your first pet to sync health profile';
                 } else {
                   final hasAttention = petState.pets.any(
-                    (p) => p.status == 'Check Diary',
+                    (p) => p.status == 'CONCERNING' || p.status == 'EMERGENCY',
                   );
                   if (hasAttention) {
                     healthTitle = 'Attention needed';
-                    healthSubtitle = 'Check diary entries for updates';
+                    healthSubtitle = 'Check pet health profiles and diary';
                   }
                 }
               }
@@ -530,9 +532,13 @@ class _HomeTabState extends State<HomeTab> {
                   child: CircularProgressIndicator(color: headerColor),
                 );
               } else if (state is PetLoaded) {
-                final currentUser = FirebaseAuth.instance.currentUser;
-                final currentUid = currentUser?.uid ?? '';
-                final currentEmail = currentUser?.email ?? '';
+                String currentUid = '';
+                String currentEmail = '';
+                try {
+                  final currentUser = FirebaseAuth.instance.currentUser;
+                  currentUid = currentUser?.uid ?? '';
+                  currentEmail = currentUser?.email ?? '';
+                } catch (_) {}
 
                 final pets = state.filteredPets.where((pet) {
                   final isPendingInviteForUser = pet.members.any(
@@ -568,24 +574,30 @@ class _HomeTabState extends State<HomeTab> {
                       itemCount: pets.length,
                       itemBuilder: (context, index) {
                         final pet = pets[index];
-                        Color statusColor = headerColor;
-                        Color statusBgColor = isDark
-                            ? const Color(0xFF2E4E30)
-                            : AppTheme.primaryFixed.withValues(alpha: 0.3);
-                        if (pet.status == 'Check Diary') {
+                        Color statusColor;
+                        Color statusBgColor;
+                        if (pet.status == 'EMERGENCY') {
                           statusColor = isDark
                               ? const Color(0xFFFFB4A3)
-                              : AppTheme.tertiary;
+                              : AppTheme.error;
                           statusBgColor = isDark
                               ? const Color(0xFF5C2B1D)
-                              : AppTheme.tertiaryFixed.withValues(alpha: 0.4);
-                        } else if (pet.status == 'Puppy') {
-                          statusColor = textSecondary;
+                              : const Color(0xFFFDEDEC);
+                        } else if (pet.status == 'CONCERNING') {
+                          statusColor = isDark
+                              ? const Color(0xFFFFD580)
+                              : const Color(0xFFF39C12);
                           statusBgColor = isDark
-                              ? const Color(0xFF383634)
-                              : AppTheme.secondaryContainer.withValues(
-                                  alpha: 0.6,
-                                );
+                              ? const Color(0xFF523B17)
+                              : const Color(0xFFFEF9E7);
+                        } else {
+                          // HEALTHY
+                          statusColor = isDark
+                              ? AppTheme.primaryFixedDim
+                              : AppTheme.primary;
+                          statusBgColor = isDark
+                              ? const Color(0xFF2E4E30)
+                              : AppTheme.primaryFixed.withValues(alpha: 0.3);
                         }
                         return AccentLeftCard(
                           accentColor: statusColor,

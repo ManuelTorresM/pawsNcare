@@ -35,21 +35,23 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
   }
 
   PetRole get _currentUserRole {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null || _pet.ownerId.isEmpty || _pet.ownerId == user.uid) {
-      return PetRole.owner;
-    }
-
-    for (final m in _pet.members) {
-      if (m.status == 'Accepted' &&
-          (m.id == user.uid ||
-              (user.email != null &&
-                  m.email.isNotEmpty &&
-                  m.email.toLowerCase() == user.email!.toLowerCase()))) {
-        return m.role;
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null || _pet.ownerId.isEmpty || _pet.ownerId == user.uid) {
+        return PetRole.owner;
       }
-    }
-    return PetRole.caregiver;
+
+      for (final m in _pet.members) {
+        if (m.status == 'Accepted' &&
+            (m.id == user.uid ||
+                (user.email != null &&
+                    m.email.isNotEmpty &&
+                    m.email.toLowerCase() == user.email!.toLowerCase()))) {
+          return m.role;
+        }
+      }
+    } catch (_) {}
+    return PetRole.owner;
   }
 
   void _updatePet(Pet updated) {
@@ -90,6 +92,9 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     String selectedGender = _pet.gender;
     String selectedNeutered = _pet.neutered;
     DateTime selectedBirthDate = _pet.birthDate;
+    String selectedStatus = ['HEALTHY', 'CONCERNING', 'EMERGENCY'].contains(_pet.status)
+        ? _pet.status
+        : 'HEALTHY';
 
     showDialog(
       context: context,
@@ -163,6 +168,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                     gender: selectedGender,
                     neutered: selectedNeutered,
                     birthDate: selectedBirthDate,
+                    status: selectedStatus,
                   );
                   _updatePet(updated);
                   Navigator.pop(dialogContext);
@@ -335,6 +341,44 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                         null,
                         selectedNeutered,
                         (v) => setDialogState(() => selectedNeutered = v),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Health Status
+                const Text(
+                  'Health Status',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: buildOptionChip(
+                        'HEALTHY',
+                        Icons.check_circle_outline,
+                        selectedStatus,
+                        (v) => setDialogState(() => selectedStatus = v),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: buildOptionChip(
+                        'CONCERNING',
+                        Icons.warning_amber_rounded,
+                        selectedStatus,
+                        (v) => setDialogState(() => selectedStatus = v),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: buildOptionChip(
+                        'EMERGENCY',
+                        Icons.error_outline,
+                        selectedStatus,
+                        (v) => setDialogState(() => selectedStatus = v),
                       ),
                     ),
                   ],
@@ -1099,9 +1143,13 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
   }
 
   Widget _buildPendingInviteBanner() {
-    final user = FirebaseAuth.instance.currentUser;
-    final userEmail = user?.email ?? '';
-    final userId = user?.uid ?? '';
+    String userEmail = '';
+    String userId = '';
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      userEmail = user?.email ?? '';
+      userId = user?.uid ?? '';
+    } catch (_) {}
 
     final pendingMatches = _pet.members.where(
       (m) =>

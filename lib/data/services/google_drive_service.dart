@@ -185,15 +185,13 @@ class GoogleDriveService {
         return null;
       }
 
-      List<int> bytes;
-      try {
-        bytes = await file.readAsBytes();
-      } catch (readErr) {
-        debugPrint('GoogleDriveService readAsBytes note for "${file.path}": $readErr');
+      final length = await file.length();
+      if (length < 12) {
+        debugPrint('GoogleDriveService: Skipping file, size too small ($length bytes): "${file.path}"');
         return null;
       }
 
-      final media = drive.Media(Stream.value(bytes), bytes.length);
+      final media = drive.Media(file.openRead(), length);
       final driveFile = drive.File()
         ..name = fileName
         ..parents = [folderId];

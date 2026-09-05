@@ -52,26 +52,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadGoogleDriveStatus() async {
-    final isLinked = await GoogleDriveService.isDriveLinked();
-    final email = await GoogleDriveService.getLinkedEmail();
-    if (mounted) {
-      setState(() {
-        _isDriveLinked = isLinked;
-        _driveEmail = email;
-      });
-    }
+    try {
+      final isLinked = await GoogleDriveService.isDriveLinked();
+      final email = await GoogleDriveService.getLinkedEmail();
+      if (mounted) {
+        setState(() {
+          _isDriveLinked = isLinked;
+          _driveEmail = email;
+        });
+      }
+    } catch (_) {}
   }
 
   void _loadNotificationSettings() {
-    final service = GlobalNotificationService();
-    setState(() {
+    try {
+      final service = GlobalNotificationService();
       _medsNotifications = service.medsNotificationsEnabled;
       _vaccinesNotifications = service.vaccinesNotificationsEnabled;
       _feedingNotifications = service.feedingNotificationsEnabled;
       _quietHoursEnabled = service.quietHoursEnabled;
       _quietStart = service.quietStart;
       _quietEnd = service.quietEnd;
-    });
+    } catch (_) {}
   }
 
   Future<void> _loadDbSource() async {

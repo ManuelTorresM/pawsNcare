@@ -338,9 +338,12 @@ class _AddPetWizardState extends State<AddPetWizard> {
       }
     }
 
-    final currentUser = FirebaseAuth.instance.currentUser;
-    final currentOwnerId =
-        currentUser?.uid ?? currentUser?.email ?? 'current_owner';
+    String currentOwnerId = 'current_owner';
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      currentOwnerId =
+          currentUser?.uid ?? currentUser?.email ?? 'current_owner';
+    } catch (_) {}
 
     // Check Google Drive linking prompt if not already linked
     final isDriveLinked = await GoogleDriveService.isDriveLinked();
@@ -445,7 +448,7 @@ class _AddPetWizardState extends State<AddPetWizard> {
       ageString: ageStr,
       birthDate: birth,
       avatarUrl: finalAvatarUrl,
-      status: years == 0 ? 'Puppy' : 'Healthy',
+      status: 'HEALTHY',
       weight: weightInKg,
       weightHistory: weightVal == 0.0
           ? const []

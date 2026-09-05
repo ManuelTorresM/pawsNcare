@@ -38,7 +38,7 @@ class LocalMediaService {
   }) async {
     try {
       final pawsDir = await getPawsNCareDirectory();
-      
+
       final sourceNormalized = sourceFile.path.replaceAll('\\', '/');
       final pawsNormalized = pawsDir.path.replaceAll('\\', '/');
 
@@ -84,14 +84,16 @@ class LocalMediaService {
 
       // 2. Remote URL Case (HTTP / Google Drive)
       final directUrl = formatDirectImageUrl(clean);
-      final response = await http.get(Uri.parse(directUrl)).timeout(
-        const Duration(seconds: 15),
-      );
+      final response = await http
+          .get(Uri.parse(directUrl))
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
         final contentType = response.headers['content-type'] ?? '';
         if (contentType.contains('text/html')) {
-          debugPrint('syncToLocalDirectory: URL returned HTML, skipping $clean');
+          debugPrint(
+            'syncToLocalDirectory: URL returned HTML, skipping $clean',
+          );
           return null;
         }
 
