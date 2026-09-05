@@ -183,7 +183,8 @@ class GoogleDriveService {
         ..name = fileName
         ..parents = [folderId];
 
-      final media = drive.Media(file.openRead(), file.lengthSync());
+      final bytes = await file.readAsBytes();
+      final media = drive.Media(Stream.value(bytes), bytes.length);
       final uploadedFile = await driveApi.files.create(
         driveFile,
         uploadMedia: media,
