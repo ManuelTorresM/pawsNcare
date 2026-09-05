@@ -689,8 +689,8 @@ class _DiaryTabState extends State<DiaryTab> {
                                     fontWeight: FontWeight.w600,
                                     color: isActive
                                         ? (severity == 'EMERGENCY'
-                                            ? const Color(0xFFE74C3C)
-                                            : AppTheme.statusConcerning)
+                                              ? const Color(0xFFE74C3C)
+                                              : AppTheme.statusConcerning)
                                         : textSecondary,
                                   ),
                                 ),
