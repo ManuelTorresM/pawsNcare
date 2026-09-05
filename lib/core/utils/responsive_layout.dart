@@ -1,28 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class ResponsiveLayout {
   static const double mobileBreakpoint = 600.0;
   static const double tabletBreakpoint = 900.0;
   static const double maxContentWidth = 1000.0;
 
-  static bool isMobile(BuildContext context) =>
-      MediaQuery.of(context).size.width < mobileBreakpoint;
+  /// Checks if the hardware device is a tablet based on physical shortest side.
+  static bool isTabletDevice(BuildContext context) =>
+      MediaQuery.of(context).size.shortestSide >= 600;
 
-  static bool isTablet(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    return width >= mobileBreakpoint && width < tabletBreakpoint;
+  /// Checks if device is currently in landscape (horizontal) mode.
+  static bool isLandscape(BuildContext context) =>
+      MediaQuery.of(context).orientation == Orientation.landscape;
+
+  /// Returns true ONLY if device is a tablet AND rotated horizontally (landscape).
+  /// - Phone (Portrait/Landscape): false (Normal version)
+  /// - Tablet (Portrait): false (Normal version)
+  /// - Tablet (Landscape): true (Tablet version)
+  static bool isTabletLayout(BuildContext context) {
+    return isTabletDevice(context) && isLandscape(context);
   }
+
+  static bool isMobile(BuildContext context) => !isTabletLayout(context);
 
   static bool isDesktop(BuildContext context) =>
       MediaQuery.of(context).size.width >= tabletBreakpoint;
 
-  static bool isWide(BuildContext context) =>
-      MediaQuery.of(context).size.width >= mobileBreakpoint;
+  /// Restricts phone orientation strictly to vertical (portrait),
+  /// while allowing tablets to rotate freely.
+  static void enforceOrientation(BuildContext context) {
+    if (!isTabletDevice(context)) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
+    } else {
+      SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    }
+  }
 
-  static int getGridCrossAxisCount(BuildContext context, {int mobile = 1, int tablet = 2, int desktop = 3}) {
-    final width = MediaQuery.of(context).size.width;
-    if (width >= tabletBreakpoint) return desktop;
-    if (width >= mobileBreakpoint) return tablet;
+  static int getGridCrossAxisCount(
+    BuildContext context, {
+    int mobile = 1,
+    int tablet = 2,
+    int desktop = 3,
+  }) {
+    if (isTabletLayout(context)) return tablet;
     return mobile;
   }
 }
@@ -41,17 +65,12 @@ class ResponsiveBuilder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth >= ResponsiveLayout.tabletBreakpoint) {
-          return (desktop ?? tablet ?? mobile)(context);
-        }
-        if (constraints.maxWidth >= ResponsiveLayout.mobileBreakpoint) {
-          return (tablet ?? mobile)(context);
-        }
-        return mobile(context);
-      },
-    );
+    ResponsiveLayout.enforceOrientation(context);
+
+    if (ResponsiveLayout.isTabletLayout(context) && tablet != null) {
+      return (tablet ?? mobile)(context);
+    }
+    return mobile(context);
   }
 }
 
