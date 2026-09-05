@@ -12,10 +12,10 @@ class GoogleDriveService {
   static const String _rootFolderName = 'PawsNCare_Media';
 
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: [
-      drive.DriveApi.driveFileScope,
-    ],
+    scopes: [drive.DriveApi.driveFileScope],
   );
+
+  static String? lastErrorMessage;
 
   /// Check if Google Drive is currently linked.
   static Future<bool> isDriveLinked() async {
@@ -31,6 +31,7 @@ class GoogleDriveService {
 
   /// Link Google Drive account with driveFileScope authorization.
   static Future<bool> linkGoogleDrive() async {
+    lastErrorMessage = null;
     try {
       GoogleSignInAccount? account = await _googleSignIn.signIn();
       if (account == null) {
@@ -47,9 +48,12 @@ class GoogleDriveService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_keyIsLinked, true);
       await prefs.setString(_keyDriveEmail, account.email);
-      debugPrint('GoogleDriveService linkGoogleDrive SUCCESS for email: ${account.email}');
+      debugPrint(
+        'GoogleDriveService linkGoogleDrive SUCCESS for email: ${account.email}',
+      );
       return true;
     } catch (e, stack) {
+      lastErrorMessage = e.toString();
       debugPrint('GoogleDriveService linkGoogleDrive ERROR: $e\n$stack');
       return false;
     }
@@ -57,6 +61,7 @@ class GoogleDriveService {
 
   /// Unlink Google Drive account.
   static Future<void> unlinkGoogleDrive() async {
+    lastErrorMessage = null;
     try {
       await _googleSignIn.signOut();
     } catch (_) {}
@@ -85,12 +90,15 @@ class GoogleDriveService {
 
       final authClient = await _googleSignIn.authenticatedClient();
       if (authClient == null) {
-        debugPrint('GoogleDriveService _getDriveApi: authenticatedClient is null');
+        debugPrint(
+          'GoogleDriveService _getDriveApi: authenticatedClient is null',
+        );
         return null;
       }
 
       return drive.DriveApi(authClient);
     } catch (e, stack) {
+      lastErrorMessage = e.toString();
       debugPrint('GoogleDriveService _getDriveApi ERROR: $e\n$stack');
       return null;
     }
@@ -109,7 +117,9 @@ class GoogleDriveService {
         query += " and '$parentId' in parents";
       }
 
-      debugPrint('GoogleDriveService: Searching folder "$folderName" (parentId: $parentId)...');
+      debugPrint(
+        'GoogleDriveService: Searching folder "$folderName" (parentId: $parentId)...',
+      );
       final list = await driveApi.files.list(
         q: query,
         $fields: 'files(id, name, parents)',
@@ -117,11 +127,15 @@ class GoogleDriveService {
 
       if (list.files != null && list.files!.isNotEmpty) {
         final existingId = list.files!.first.id;
-        debugPrint('GoogleDriveService: Found existing folder "$folderName" -> $existingId');
+        debugPrint(
+          'GoogleDriveService: Found existing folder "$folderName" -> $existingId',
+        );
         return existingId;
       }
 
-      debugPrint('GoogleDriveService: Folder "$folderName" not found. Creating new folder...');
+      debugPrint(
+        'GoogleDriveService: Folder "$folderName" not found. Creating new folder...',
+      );
       final folderToCreate = drive.File()
         ..name = folderName
         ..mimeType = 'application/vnd.google-apps.folder'
@@ -131,10 +145,21 @@ class GoogleDriveService {
         folderToCreate,
         $fields: 'id, name, mimeType, parents',
       );
-      debugPrint('GoogleDriveService: Successfully created folder "$folderName" -> ${created.id}');
+      debugPrint(
+        'GoogleDriveService: Successfully created folder "$folderName" -> ${created.id}',
+      );
       return created.id;
     } catch (e, stack) {
-      debugPrint('GoogleDriveService _getOrCreateFolder ERROR for "$folderName": $e\n$stack');
+      if (e.toString().contains('Google Drive API has not been used') ||
+          e.toString().contains('disabled')) {
+        lastErrorMessage =
+            'Google Drive API is disabled in your Google Cloud Project (506029706494).\n\nPlease enable it at:\nhttps://console.developers.google.com/apis/api/drive.googleapis.com/overview?project=506029706494';
+      } else {
+        lastErrorMessage = e.toString();
+      }
+      debugPrint(
+        'GoogleDriveService _getOrCreateFolder ERROR for "$folderName": $e\n$stack',
+      );
       return null;
     }
   }
@@ -147,10 +172,13 @@ class GoogleDriveService {
     String? customFileName,
   }) async {
     try {
-      final fileName = customFileName ??
+      final fileName =
+          customFileName ??
           'media_${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last.split('\\').last}';
 
-      debugPrint('GoogleDriveService: Uploading "${file.path}" as "$fileName" into folderId: $folderId');
+      debugPrint(
+        'GoogleDriveService: Uploading "${file.path}" as "$fileName" into folderId: $folderId',
+      );
       final driveFile = drive.File()
         ..name = fileName
         ..parents = [folderId];
@@ -162,14 +190,18 @@ class GoogleDriveService {
         $fields: 'id, name, webViewLink, webContentLink',
       );
 
-      debugPrint('GoogleDriveService: Uploaded file "$fileName" -> ${uploadedFile.id}');
+      debugPrint(
+        'GoogleDriveService: Uploaded file "$fileName" -> ${uploadedFile.id}',
+      );
 
       if (uploadedFile.id != null) {
         return 'https://drive.google.com/uc?id=${uploadedFile.id}';
       }
       return null;
     } catch (e, stack) {
-      debugPrint('GoogleDriveService _uploadFileToFolder ERROR for "${file.path}": $e\n$stack');
+      debugPrint(
+        'GoogleDriveService _uploadFileToFolder ERROR for "${file.path}": $e\n$stack',
+      );
       return null;
     }
   }
@@ -183,7 +215,9 @@ class GoogleDriveService {
     try {
       final driveApi = await _getDriveApi();
       if (driveApi == null) {
-        debugPrint('GoogleDriveService uploadPetImageToDrive: driveApi is null');
+        debugPrint(
+          'GoogleDriveService uploadPetImageToDrive: driveApi is null',
+        );
         return null;
       }
 
@@ -198,8 +232,9 @@ class GoogleDriveService {
       );
       if (petFolderId == null) return null;
 
-      final targetSubfolderName =
-          isProfilePicture ? 'profile_pet_picture' : 'pet_memories';
+      final targetSubfolderName = isProfilePicture
+          ? 'profile_pet_picture'
+          : 'pet_memories';
       final subfolderId = await _getOrCreateFolder(
         driveApi,
         targetSubfolderName,
@@ -272,7 +307,9 @@ class GoogleDriveService {
             updatedAvatarUrl = driveUrl;
           }
         } else {
-          debugPrint('GoogleDriveService: Avatar file does not exist locally at "${pet.avatarUrl}"');
+          debugPrint(
+            'GoogleDriveService: Avatar file does not exist locally at "${pet.avatarUrl}"',
+          );
         }
       }
 
@@ -303,11 +340,10 @@ class GoogleDriveService {
         }
       }
 
-      debugPrint('GoogleDriveService: Finished sync for pet "${pet.name}". Avatar: $updatedAvatarUrl');
-      return pet.copyWith(
-        avatarUrl: updatedAvatarUrl,
-        photos: updatedPhotos,
+      debugPrint(
+        'GoogleDriveService: Finished sync for pet "${pet.name}". Avatar: $updatedAvatarUrl',
       );
+      return pet.copyWith(avatarUrl: updatedAvatarUrl, photos: updatedPhotos);
     } catch (e, stack) {
       debugPrint('GoogleDriveService syncPetToDrive ERROR: $e\n$stack');
       return pet;
@@ -316,7 +352,9 @@ class GoogleDriveService {
 
   /// Syncs all registered pets' media to Google Drive, returning the list of updated Pet objects.
   static Future<List<Pet>> syncAllPetsToDrive(List<Pet> pets) async {
-    debugPrint('GoogleDriveService: Starting syncAllPetsToDrive for ${pets.length} pets...');
+    debugPrint(
+      'GoogleDriveService: Starting syncAllPetsToDrive for ${pets.length} pets...',
+    );
     final List<Pet> updatedPets = [];
     for (final pet in pets) {
       final syncedPet = await syncPetToDrive(pet);

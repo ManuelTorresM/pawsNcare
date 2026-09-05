@@ -616,14 +616,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             for (final updatedPet in syncedPets) {
                               petBloc.add(UpdatePet(updatedPet));
                             }
-                            messenger.showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Media synced to Google Drive (PawsNCare_Media)!',
-                                ),
-                                backgroundColor: AppTheme.primary,
-                              ),
-                            );
+                            if (context.mounted) {
+                              if (GoogleDriveService.lastErrorMessage != null) {
+                                showDialog(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('Google Drive API Disabled'),
+                                    content: Text(
+                                      GoogleDriveService.lastErrorMessage!,
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.of(ctx).pop(),
+                                        child: const Text('OK'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              } else {
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Media synced to Google Drive (PawsNCare_Media)!',
+                                    ),
+                                    backgroundColor: AppTheme.primary,
+                                  ),
+                                );
+                              }
+                            }
                           } else {
                             messenger.showSnackBar(
                               const SnackBar(
