@@ -406,11 +406,21 @@ class _LoginScreenState extends State<LoginScreen> {
     final isConnectionError =
         lower.contains('connection refused') || lower.contains('network');
     final isWrongPassword =
-        lower.contains('wrong password') || lower.contains('incorrect password') || lower.contains('wrong-password');
+        lower.contains('wrong password') ||
+        lower.contains('incorrect password') ||
+        lower.contains('wrong-password');
     final isUnverified =
-        lower.contains('not verified') || lower.contains('account not verified');
+        lower.contains('not verified') ||
+        lower.contains('account not verified');
+    final isAlreadyExists =
+        lower.contains('already has an account') ||
+        lower.contains('already exists') ||
+        lower.contains('email-already-in-use');
     final isNotRegistered =
-        !isWrongPassword && !isUnverified && !isConnectionError;
+        !isWrongPassword &&
+        !isUnverified &&
+        !isConnectionError &&
+        !isAlreadyExists;
 
     String title;
     IconData icon;
@@ -420,6 +430,10 @@ class _LoginScreenState extends State<LoginScreen> {
       title = 'Connection Refused';
       icon = Icons.wifi_off_rounded;
       iconColor = AppTheme.error;
+    } else if (isAlreadyExists) {
+      title = 'This Email Already Has An Account';
+      icon = Icons.account_circle_rounded;
+      iconColor = AppTheme.primary;
     } else if (isUnverified) {
       title = 'Account Not Verified';
       icon = Icons.mark_email_unread_rounded;
