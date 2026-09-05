@@ -169,9 +169,7 @@ class AppTheme {
           borderSide: const BorderSide(color: primary, width: 2),
         ),
         labelStyle: const TextStyle(color: onSurfaceVariant),
-        hintStyle: TextStyle(
-          color: onSurfaceVariant.withValues(alpha: 0.45),
-        ),
+        hintStyle: TextStyle(color: onSurfaceVariant.withValues(alpha: 0.45)),
       ),
     );
   }

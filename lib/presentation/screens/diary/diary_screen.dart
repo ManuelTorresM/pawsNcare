@@ -72,9 +72,10 @@ class _DiaryTabState extends State<DiaryTab> {
 
   Map<String, dynamic> _getCategoryStyles(String category) {
     switch (category) {
+      case 'medical_event':
       case 'special_event':
         return {
-          'label': 'Special Event',
+          'label': 'Medical Event',
           'icon': Icons.stars,
           'color': AppTheme.statusConcerning,
           'severity': 'CONCERNING',
@@ -147,7 +148,7 @@ class _DiaryTabState extends State<DiaryTab> {
     );
     String petId = initialEntry?.petId ?? petState.pets.first.id;
     String category = initialEntry?.category ?? 'walk';
-    String severity = initialEntry?.severity ?? (category == 'special_event' ? 'CONCERNING' : 'NORMAL');
+    String severity = initialEntry?.severity ?? ((category == 'medical_event' || category == 'special_event') ? 'CONCERNING' : 'NORMAL');
     String? validationError;
 
     showDialog(
@@ -322,15 +323,15 @@ class _DiaryTabState extends State<DiaryTab> {
                       child: Text('Symptom (Vet Visit)'),
                     ),
                     DropdownMenuItem(
-                      value: 'special_event',
-                      child: Text('Special Event'),
+                      value: 'medical_event',
+                      child: Text('Medical Event'),
                     ),
                   ],
                   onChanged: (val) {
                     if (val != null) {
                       setDialogState(() {
                         category = val;
-                        if (val == 'special_event') {
+                        if (val == 'medical_event' || val == 'special_event') {
                           if (severity != 'CONCERNING' && severity != 'EMERGENCY') {
                             severity = 'CONCERNING';
                           }
@@ -349,9 +350,9 @@ class _DiaryTabState extends State<DiaryTab> {
 
                 // Severity / Event level selection
                 FormSectionLabel(
-                  category == 'special_event' ? 'Event Level' : 'Severity Level',
+                  (category == 'medical_event' || category == 'special_event') ? 'Event Level' : 'Severity Level',
                 ),
-                if (category == 'special_event')
+                if (category == 'medical_event' || category == 'special_event')
                   Row(
                     children: [
                       _buildSeverityOption(
