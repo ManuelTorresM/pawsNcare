@@ -112,7 +112,8 @@ class Pet extends Equatable {
           (p) =>
               p.startsWith('http://') ||
               p.startsWith('https://') ||
-              p.startsWith('gs://'),
+              p.startsWith('gs://') ||
+              p.startsWith('assets/'),
         )
         .toList();
 
@@ -122,7 +123,8 @@ class Pet extends Equatable {
   String _resolveConsistentAvatarUrl(String currentUserId) {
     if (avatarUrl.startsWith('http://') ||
         avatarUrl.startsWith('https://') ||
-        avatarUrl.startsWith('gs://')) {
+        avatarUrl.startsWith('gs://') ||
+        avatarUrl.startsWith('assets/')) {
       return avatarUrl;
     }
     // If avatar is a local file path and user is not owner, return empty string for fallback
