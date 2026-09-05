@@ -17,9 +17,10 @@ class DemoRepository implements BaseRepository {
   Future<bool> login(String email, String password) async {
     final clean = email.trim().toLowerCase();
     if (!_registeredEmails.contains(clean)) {
-      throw Exception(
-        'No account found for "$email". Please sign up first before logging in.',
-      );
+      throw Exception("Account doesn't exist. Please sign up first.");
+    }
+    if (password != 'demo1234' && password.isNotEmpty) {
+      throw Exception('Wrong password.');
     }
     return true;
   }

@@ -406,7 +406,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final isConnectionError =
         lower.contains('connection refused') || lower.contains('network');
     final isWrongPassword =
-        lower.contains('incorrect password') || lower.contains('wrong-password');
+        lower.contains('wrong password') || lower.contains('incorrect password') || lower.contains('wrong-password');
     final isUnverified =
         lower.contains('not verified') || lower.contains('account not verified');
     final isNotRegistered =
@@ -425,7 +425,7 @@ class _LoginScreenState extends State<LoginScreen> {
       icon = Icons.mark_email_unread_rounded;
       iconColor = Colors.orange;
     } else if (isWrongPassword) {
-      title = 'Incorrect Password';
+      title = 'Wrong Password';
       icon = Icons.lock_reset_rounded;
       iconColor = AppTheme.secondary;
     } else {
