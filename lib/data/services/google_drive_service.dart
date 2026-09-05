@@ -221,7 +221,7 @@ class GoogleDriveService {
         } catch (permErr) {
           debugPrint('GoogleDriveService permission set note: $permErr');
         }
-        return 'https://drive.google.com/uc?export=view&id=${uploadedFile.id}';
+        return 'https://drive.google.com/thumbnail?id=${uploadedFile.id}&sz=w1000';
       }
       return null;
     } catch (e, stack) {

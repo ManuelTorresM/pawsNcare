@@ -114,13 +114,21 @@ class LocalMediaService {
   /// so Android ImageDecoder receives valid byte streams without HTML redirects.
   static String formatDirectImageUrl(String url) {
     final clean = url.trim();
-    if (clean.contains('drive.google.com') && clean.contains('id=')) {
-      final uri = Uri.tryParse(clean);
-      if (uri != null && uri.queryParameters.containsKey('id')) {
-        final id = uri.queryParameters['id'];
-        if (id != null && id.isNotEmpty) {
-          return 'https://drive.google.com/uc?export=download&id=$id';
+    if (clean.contains('drive.google.com')) {
+      String? id;
+      if (clean.contains('id=')) {
+        final uri = Uri.tryParse(clean);
+        if (uri != null && uri.queryParameters.containsKey('id')) {
+          id = uri.queryParameters['id'];
         }
+      } else if (clean.contains('/d/')) {
+        final parts = clean.split('/d/');
+        if (parts.length > 1) {
+          id = parts[1].split('/')[0];
+        }
+      }
+      if (id != null && id.isNotEmpty) {
+        return 'https://drive.google.com/thumbnail?id=$id&sz=w1000';
       }
     }
     return clean;
@@ -147,7 +155,7 @@ class LocalMediaService {
     }
 
     final file = File(cleanPath);
-    if (file.existsSync()) {
+    if (file.existsSync() && file.lengthSync() > 0) {
       return FileImage(file);
     }
 
@@ -216,7 +224,7 @@ class LocalMediaService {
     }
 
     final file = File(cleanPath);
-    if (file.existsSync()) {
+    if (file.existsSync() && file.lengthSync() > 0) {
       return Image.file(
         file,
         width: width,
