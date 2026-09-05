@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,17 +29,36 @@ class GoogleDriveService {
     return prefs.getString(_keyDriveEmail);
   }
 
-  /// Link Google Drive account.
+  /// Link Google Drive account with driveFileScope authorization.
   static Future<bool> linkGoogleDrive() async {
     try {
-      final GoogleSignInAccount? account = await _googleSignIn.signIn();
-      if (account == null) return false;
+      GoogleSignInAccount? account = await _googleSignIn.signIn();
+      if (account == null) {
+        debugPrint('GoogleDriveService linkGoogleDrive: signIn returned null');
+        return false;
+      }
+
+      final bool hasScope = await _googleSignIn.canAccessScopes([
+        drive.DriveApi.driveFileScope,
+      ]);
+      if (!hasScope) {
+        debugPrint('GoogleDriveService linkGoogleDrive: requesting scopes...');
+        final bool granted = await _googleSignIn.requestScopes([
+          drive.DriveApi.driveFileScope,
+        ]);
+        if (!granted) {
+          debugPrint('GoogleDriveService linkGoogleDrive: scope access denied');
+          return false;
+        }
+      }
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_keyIsLinked, true);
       await prefs.setString(_keyDriveEmail, account.email);
+      debugPrint('GoogleDriveService linkGoogleDrive SUCCESS for email: ${account.email}');
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('GoogleDriveService linkGoogleDrive ERROR: $e\n$stack');
       return false;
     }
   }
@@ -51,6 +71,45 @@ class GoogleDriveService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyIsLinked, false);
     await prefs.remove(_keyDriveEmail);
+    debugPrint('GoogleDriveService unlinked Google Drive.');
+  }
+
+  /// Get authenticated DriveApi instance.
+  static Future<drive.DriveApi?> _getDriveApi() async {
+    try {
+      GoogleSignInAccount? account = _googleSignIn.currentUser;
+      account ??= await _googleSignIn.signInSilently();
+      account ??= await _googleSignIn.signIn();
+      if (account == null) {
+        debugPrint('GoogleDriveService _getDriveApi: account is null');
+        return null;
+      }
+
+      final bool hasScope = await _googleSignIn.canAccessScopes([
+        drive.DriveApi.driveFileScope,
+      ]);
+      if (!hasScope) {
+        debugPrint('GoogleDriveService _getDriveApi: requesting driveFileScope...');
+        final bool granted = await _googleSignIn.requestScopes([
+          drive.DriveApi.driveFileScope,
+        ]);
+        if (!granted) {
+          debugPrint('GoogleDriveService _getDriveApi: driveFileScope denied');
+          return null;
+        }
+      }
+
+      final authClient = await _googleSignIn.authenticatedClient();
+      if (authClient == null) {
+        debugPrint('GoogleDriveService _getDriveApi: authenticatedClient is null');
+        return null;
+      }
+
+      return drive.DriveApi(authClient);
+    } catch (e, stack) {
+      debugPrint('GoogleDriveService _getDriveApi ERROR: $e\n$stack');
+      return null;
+    }
   }
 
   /// Get or create a folder in Google Drive by name under optional parentId.
@@ -66,19 +125,32 @@ class GoogleDriveService {
         query += " and '$parentId' in parents";
       }
 
-      final list = await driveApi.files.list(q: query);
+      debugPrint('GoogleDriveService: Searching folder "$folderName" (parentId: $parentId)...');
+      final list = await driveApi.files.list(
+        q: query,
+        $fields: 'files(id, name, parents)',
+      );
+
       if (list.files != null && list.files!.isNotEmpty) {
-        return list.files!.first.id;
+        final existingId = list.files!.first.id;
+        debugPrint('GoogleDriveService: Found existing folder "$folderName" -> $existingId');
+        return existingId;
       }
 
+      debugPrint('GoogleDriveService: Folder "$folderName" not found. Creating new folder...');
       final folderToCreate = drive.File()
         ..name = folderName
         ..mimeType = 'application/vnd.google-apps.folder'
         ..parents = parentId != null ? [parentId] : null;
 
-      final created = await driveApi.files.create(folderToCreate);
+      final created = await driveApi.files.create(
+        folderToCreate,
+        $fields: 'id, name, mimeType, parents',
+      );
+      debugPrint('GoogleDriveService: Successfully created folder "$folderName" -> ${created.id}');
       return created.id;
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('GoogleDriveService _getOrCreateFolder ERROR for "$folderName": $e\n$stack');
       return null;
     }
   }
@@ -94,6 +166,7 @@ class GoogleDriveService {
       final fileName = customFileName ??
           'media_${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last.split('\\').last}';
 
+      debugPrint('GoogleDriveService: Uploading "${file.path}" as "$fileName" into folderId: $folderId');
       final driveFile = drive.File()
         ..name = fileName
         ..parents = [folderId];
@@ -102,30 +175,17 @@ class GoogleDriveService {
       final uploadedFile = await driveApi.files.create(
         driveFile,
         uploadMedia: media,
+        $fields: 'id, name, webViewLink, webContentLink',
       );
+
+      debugPrint('GoogleDriveService: Uploaded file "$fileName" -> ${uploadedFile.id}');
 
       if (uploadedFile.id != null) {
         return 'https://drive.google.com/uc?id=${uploadedFile.id}';
       }
       return null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  /// Get authenticated DriveApi instance.
-  static Future<drive.DriveApi?> _getDriveApi() async {
-    try {
-      GoogleSignInAccount? account = _googleSignIn.currentUser;
-      account ??= await _googleSignIn.signInSilently();
-      account ??= await _googleSignIn.signIn();
-      if (account == null) return null;
-
-      final authClient = await _googleSignIn.authenticatedClient();
-      if (authClient == null) return null;
-
-      return drive.DriveApi(authClient);
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('GoogleDriveService _uploadFileToFolder ERROR for "${file.path}": $e\n$stack');
       return null;
     }
   }
@@ -138,7 +198,10 @@ class GoogleDriveService {
   }) async {
     try {
       final driveApi = await _getDriveApi();
-      if (driveApi == null) return null;
+      if (driveApi == null) {
+        debugPrint('GoogleDriveService uploadPetImageToDrive: driveApi is null');
+        return null;
+      }
 
       final rootFolderId = await _getOrCreateFolder(driveApi, _rootFolderName);
       if (rootFolderId == null) return null;
@@ -161,7 +224,8 @@ class GoogleDriveService {
       if (subfolderId == null) return null;
 
       return await _uploadFileToFolder(driveApi, file, subfolderId);
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('GoogleDriveService uploadPetImageToDrive ERROR: $e\n$stack');
       return null;
     }
   }
@@ -175,8 +239,12 @@ class GoogleDriveService {
   /// Returns updated Pet object with Google Drive URLs.
   static Future<Pet> syncPetToDrive(Pet pet) async {
     try {
+      debugPrint('GoogleDriveService: Starting sync for pet "${pet.name}"...');
       final driveApi = await _getDriveApi();
-      if (driveApi == null) return pet;
+      if (driveApi == null) {
+        debugPrint('GoogleDriveService syncPetToDrive: driveApi is null');
+        return pet;
+      }
 
       final rootFolderId = await _getOrCreateFolder(driveApi, _rootFolderName);
       if (rootFolderId == null) return pet;
@@ -219,6 +287,8 @@ class GoogleDriveService {
           if (driveUrl != null) {
             updatedAvatarUrl = driveUrl;
           }
+        } else {
+          debugPrint('GoogleDriveService: Avatar file does not exist locally at "${pet.avatarUrl}"');
         }
       }
 
@@ -249,22 +319,26 @@ class GoogleDriveService {
         }
       }
 
+      debugPrint('GoogleDriveService: Finished sync for pet "${pet.name}". Avatar: $updatedAvatarUrl');
       return pet.copyWith(
         avatarUrl: updatedAvatarUrl,
         photos: updatedPhotos,
       );
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('GoogleDriveService syncPetToDrive ERROR: $e\n$stack');
       return pet;
     }
   }
 
   /// Syncs all registered pets' media to Google Drive, returning the list of updated Pet objects.
   static Future<List<Pet>> syncAllPetsToDrive(List<Pet> pets) async {
+    debugPrint('GoogleDriveService: Starting syncAllPetsToDrive for ${pets.length} pets...');
     final List<Pet> updatedPets = [];
     for (final pet in pets) {
       final syncedPet = await syncPetToDrive(pet);
       updatedPets.add(syncedPet);
     }
+    debugPrint('GoogleDriveService: Completed syncAllPetsToDrive.');
     return updatedPets;
   }
 
