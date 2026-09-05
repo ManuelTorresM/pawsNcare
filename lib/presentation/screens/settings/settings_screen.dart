@@ -594,6 +594,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     if (_isDriveLinked) ...[
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          final petBloc = context.read<PetBloc>();
+                          final petState = petBloc.state;
+
+                          if (petState is PetLoaded &&
+                              petState.pets.isNotEmpty) {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Syncing pet media folders to Google Drive...',
+                                ),
+                              ),
+                            );
+                            final syncedPets =
+                                await GoogleDriveService.syncAllPetsToDrive(
+                              petState.pets,
+                            );
+                            for (final updatedPet in syncedPets) {
+                              petBloc.add(UpdatePet(updatedPet));
+                            }
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Media synced to Google Drive (PawsNCare_Media)!',
+                                ),
+                                backgroundColor: AppTheme.primary,
+                              ),
+                            );
+                          } else {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('No pets found to sync.'),
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.sync, size: 16),
+                        label: const Text('Sync Media'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       OutlinedButton.icon(
                         onPressed: () async {
                           await GoogleDriveService.unlinkGoogleDrive();
@@ -616,20 +665,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ] else ...[
                       ElevatedButton.icon(
                         onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          final petBloc = context.read<PetBloc>();
                           final success =
                               await GoogleDriveService.linkGoogleDrive();
                           await _loadGoogleDriveStatus();
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  success
-                                      ? 'Successfully linked Google Drive!'
-                                      : 'Failed to link Google Drive.',
+
+                          if (success) {
+                            final petState = petBloc.state;
+                            if (petState is PetLoaded &&
+                                petState.pets.isNotEmpty) {
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Linked! Syncing pet media folders to Google Drive...',
+                                  ),
                                 ),
-                                backgroundColor: success
-                                    ? AppTheme.primary
-                                    : AppTheme.error,
+                              );
+                              final syncedPets =
+                                  await GoogleDriveService.syncAllPetsToDrive(
+                                petState.pets,
+                              );
+                              for (final updatedPet in syncedPets) {
+                                petBloc.add(UpdatePet(updatedPet));
+                              }
+                            }
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Google Drive linked & pet folders created!',
+                                ),
+                                backgroundColor: AppTheme.primary,
+                              ),
+                            );
+                          } else {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('Failed to link Google Drive.'),
+                                backgroundColor: AppTheme.error,
                               ),
                             );
                           }

@@ -1006,8 +1006,10 @@ class _PetProfileScreenState extends State<PetProfileScreen>
           finalPath = savedFile.path;
 
           if (await GoogleDriveService.isDriveLinked()) {
-            final driveUrl = await GoogleDriveService.uploadImageToDrive(
+            final driveUrl = await GoogleDriveService.uploadPetImageToDrive(
               savedFile,
+              _pet,
+              isProfilePicture: false,
             );
             if (driveUrl != null) {
               finalPath = driveUrl;

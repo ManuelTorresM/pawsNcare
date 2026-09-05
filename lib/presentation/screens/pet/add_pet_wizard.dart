@@ -415,8 +415,20 @@ class _AddPetWizardState extends State<AddPetWizard> {
         finalAvatarUrl = savedFile.path;
 
         if (await GoogleDriveService.isDriveLinked()) {
-          final driveUrl = await GoogleDriveService.uploadImageToDrive(
+          final tempPet = Pet(
+            id: petId,
+            name: _nameController.text.trim(),
+            breed: '',
+            ageString: '',
+            birthDate: DateTime.now(),
+            avatarUrl: '',
+            status: '',
+            weight: 0,
+          );
+          final driveUrl = await GoogleDriveService.uploadPetImageToDrive(
             savedFile,
+            tempPet,
+            isProfilePicture: true,
           );
           if (driveUrl != null) {
             finalAvatarUrl = driveUrl;

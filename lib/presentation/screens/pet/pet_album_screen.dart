@@ -131,7 +131,24 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                   finalPath = savedFile.path;
 
                   if (await GoogleDriveService.isDriveLinked()) {
-                    final driveUrl = await GoogleDriveService.uploadImageToDrive(savedFile);
+                    final matchedPet = pets.firstWhere(
+                      (p) => p.name.toLowerCase() == uploadPetTarget.toLowerCase(),
+                      orElse: () => Pet(
+                        id: '',
+                        name: uploadPetTarget,
+                        breed: '',
+                        ageString: '',
+                        birthDate: DateTime.now(),
+                        avatarUrl: '',
+                        status: '',
+                        weight: 0,
+                      ),
+                    );
+                    final driveUrl = await GoogleDriveService.uploadPetImageToDrive(
+                      savedFile,
+                      matchedPet,
+                      isProfilePicture: false,
+                    );
                     if (driveUrl != null) {
                       finalPath = driveUrl;
                     }
