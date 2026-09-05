@@ -31,24 +31,23 @@ class FirebaseRepository implements BaseRepository {
     return _firestore.collection('users').doc(uid).collection('diary');
   }
 
+  Future<bool> _doesUserAccountExist(String cleanEmail) async {
+    try {
+      final snapshot = await _firestore.collection('users').get();
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final storedEmail = (data['email'] ?? '').toString().trim().toLowerCase();
+        if (storedEmail == cleanEmail && storedEmail.isNotEmpty) {
+          return true;
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
+
   @override
   Future<bool> login(String email, String password) async {
     final cleanEmail = email.trim().toLowerCase();
-
-    // Check if user account exists in Firestore
-    bool userExistsInDb = false;
-    try {
-      final userQuery = await _firestore
-          .collection('users')
-          .where('email', isEqualTo: cleanEmail)
-          .limit(1)
-          .get();
-      userExistsInDb = userQuery.docs.isNotEmpty;
-    } catch (_) {}
-
-    if (!userExistsInDb) {
-      throw Exception("Account doesn't exist. Please sign up first.");
-    }
 
     try {
       final credential = await _auth.signInWithEmailAndPassword(
@@ -79,24 +78,50 @@ class FirebaseRepository implements BaseRepository {
 
       return true;
     } on fb.FirebaseAuthException catch (e) {
-      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
-        throw Exception('Wrong password.');
-      } else if (e.code == 'user-not-found' || e.code == 'invalid-email') {
+      if (e.code == 'user-not-found') {
         throw Exception("Account doesn't exist. Please sign up first.");
-      } else if (e.code == 'network-request-failed' || e.code == 'unavailable') {
-        throw Exception('Connection refused by Firebase backend. Please check your internet connection or try again later.');
+      } else if (e.code == 'wrong-password') {
+        throw Exception('Wrong password.');
+      } else if (e.code == 'invalid-credential') {
+        final exists = await _doesUserAccountExist(cleanEmail);
+        if (exists) {
+          throw Exception('Wrong password.');
+        } else {
+          throw Exception("Account doesn't exist. Please sign up first.");
+        }
+      } else if (e.code == 'network-request-failed' ||
+          e.code == 'unavailable') {
+        throw Exception(
+          'Connection refused by Firebase backend. Please check your internet connection or try again later.',
+        );
       }
-      throw Exception('Wrong password.');
+      final exists = await _doesUserAccountExist(cleanEmail);
+      if (exists) {
+        throw Exception('Wrong password.');
+      }
+      throw Exception("Account doesn't exist. Please sign up first.");
     } catch (e) {
       final errStr = e.toString().toLowerCase();
-      if (errStr.contains('wrong-password') || errStr.contains('incorrect password') || errStr.contains('invalid-credential')) {
+      if (errStr.contains('user-not-found') ||
+          errStr.contains('user not found')) {
+        throw Exception("Account doesn't exist. Please sign up first.");
+      } else if (errStr.contains('wrong-password') ||
+          errStr.contains('incorrect password')) {
         throw Exception('Wrong password.');
       } else if (errStr.contains('not verified')) {
         rethrow;
-      } else if (errStr.contains('socketexception') || errStr.contains('connection refused') || errStr.contains('network')) {
-        throw Exception('Connection refused by Firebase backend. Please check your internet connection.');
+      } else if (errStr.contains('socketexception') ||
+          errStr.contains('connection refused') ||
+          errStr.contains('network')) {
+        throw Exception(
+          'Connection refused by Firebase backend. Please check your internet connection.',
+        );
       }
-      throw Exception('Wrong password.');
+      final exists = await _doesUserAccountExist(cleanEmail);
+      if (exists) {
+        throw Exception('Wrong password.');
+      }
+      throw Exception("Account doesn't exist. Please sign up first.");
     }
   }
 
