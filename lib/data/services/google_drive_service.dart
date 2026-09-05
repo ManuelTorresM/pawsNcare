@@ -38,18 +38,10 @@ class GoogleDriveService {
         return false;
       }
 
-      final bool hasScope = await _googleSignIn.canAccessScopes([
-        drive.DriveApi.driveFileScope,
-      ]);
-      if (!hasScope) {
-        debugPrint('GoogleDriveService linkGoogleDrive: requesting scopes...');
-        final bool granted = await _googleSignIn.requestScopes([
-          drive.DriveApi.driveFileScope,
-        ]);
-        if (!granted) {
-          debugPrint('GoogleDriveService linkGoogleDrive: scope access denied');
-          return false;
-        }
+      try {
+        await _googleSignIn.requestScopes([drive.DriveApi.driveFileScope]);
+      } catch (e) {
+        debugPrint('GoogleDriveService linkGoogleDrive requestScopes note: $e');
       }
 
       final prefs = await SharedPreferences.getInstance();
@@ -85,18 +77,10 @@ class GoogleDriveService {
         return null;
       }
 
-      final bool hasScope = await _googleSignIn.canAccessScopes([
-        drive.DriveApi.driveFileScope,
-      ]);
-      if (!hasScope) {
-        debugPrint('GoogleDriveService _getDriveApi: requesting driveFileScope...');
-        final bool granted = await _googleSignIn.requestScopes([
-          drive.DriveApi.driveFileScope,
-        ]);
-        if (!granted) {
-          debugPrint('GoogleDriveService _getDriveApi: driveFileScope denied');
-          return null;
-        }
+      try {
+        await _googleSignIn.requestScopes([drive.DriveApi.driveFileScope]);
+      } catch (e) {
+        debugPrint('GoogleDriveService _getDriveApi requestScopes note: $e');
       }
 
       final authClient = await _googleSignIn.authenticatedClient();
