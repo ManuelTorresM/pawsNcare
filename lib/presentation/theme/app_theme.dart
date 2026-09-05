@@ -163,6 +163,9 @@ class AppTheme {
           borderSide: const BorderSide(color: primary, width: 2),
         ),
         labelStyle: const TextStyle(color: onSurfaceVariant),
+        hintStyle: TextStyle(
+          color: onSurfaceVariant.withValues(alpha: 0.45),
+        ),
       ),
     );
   }
@@ -234,6 +237,30 @@ class AppTheme {
         color: darkSurface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF242323),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: darkBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: darkBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: primaryFixedDim, width: 2),
+        ),
+        labelStyle: const TextStyle(color: darkOnSurfaceVariant),
+        hintStyle: TextStyle(
+          color: darkOnSurfaceVariant.withValues(alpha: 0.45),
+        ),
       ),
     );
   }

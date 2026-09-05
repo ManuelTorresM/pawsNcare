@@ -270,7 +270,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       hintText: '••••••••',
                       hintStyle: TextStyle(
                         color: AppTheme.onSurfaceVariant.withValues(
-                          alpha: 0.35,
+                          alpha: 0.45,
                         ),
                       ),
                       prefixIcon: const Icon(
@@ -306,7 +306,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       hintText: '••••••••',
                       hintStyle: TextStyle(
                         color: AppTheme.onSurfaceVariant.withValues(
-                          alpha: 0.35,
+                          alpha: 0.45,
                         ),
                       ),
                       prefixIcon: const Icon(
