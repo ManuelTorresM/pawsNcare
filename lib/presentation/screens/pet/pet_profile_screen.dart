@@ -84,8 +84,9 @@ class _PetProfileScreenState extends State<PetProfileScreen>
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
             final isDark = context.read<ThemeCubit>().state;
-            final textPrimary =
-                isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
+            final textPrimary = isDark
+                ? AppTheme.darkOnSurface
+                : AppTheme.onSurface;
             final textSecondary = isDark
                 ? AppTheme.darkOnSurfaceVariant
                 : AppTheme.secondary;
@@ -128,9 +129,8 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                       : noteController.text.trim(),
                 );
 
-                final updatedHistory = List<WeightLog>.from(
-                  _pet.weightHistory,
-                )..insert(0, newLog);
+                final updatedHistory = List<WeightLog>.from(_pet.weightHistory)
+                  ..insert(0, newLog);
 
                 final weightInKg = dialogUnit == 'lbs'
                     ? weightValue / 2.20462
@@ -141,9 +141,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   weightHistory: updatedHistory,
                 );
 
-                context.read<PetBloc>().add(
-                  UpdatePet(updatedPet),
-                );
+                context.read<PetBloc>().add(UpdatePet(updatedPet));
                 setState(() {
                   _pet = updatedPet;
                 });
@@ -193,8 +191,9 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                               boxShadow: dialogUnit == 'kg'
                                   ? [
                                       BoxShadow(
-                                        color: AppTheme.primary
-                                            .withValues(alpha: 0.3),
+                                        color: AppTheme.primary.withValues(
+                                          alpha: 0.3,
+                                        ),
                                         blurRadius: 6,
                                         offset: const Offset(0, 2),
                                       ),
@@ -234,8 +233,9 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                               boxShadow: dialogUnit == 'lbs'
                                   ? [
                                       BoxShadow(
-                                        color: AppTheme.primary
-                                            .withValues(alpha: 0.3),
+                                        color: AppTheme.primary.withValues(
+                                          alpha: 0.3,
+                                        ),
                                         blurRadius: 6,
                                         offset: const Offset(0, 2),
                                       ),
@@ -464,40 +464,22 @@ class _PetProfileScreenState extends State<PetProfileScreen>
   }) {
     Widget buildRawImage(BoxFit fit) {
       if (_pet.avatarUrl.startsWith('assets/')) {
-        return Image.asset(
-          _pet.avatarUrl,
-          fit: fit,
-        );
+        return Image.asset(_pet.avatarUrl, fit: fit);
       } else if (_pet.avatarUrl.startsWith('http')) {
         return Image.network(
           _pet.avatarUrl,
           fit: fit,
           errorBuilder: (context, error, stackTrace) => Container(
-            color: isDark
-                ? const Color(0xFF383634)
-                : AppTheme.primaryContainer,
-            child: Icon(
-              Icons.pets,
-              size: 64,
-              color: textSecondary,
-            ),
+            color: isDark ? const Color(0xFF383634) : AppTheme.primaryContainer,
+            child: Icon(Icons.pets, size: 64, color: textSecondary),
           ),
         );
       } else if (File(_pet.avatarUrl).existsSync()) {
-        return Image.file(
-          File(_pet.avatarUrl),
-          fit: fit,
-        );
+        return Image.file(File(_pet.avatarUrl), fit: fit);
       } else {
         return Container(
-          color: isDark
-              ? const Color(0xFF383634)
-              : AppTheme.primaryContainer,
-          child: Icon(
-            Icons.pets,
-            size: 64,
-            color: textSecondary,
-          ),
+          color: isDark ? const Color(0xFF383634) : AppTheme.primaryContainer,
+          child: Icon(Icons.pets, size: 64, color: textSecondary),
         );
       }
     }
@@ -516,9 +498,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: isDark ? 0.3 : 0.1,
-                  ),
+                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -530,14 +510,9 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                 fit: StackFit.expand,
                 children: [
                   // Subtle background image fill
-                  Opacity(
-                    opacity: 0.35,
-                    child: buildRawImage(BoxFit.cover),
-                  ),
+                  Opacity(opacity: 0.35, child: buildRawImage(BoxFit.cover)),
                   // Foreground complete pet image without cropping
-                  Center(
-                    child: buildRawImage(BoxFit.contain),
-                  ),
+                  Center(child: buildRawImage(BoxFit.contain)),
                 ],
               ),
             ),
@@ -580,9 +555,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.primary.withValues(
-                        alpha: 0.85,
-                      ),
+                      color: AppTheme.primary.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -690,9 +663,8 @@ class _PetProfileScreenState extends State<PetProfileScreen>
           onViewAlbum: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => PetAlbumScreen(
-                  initialPetFilter: _pet.name,
-                ),
+                builder: (context) =>
+                    PetAlbumScreen(initialPetFilter: _pet.name),
               ),
             );
           },
@@ -710,9 +682,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
           margin: const EdgeInsets.symmetric(horizontal: 20),
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF383634)
-                : AppTheme.surfaceContainer,
+            color: isDark ? const Color(0xFF383634) : AppTheme.surfaceContainer,
             borderRadius: BorderRadius.circular(999),
           ),
           child: TabBar(
@@ -724,9 +694,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
               color: isDark ? AppTheme.darkSurface : Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: isDark ? 0.2 : 0.08,
-                  ),
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.08),
                   blurRadius: 4,
                   offset: const Offset(0, 1),
                 ),
@@ -759,11 +727,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: [
-              _buildDiaryTab(),
-              _buildWeightTab(),
-              _buildMedsTab(),
-            ],
+            children: [_buildDiaryTab(), _buildWeightTab(), _buildMedsTab()],
           ),
         ),
       ],
@@ -845,8 +809,9 @@ class _PetProfileScreenState extends State<PetProfileScreen>
 
                           // Quick Stats Row
                           Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 20.0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20.0,
+                            ),
                             child: Row(
                               children: [
                                 _buildStatCard(
@@ -917,10 +882,11 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   ),
                   Container(
                     width: 1,
-                    color: (isDark
-                            ? const Color(0xFF383634)
-                            : AppTheme.surfaceContainer)
-                        .withValues(alpha: 0.5),
+                    color:
+                        (isDark
+                                ? const Color(0xFF383634)
+                                : AppTheme.surfaceContainer)
+                            .withValues(alpha: 0.5),
                   ),
                   // Right Half: Diary, Weight, Meds Tabs
                   Expanded(
@@ -935,12 +901,8 @@ class _PetProfileScreenState extends State<PetProfileScreen>
             : NestedScrollView(
                 headerSliverBuilder:
                     (BuildContext context, bool innerBoxIsScrolled) {
-                  return <Widget>[
-                    SliverToBoxAdapter(
-                      child: petHeroHeader,
-                    ),
-                  ];
-                },
+                      return <Widget>[SliverToBoxAdapter(child: petHeroHeader)];
+                    },
                 body: tabsHeaderAndBody,
               ),
       ),
@@ -1038,11 +1000,15 @@ class _PetProfileScreenState extends State<PetProfileScreen>
         String finalPath = pickedFile.path;
         final file = File(pickedFile.path);
         if (file.existsSync()) {
-          final savedFile = await LocalMediaService.saveToPawsNCareDirectory(file);
+          final savedFile = await LocalMediaService.saveToPawsNCareDirectory(
+            file,
+          );
           finalPath = savedFile.path;
 
           if (await GoogleDriveService.isDriveLinked()) {
-            final driveUrl = await GoogleDriveService.uploadImageToDrive(savedFile);
+            final driveUrl = await GoogleDriveService.uploadImageToDrive(
+              savedFile,
+            );
             if (driveUrl != null) {
               finalPath = driveUrl;
             }

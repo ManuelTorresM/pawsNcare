@@ -218,14 +218,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: theme.colorScheme.primary,
                                 foregroundColor: theme.colorScheme.onPrimary,
-                                disabledBackgroundColor:
-                                    theme.colorScheme.primary.withValues(
-                                  alpha: 0.4,
-                                ),
-                                disabledForegroundColor:
-                                    theme.colorScheme.onPrimary.withValues(
-                                  alpha: 0.8,
-                                ),
+                                disabledBackgroundColor: theme
+                                    .colorScheme
+                                    .primary
+                                    .withValues(alpha: 0.4),
+                                disabledForegroundColor: theme
+                                    .colorScheme
+                                    .onPrimary
+                                    .withValues(alpha: 0.8),
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 16,
                                 ),
@@ -253,9 +253,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                           'Log In',
                                           style: theme.textTheme.labelLarge
                                               ?.copyWith(
-                                            color: theme.colorScheme.onPrimary,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                                color:
+                                                    theme.colorScheme.onPrimary,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                         ),
                                       ],
                                     ),

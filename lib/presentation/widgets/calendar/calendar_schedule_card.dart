@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/utils/responsive_layout.dart';
 import '../../theme/app_theme.dart';
 import '../accent_left_card.dart';
 
@@ -33,7 +32,6 @@ class CalendarScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isTablet = ResponsiveLayout.isTabletDevice(context);
     final accentColor = isDark && color == AppTheme.primary
         ? AppTheme.primaryFixedDim
         : color;
@@ -42,7 +40,7 @@ class CalendarScheduleCard extends StatelessWidget {
       accentColor: accentColor,
       backgroundColor: cardBg,
       margin: const EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(isTablet ? 18 : 14),
+      padding: const EdgeInsets.all(14),
       onTap: onTap,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,7 +54,7 @@ class CalendarScheduleCard extends StatelessWidget {
                   fontFamily: 'Montserrat',
                   fontWeight: FontWeight.bold,
                   color: accentColor,
-                  fontSize: isTablet ? 16 : 13,
+                  fontSize: 13,
                 ),
               ),
               const SizedBox(height: 4),
@@ -64,7 +62,7 @@ class CalendarScheduleCard extends StatelessWidget {
                 'EVENT',
                 style: TextStyle(
                   fontFamily: 'Montserrat',
-                  fontSize: isTablet ? 12 : 10,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.5,
                   color: textSecondary,
@@ -72,15 +70,13 @@ class CalendarScheduleCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(width: isTablet ? 18 : 14),
+          const SizedBox(width: 14),
           Container(
-            height: isTablet ? 54 : 44,
+            height: 44,
             width: 1,
-            color: isDark
-                ? const Color(0xFF383634)
-                : AppTheme.surfaceContainer,
+            color: isDark ? const Color(0xFF383634) : AppTheme.surfaceContainer,
           ),
-          SizedBox(width: isTablet ? 18 : 14),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,7 +86,7 @@ class CalendarScheduleCard extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: 'Montserrat',
                     fontWeight: FontWeight.bold,
-                    fontSize: isTablet ? 17 : 14,
+                    fontSize: 14,
                     color: textPrimary,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -100,16 +96,16 @@ class CalendarScheduleCard extends StatelessWidget {
                   subtitle,
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: isTablet ? 14 : 12,
+                    fontSize: 12,
                     color: textSecondary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isTablet ? 10 : 8,
-                    vertical: isTablet ? 4 : 3,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
                   ),
                   decoration: BoxDecoration(
                     color: isDark
@@ -122,7 +118,7 @@ class CalendarScheduleCard extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.pets,
-                        size: isTablet ? 14 : 11,
+                        size: 11,
                         color: isDark
                             ? AppTheme.darkOnSurface
                             : AppTheme.secondary,
@@ -132,7 +128,7 @@ class CalendarScheduleCard extends StatelessWidget {
                         petName,
                         style: TextStyle(
                           fontFamily: 'Montserrat',
-                          fontSize: isTablet ? 13 : 11,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: isDark
                               ? AppTheme.darkOnSurface
@@ -146,11 +142,7 @@ class CalendarScheduleCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Icon(
-            icon,
-            color: accentColor.withValues(alpha: 0.8),
-            size: isTablet ? 28 : 22,
-          ),
+          Icon(icon, color: accentColor.withValues(alpha: 0.8), size: 22),
         ],
       ),
     );

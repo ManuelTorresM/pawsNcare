@@ -1180,7 +1180,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.bold,
-                          fontSize: isTabletDevice ? 17 : 12,
+                          fontSize: isTabletDevice ? 20 : 12,
                           color: isSelected
                               ? Colors.white
                               : (isToday ? headerColor : textPrimary),
