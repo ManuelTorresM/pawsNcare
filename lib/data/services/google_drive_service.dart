@@ -180,12 +180,23 @@ class GoogleDriveService {
       debugPrint(
         'GoogleDriveService: Uploading "${file.path}" as "$fileName" into folderId: $folderId',
       );
+      if (!await file.exists()) {
+        debugPrint('GoogleDriveService: Skipping file, does not exist: "${file.path}"');
+        return null;
+      }
+
+      List<int> bytes;
+      try {
+        bytes = await file.readAsBytes();
+      } catch (readErr) {
+        debugPrint('GoogleDriveService readAsBytes note for "${file.path}": $readErr');
+        return null;
+      }
+
+      final media = drive.Media(Stream.value(bytes), bytes.length);
       final driveFile = drive.File()
         ..name = fileName
         ..parents = [folderId];
-
-      final bytes = await file.readAsBytes();
-      final media = drive.Media(Stream.value(bytes), bytes.length);
       final uploadedFile = await driveApi.files.create(
         driveFile,
         uploadMedia: media,

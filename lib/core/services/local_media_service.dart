@@ -6,31 +6,29 @@ import 'package:http/http.dart' as http;
 class LocalMediaService {
   static const String folderName = 'pawsncare';
 
-  /// Get the dedicated pawsncare directory on the local device (Publicly visible in Gallery/Files).
+  /// Get the dedicated pawsncare directory on the local device using app storage permissions.
   static Future<Directory> getPawsNCareDirectory() async {
     Directory targetDir;
-    if (Platform.isAndroid) {
-      // Use public Pictures directory on Android so images appear in Gallery & File Manager
-      targetDir = Directory('/storage/emulated/0/Pictures/$folderName');
-      if (!await targetDir.exists()) {
-        try {
-          await targetDir.create(recursive: true);
-        } catch (_) {
-          final extDir = await getExternalStorageDirectory();
-          targetDir = Directory('${extDir?.path ?? ''}/$folderName');
-          if (!await targetDir.exists()) {
-            await targetDir.create(recursive: true);
-          }
-        }
+    try {
+      if (Platform.isAndroid) {
+        final extDir = await getExternalStorageDirectory();
+        targetDir = Directory('${extDir?.path ?? ''}/$folderName');
+      } else {
+        final docsDir = await getApplicationDocumentsDirectory();
+        targetDir = Directory('${docsDir.path}/$folderName');
       }
-    } else {
+      if (!await targetDir.exists()) {
+        await targetDir.create(recursive: true);
+      }
+      return targetDir;
+    } catch (_) {
       final docsDir = await getApplicationDocumentsDirectory();
       targetDir = Directory('${docsDir.path}/$folderName');
       if (!await targetDir.exists()) {
         await targetDir.create(recursive: true);
       }
+      return targetDir;
     }
-    return targetDir;
   }
 
   /// Save a media file into the local pawsncare directory.
@@ -38,15 +36,27 @@ class LocalMediaService {
     File sourceFile, {
     String? customFileName,
   }) async {
-    final pawsDir = await getPawsNCareDirectory();
-    final fileName =
-        customFileName ??
-        'media_${DateTime.now().millisecondsSinceEpoch}_${sourceFile.path.split('/').last.split('\\').last}';
-    final targetPath = '${pawsDir.path}/$fileName';
-    if (sourceFile.path == targetPath) {
+    try {
+      final pawsDir = await getPawsNCareDirectory();
+      
+      final sourceNormalized = sourceFile.path.replaceAll('\\', '/');
+      final pawsNormalized = pawsDir.path.replaceAll('\\', '/');
+
+      // If already inside pawsncare directory, return sourceFile directly
+      if (sourceNormalized.startsWith(pawsNormalized) ||
+          sourceNormalized.contains('/pawsncare/')) {
+        return sourceFile;
+      }
+
+      final fileName =
+          customFileName ??
+          'media_${DateTime.now().millisecondsSinceEpoch}_${sourceFile.path.split('/').last.split('\\').last}';
+      final targetPath = '${pawsDir.path}/$fileName';
+      return await sourceFile.copy(targetPath);
+    } catch (e) {
+      debugPrint('saveToPawsNCareDirectory ERROR: $e');
       return sourceFile;
     }
-    return await sourceFile.copy(targetPath);
   }
 
   /// Synchronize an image file or network URL to the local device's pawsncare directory.
