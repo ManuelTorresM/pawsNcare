@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../logic/auth/auth_bloc.dart';
+import '../../../logic/theme/theme_cubit.dart';
 import '../../theme/app_theme.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
@@ -51,9 +52,36 @@ class _LoginScreenState extends State<LoginScreen> {
           }
         },
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+          child: Stack(
+            children: [
+              // Theme Toggle Button at top right
+              Align(
+                alignment: Alignment.topRight,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8.0, right: 12.0),
+                  child: BlocBuilder<ThemeCubit, bool>(
+                    builder: (context, isDark) {
+                      return IconButton(
+                        tooltip: isDark
+                            ? 'Switch to Light Mode'
+                            : 'Switch to Dark Mode',
+                        icon: Icon(
+                          isDark
+                              ? Icons.light_mode_rounded
+                              : Icons.dark_mode_rounded,
+                          color: isDark ? Colors.amber : AppTheme.primary,
+                        ),
+                        onPressed: () {
+                          context.read<ThemeCubit>().toggleTheme();
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
+              Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24.0),
               child: Form(
                 key: _formKey,
                 child: Column(
