@@ -261,12 +261,8 @@ class _AddPetWizardState extends State<AddPetWizard> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: avatars.map((url) {
-                final ImageProvider imageProvider = url.startsWith('assets/')
-                    ? AssetImage(url)
-                    : (url.startsWith('http')
-                              ? NetworkImage(url)
-                              : FileImage(File(url)))
-                          as ImageProvider;
+                final imageProvider =
+                    LocalMediaService.resolveImageProvider(url);
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 6.0),

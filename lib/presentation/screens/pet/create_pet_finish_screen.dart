@@ -1,7 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../../data/models/pet.dart';
+import '../../../core/services/local_media_service.dart';
 import 'pet_profile_screen.dart';
 
 class CreatePetFinishScreen extends StatelessWidget {
@@ -13,19 +13,10 @@ class CreatePetFinishScreen extends StatelessWidget {
   });
 
   ImageProvider _getPetImageProvider(String url) {
-    if (url.startsWith('assets/')) {
-      return AssetImage(url);
-    } else if (url.startsWith('http://') || url.startsWith('https://')) {
-      return NetworkImage(url);
-    } else if (url.isNotEmpty) {
-      try {
-        final file = File(url);
-        if (file.existsSync()) {
-          return FileImage(file);
-        }
-      } catch (_) {}
-    }
-    return const AssetImage('assets/avatars/dog.png');
+    return LocalMediaService.resolveImageProvider(
+      url,
+      fallbackAsset: 'assets/avatars/dog.png',
+    )!;
   }
 
   @override

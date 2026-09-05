@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,6 +10,7 @@ import '../../../logic/theme/theme_cubit.dart';
 import '../../../data/repositories/firebase_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/photo_source_bottom_sheet.dart';
+import '../../../core/services/local_media_service.dart';
 
 class ProfileDetailsScreen extends StatefulWidget {
   final String name;
@@ -367,15 +367,10 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                           child: CircleAvatar(
                             radius: 54,
                             backgroundColor: AppTheme.primaryContainer,
-                            backgroundImage:
-                                (_avatarPath != null && _avatarPath!.isNotEmpty)
-                                ? (_avatarPath!.startsWith('assets/')
-                                      ? AssetImage(_avatarPath!)
-                                      : (_avatarPath!.startsWith('http')
-                                          ? NetworkImage(_avatarPath!)
-                                          : FileImage(File(_avatarPath!))))
-                                    as ImageProvider
-                                : const AssetImage('assets/avatars/dog.png'),
+                            backgroundImage: LocalMediaService.resolveImageProvider(
+                              _avatarPath,
+                              fallbackAsset: 'assets/avatars/dog.png',
+                            ),
                           ),
                         ),
                         if (_isEditing)

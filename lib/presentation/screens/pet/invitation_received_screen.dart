@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/models/pet.dart';
@@ -9,6 +8,7 @@ import '../../../data/repositories/firebase_repository.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/role_badge.dart';
+import '../../../core/services/local_media_service.dart';
 
 class InvitationReceivedScreen extends StatefulWidget {
   final PetInvitation? petInvitation;
@@ -138,27 +138,16 @@ class _InvitationReceivedScreenState
   }
 
   Widget _buildPetImageWidget(String url) {
-    if (url.startsWith('assets/')) {
-      return Image.asset(url, fit: BoxFit.cover);
-    } else if (url.startsWith('http://') || url.startsWith('https://')) {
-      return Image.network(
-        url,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => const Icon(
+    return LocalMediaService.buildSmartImage(
+      path: url,
+      fit: BoxFit.cover,
+      fallbackWidget: Container(
+        color: AppTheme.primaryFixedDim,
+        child: const Icon(
           Icons.pets,
           size: 60,
           color: AppTheme.primary,
         ),
-      );
-    } else if (url.isNotEmpty && File(url).existsSync()) {
-      return Image.file(File(url), fit: BoxFit.cover);
-    }
-    return Container(
-      color: AppTheme.primaryFixedDim,
-      child: const Icon(
-        Icons.pets,
-        size: 60,
-        color: AppTheme.primary,
       ),
     );
   }

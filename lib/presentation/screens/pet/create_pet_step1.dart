@@ -1,7 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../theme/app_theme.dart';
+import '../../../core/services/local_media_service.dart';
 
 class CreatePetStep1 extends StatelessWidget {
   final TextEditingController nameController;
@@ -50,14 +50,9 @@ class CreatePetStep1 extends StatelessWidget {
                     CircleAvatar(
                       radius: 64,
                       backgroundColor: AppTheme.secondaryContainer,
-                      backgroundImage:
-                          selectedAvatar.startsWith('assets/')
-                          ? AssetImage(selectedAvatar) as ImageProvider
-                          : (selectedAvatar.startsWith('http') ||
-                                      selectedAvatar.startsWith('https')
-                                  ? NetworkImage(selectedAvatar)
-                                  : FileImage(File(selectedAvatar)))
-                              as ImageProvider,
+                      backgroundImage: LocalMediaService.resolveImageProvider(
+                        selectedAvatar,
+                      ),
                     ),
                     const CircleAvatar(
                       radius: 18,
