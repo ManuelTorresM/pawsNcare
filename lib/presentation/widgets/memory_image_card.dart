@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import '../../core/services/local_media_service.dart';
 
 /// Reusable card widget for rendering pet memory photos safely across
@@ -41,6 +42,18 @@ class MemoryImageCard extends StatelessWidget {
           fit: BoxFit.cover,
           width: width,
           height: height,
+          fallbackWidget: Container(
+            width: width,
+            height: height,
+            color: AppTheme.surfaceContainer,
+            child: const Center(
+              child: Icon(
+                Icons.photo,
+                color: AppTheme.secondary,
+                size: 28,
+              ),
+            ),
+          ),
         ),
       ),
     );

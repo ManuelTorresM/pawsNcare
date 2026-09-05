@@ -853,7 +853,7 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                 backgroundImage: LocalMediaService.resolveImageProvider(
                   resolvedAvatarUrl,
                 ),
-                child: resolvedAvatarUrl == null
+                child: LocalMediaService.resolveImageProvider(resolvedAvatarUrl) == null
                     ? (filter == 'all'
                           ? const Icon(
                               Icons.group,
@@ -961,14 +961,20 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
             final item = items[index];
             return GestureDetector(
               onTap: () => _openLightbox(item),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  image: DecorationImage(
-                    image: LocalMediaService.resolveImageProvider(
-                      item.imageUrl,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: LocalMediaService.buildSmartImage(
+                  path: item.imageUrl,
+                  fit: BoxFit.cover,
+                  fallbackWidget: Container(
+                    color: AppTheme.surfaceContainerLow,
+                    child: const Center(
+                      child: Icon(
+                        Icons.photo,
+                        color: AppTheme.secondary,
+                        size: 32,
+                      ),
                     ),
-                    fit: BoxFit.cover,
                   ),
                 ),
               ),

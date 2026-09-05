@@ -193,8 +193,8 @@ class _MedicalHistoryScreenState extends State<MedicalHistoryScreen> {
                                 backgroundImage: LocalMediaService.resolveImageProvider(
                                   _pet.avatarUrl,
                                 ),
-                                child: _pet.avatarUrl.isEmpty
-                                    ? const Icon(
+                                child: LocalMediaService.resolveImageProvider(_pet.avatarUrl) == null
+                                     ? const Icon(
                                         Icons.pets,
                                         color: Colors.white,
                                         size: 28,

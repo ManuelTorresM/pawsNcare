@@ -608,6 +608,18 @@ class _HomeTabState extends State<HomeTab> {
                                   child: LocalMediaService.buildSmartImage(
                                     path: pet.avatarUrl,
                                     fit: BoxFit.cover,
+                                    fallbackWidget: Container(
+                                      color: isDark
+                                          ? const Color(0xFF383634)
+                                          : AppTheme.primaryFixed.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                      child: const Icon(
+                                        Icons.pets,
+                                        size: 32,
+                                        color: AppTheme.primary,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),

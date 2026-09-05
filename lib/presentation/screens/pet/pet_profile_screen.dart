@@ -466,6 +466,18 @@ class _PetProfileScreenState extends State<PetProfileScreen>
       return LocalMediaService.buildSmartImage(
         path: _pet.avatarUrl,
         fit: fit,
+        fallbackWidget: Container(
+          color: isDark
+              ? const Color(0xFF2A2826)
+              : AppTheme.surfaceContainerLow,
+          child: const Center(
+            child: Icon(
+              Icons.pets,
+              size: 48,
+              color: AppTheme.primary,
+            ),
+          ),
+        ),
       );
     }
 

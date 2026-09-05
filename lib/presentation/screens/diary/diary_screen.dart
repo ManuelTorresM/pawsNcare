@@ -864,7 +864,7 @@ class _DiaryTabState extends State<DiaryTab> {
                 backgroundImage: LocalMediaService.resolveImageProvider(
                   resolvedAvatarUrl,
                 ),
-                child: resolvedAvatarUrl == null
+                child: LocalMediaService.resolveImageProvider(resolvedAvatarUrl) == null
                     ? (filter == 'all'
                           ? Icon(Icons.group, color: primaryColor, size: 30)
                           : Text(

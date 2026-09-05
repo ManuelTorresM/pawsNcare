@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -67,48 +66,12 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     BoxFit fit = BoxFit.cover,
     double iconSize = 24,
   }) {
-    if (url.isEmpty) {
-      return Container(
-        width: width,
-        height: height,
-        color: AppTheme.surfaceContainer,
-        child: Icon(Icons.pets, size: iconSize, color: AppTheme.secondary),
-      );
-    }
-    if (url.startsWith('assets/')) {
-      return Image.asset(
-        url,
-        width: width,
-        height: height,
-        fit: fit,
-        errorBuilder: (context, error, stackTrace) => Container(
-          width: width,
-          height: height,
-          color: AppTheme.surfaceContainer,
-          child: Icon(Icons.pets, size: iconSize, color: AppTheme.secondary),
-        ),
-      );
-    }
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return Image.network(
-        LocalMediaService.formatDirectImageUrl(url),
-        width: width,
-        height: height,
-        fit: fit,
-        errorBuilder: (context, error, stackTrace) => Container(
-          width: width,
-          height: height,
-          color: AppTheme.surfaceContainer,
-          child: Icon(Icons.pets, size: iconSize, color: AppTheme.secondary),
-        ),
-      );
-    }
-    return Image.file(
-      File(url),
+    return LocalMediaService.buildSmartImage(
+      path: url,
       width: width,
       height: height,
       fit: fit,
-      errorBuilder: (context, error, stackTrace) => Container(
+      fallbackWidget: Container(
         width: width,
         height: height,
         color: AppTheme.surfaceContainer,

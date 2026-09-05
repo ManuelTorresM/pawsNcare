@@ -54,7 +54,7 @@ class LocalMediaService {
       if (uri != null && uri.queryParameters.containsKey('id')) {
         final id = uri.queryParameters['id'];
         if (id != null && id.isNotEmpty) {
-          return 'https://drive.google.com/thumbnail?id=$id&sz=w1000';
+          return 'https://drive.google.com/uc?export=download&id=$id';
         }
       }
     }
@@ -62,13 +62,13 @@ class LocalMediaService {
   }
 
   /// Safely resolve an ImageProvider for any path string (asset, URL, or local file).
-  /// If a local file path does not exist on the current device, returns the fallback asset.
-  static ImageProvider resolveImageProvider(
+  /// If a local file path does not exist on the current device, returns optional fallbackAsset or null.
+  static ImageProvider? resolveImageProvider(
     String? path, {
-    String fallbackAsset = 'assets/avatars/dog.png',
+    String? fallbackAsset,
   }) {
     if (path == null || path.trim().isEmpty) {
-      return AssetImage(fallbackAsset);
+      return fallbackAsset != null ? AssetImage(fallbackAsset) : null;
     }
 
     final cleanPath = path.trim();
@@ -86,26 +86,56 @@ class LocalMediaService {
       return FileImage(file);
     }
 
-    // If file does not exist locally on this device, return fallback asset gracefully.
-    return AssetImage(fallbackAsset);
+    return fallbackAsset != null ? AssetImage(fallbackAsset) : null;
   }
 
-  /// Helper widget that renders an Image widget safely with fallback support.
+  /// Helper widget that renders an Image widget safely with flexible fallback support.
   static Widget buildSmartImage({
     required String? path,
     double? width,
     double? height,
     BoxFit fit = BoxFit.cover,
-    String fallbackAsset = 'assets/avatars/dog.png',
+    String? fallbackAsset,
+    Widget? fallbackWidget,
   }) {
+    Widget getFallback() {
+      if (fallbackWidget != null) return fallbackWidget;
+      if (fallbackAsset != null && fallbackAsset.isNotEmpty) {
+        return Image.asset(
+          fallbackAsset,
+          width: width,
+          height: height,
+          fit: fit,
+        );
+      }
+      return Container(
+        width: width,
+        height: height,
+        color: const Color(0xFFE0E0E0),
+        child: Center(
+          child: Icon(
+            Icons.image_not_supported_outlined,
+            color: Colors.grey.shade600,
+            size: (width != null && width < 50) ? 20 : 32,
+          ),
+        ),
+      );
+    }
+
     if (path == null || path.trim().isEmpty) {
-      return Image.asset(fallbackAsset, width: width, height: height, fit: fit);
+      return getFallback();
     }
 
     final cleanPath = path.trim();
 
     if (cleanPath.startsWith('assets/')) {
-      return Image.asset(cleanPath, width: width, height: height, fit: fit);
+      return Image.asset(
+        cleanPath,
+        width: width,
+        height: height,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) => getFallback(),
+      );
     }
 
     if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
@@ -114,8 +144,7 @@ class LocalMediaService {
         width: width,
         height: height,
         fit: fit,
-        errorBuilder: (context, error, stackTrace) =>
-            Image.asset(fallbackAsset, width: width, height: height, fit: fit),
+        errorBuilder: (context, error, stackTrace) => getFallback(),
       );
     }
 
@@ -126,12 +155,10 @@ class LocalMediaService {
         width: width,
         height: height,
         fit: fit,
-        errorBuilder: (context, error, stackTrace) =>
-            Image.asset(fallbackAsset, width: width, height: height, fit: fit),
+        errorBuilder: (context, error, stackTrace) => getFallback(),
       );
     }
 
-    // Secondary device or missing file: show fallback asset
-    return Image.asset(fallbackAsset, width: width, height: height, fit: fit);
+    return getFallback();
   }
 }
