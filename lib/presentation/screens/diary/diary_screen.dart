@@ -210,7 +210,8 @@ class _DiaryTabState extends State<DiaryTab> {
                 }
 
                 final entryToSave = DiaryEntry(
-                  id: initialEntry?.id ??
+                  id:
+                      initialEntry?.id ??
                       DateTime.now().millisecondsSinceEpoch.toString(),
                   petId: petId,
                   title: title,
@@ -229,7 +230,9 @@ class _DiaryTabState extends State<DiaryTab> {
                     ),
                   );
                 } else {
-                  context.read<DiaryBloc>().add(AddDiaryEntryEvent(entryToSave));
+                  context.read<DiaryBloc>().add(
+                    AddDiaryEntryEvent(entryToSave),
+                  );
                 }
 
                 // Automatically update Pet status based on ALL active entries for petId
@@ -238,8 +241,9 @@ class _DiaryTabState extends State<DiaryTab> {
                 if (diaryState is DiaryLoaded) {
                   allEntries.addAll(diaryState.entries);
                 }
-                final index =
-                    allEntries.indexWhere((e) => e.id == entryToSave.id);
+                final index = allEntries.indexWhere(
+                  (e) => e.id == entryToSave.id,
+                );
                 if (index != -1) {
                   allEntries[index] = entryToSave;
                 } else {
@@ -251,18 +255,21 @@ class _DiaryTabState extends State<DiaryTab> {
                     .toList();
 
                 String calculatedPetStatus = 'HEALTHY';
-                if (activePetEntries
-                    .any((e) => e.severity.toUpperCase() == 'EMERGENCY')) {
+                if (activePetEntries.any(
+                  (e) => e.severity.toUpperCase() == 'EMERGENCY',
+                )) {
                   calculatedPetStatus = 'EMERGENCY';
-                } else if (activePetEntries
-                    .any((e) => e.severity.toUpperCase() == 'CONCERNING')) {
+                } else if (activePetEntries.any(
+                  (e) => e.severity.toUpperCase() == 'CONCERNING',
+                )) {
                   calculatedPetStatus = 'CONCERNING';
                 }
 
                 final petState = context.read<PetBloc>().state;
                 if (petState is PetLoaded) {
-                  final matchingPets =
-                      petState.pets.where((p) => p.id == petId).toList();
+                  final matchingPets = petState.pets
+                      .where((p) => p.id == petId)
+                      .toList();
                   if (matchingPets.isNotEmpty) {
                     final pet = matchingPets.first;
                     if (pet.status != calculatedPetStatus) {
@@ -541,22 +548,30 @@ class _DiaryTabState extends State<DiaryTab> {
                     decoration: BoxDecoration(
                       color: isActive
                           ? (severity == 'EMERGENCY'
-                              ? (isDark
-                                  ? const Color(0xFF3E1D22)
-                                  : const Color(0xFFFDEDEC))
-                              : (isDark
-                                  ? const Color(0xFF3E321D)
-                                  : const Color(0xFFFEF9E7)))
+                                ? (isDark
+                                      ? const Color(0xFF3E1D22)
+                                      : const Color(0xFFFDEDEC))
+                                : (isDark
+                                      ? const Color(0xFF3E321D)
+                                      : const Color(0xFFFEF9E7)))
                           : (isDark
-                              ? AppTheme.statusAdministeredDarkBg.withValues(alpha: 0.4)
-                              : AppTheme.statusAdministeredBg),
+                                ? AppTheme.statusAdministeredDarkBg.withValues(
+                                    alpha: 0.4,
+                                  )
+                                : AppTheme.statusAdministeredBg),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isActive
                             ? (severity == 'EMERGENCY'
-                                ? const Color(0xFFE74C3C).withValues(alpha: 0.5)
-                                : AppTheme.statusConcerning.withValues(alpha: 0.5))
-                            : AppTheme.statusAdministered.withValues(alpha: 0.5),
+                                  ? const Color(
+                                      0xFFE74C3C,
+                                    ).withValues(alpha: 0.5)
+                                  : AppTheme.statusConcerning.withValues(
+                                      alpha: 0.5,
+                                    ))
+                            : AppTheme.statusAdministered.withValues(
+                                alpha: 0.5,
+                              ),
                         width: 1.5,
                       ),
                     ),
@@ -568,25 +583,26 @@ class _DiaryTabState extends State<DiaryTab> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: (isActive
-                                        ? (severity == 'EMERGENCY'
-                                            ? const Color(0xFFE74C3C)
-                                            : AppTheme.statusConcerning)
-                                        : AppTheme.statusAdministered)
-                                    .withValues(alpha: 0.15),
+                                color:
+                                    (isActive
+                                            ? (severity == 'EMERGENCY'
+                                                  ? const Color(0xFFE74C3C)
+                                                  : AppTheme.statusConcerning)
+                                            : AppTheme.statusAdministered)
+                                        .withValues(alpha: 0.15),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 isActive
                                     ? (severity == 'EMERGENCY'
-                                        ? Icons.warning_amber_rounded
-                                        : Icons.error_outline_rounded)
+                                          ? Icons.warning_amber_rounded
+                                          : Icons.error_outline_rounded)
                                     : Icons.check_circle_outline_rounded,
                                 size: 20,
                                 color: isActive
                                     ? (severity == 'EMERGENCY'
-                                        ? const Color(0xFFE74C3C)
-                                        : AppTheme.statusConcerning)
+                                          ? const Color(0xFFE74C3C)
+                                          : AppTheme.statusConcerning)
                                     : AppTheme.statusAdministered,
                               ),
                             ),
@@ -641,22 +657,24 @@ class _DiaryTabState extends State<DiaryTab> {
                                     shape: BoxShape.circle,
                                     color: isActive
                                         ? (severity == 'EMERGENCY'
-                                            ? const Color(0xFFE74C3C)
-                                            : AppTheme.statusConcerning)
+                                              ? const Color(0xFFE74C3C)
+                                              : AppTheme.statusConcerning)
                                         : AppTheme.statusAdministered,
                                   ),
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  isActive ? 'Status: Active' : 'Status: Resolved',
+                                  isActive
+                                      ? 'Status: Active'
+                                      : 'Status: Resolved',
                                   style: TextStyle(
                                     fontFamily: 'Inter',
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color: isActive
                                         ? (severity == 'EMERGENCY'
-                                            ? const Color(0xFFE74C3C)
-                                            : AppTheme.statusConcerning)
+                                              ? const Color(0xFFE74C3C)
+                                              : AppTheme.statusConcerning)
                                         : AppTheme.statusAdministered,
                                   ),
                                 ),
@@ -665,22 +683,28 @@ class _DiaryTabState extends State<DiaryTab> {
                             Row(
                               children: [
                                 Text(
-                                  isActive ? 'Deactivate' : 'Deactivated',
+                                  isActive ? 'Active' : 'Deactivated',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                    color: textSecondary,
+                                    color: isActive
+                                        ? (severity == 'EMERGENCY'
+                                            ? const Color(0xFFE74C3C)
+                                            : AppTheme.statusConcerning)
+                                        : textSecondary,
                                   ),
                                 ),
                                 const SizedBox(width: 4),
                                 Switch.adaptive(
-                                  value: !isActive,
-                                  onChanged: (deactivated) {
+                                  value: isActive,
+                                  onChanged: (active) {
                                     setDialogState(() {
-                                      isActive = !deactivated;
+                                      isActive = active;
                                     });
                                   },
-                                  activeTrackColor: AppTheme.statusAdministered,
+                                  activeTrackColor: severity == 'EMERGENCY'
+                                      ? const Color(0xFFE74C3C)
+                                      : AppTheme.statusConcerning,
                                 ),
                               ],
                             ),
@@ -1167,26 +1191,30 @@ class _DiaryTabState extends State<DiaryTab> {
               final diaryState = context.read<DiaryBloc>().state;
               final List<DiaryEntry> remainingEntries = [];
               if (diaryState is DiaryLoaded) {
-                remainingEntries
-                    .addAll(diaryState.entries.where((e) => e.id != entry.id));
+                remainingEntries.addAll(
+                  diaryState.entries.where((e) => e.id != entry.id),
+                );
               }
               final activePetEntries = remainingEntries
                   .where((e) => e.petId == entry.petId && e.isActive)
                   .toList();
 
               String calculatedPetStatus = 'HEALTHY';
-              if (activePetEntries
-                  .any((e) => e.severity.toUpperCase() == 'EMERGENCY')) {
+              if (activePetEntries.any(
+                (e) => e.severity.toUpperCase() == 'EMERGENCY',
+              )) {
                 calculatedPetStatus = 'EMERGENCY';
-              } else if (activePetEntries
-                  .any((e) => e.severity.toUpperCase() == 'CONCERNING')) {
+              } else if (activePetEntries.any(
+                (e) => e.severity.toUpperCase() == 'CONCERNING',
+              )) {
                 calculatedPetStatus = 'CONCERNING';
               }
 
               final petState = context.read<PetBloc>().state;
               if (petState is PetLoaded) {
-                final matchingPets =
-                    petState.pets.where((p) => p.id == entry.petId).toList();
+                final matchingPets = petState.pets
+                    .where((p) => p.id == entry.petId)
+                    .toList();
                 if (matchingPets.isNotEmpty) {
                   final pet = matchingPets.first;
                   if (pet.status != calculatedPetStatus) {
@@ -1353,8 +1381,10 @@ class _DiaryTabState extends State<DiaryTab> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: isDark
                       ? const Color(0xFF2E4E30)
@@ -1397,8 +1427,8 @@ class _DiaryTabState extends State<DiaryTab> {
                       size: 18,
                       color: entry.isActive
                           ? (severity.toUpperCase() == 'EMERGENCY'
-                              ? const Color(0xFFE74C3C)
-                              : AppTheme.statusConcerning)
+                                ? const Color(0xFFE74C3C)
+                                : AppTheme.statusConcerning)
                           : AppTheme.statusAdministered,
                     ),
                     const SizedBox(width: 4),
@@ -1409,8 +1439,8 @@ class _DiaryTabState extends State<DiaryTab> {
                         fontWeight: FontWeight.bold,
                         color: entry.isActive
                             ? (severity.toUpperCase() == 'EMERGENCY'
-                                ? const Color(0xFFE74C3C)
-                                : AppTheme.statusConcerning)
+                                  ? const Color(0xFFE74C3C)
+                                  : AppTheme.statusConcerning)
                             : AppTheme.statusAdministered,
                       ),
                     ),
