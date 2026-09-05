@@ -304,7 +304,7 @@ class GoogleDriveService {
                 '${pet.name}_profile_${profileFile.path.split('/').last.split('\\').last}',
           );
           if (driveUrl != null) {
-            updatedAvatarUrl = driveUrl;
+            debugPrint('GoogleDriveService: Uploaded profile picture to Drive -> $driveUrl');
           }
         } else {
           debugPrint(
@@ -331,10 +331,9 @@ class GoogleDriveService {
             memoriesFolderId,
           );
           if (driveUrl != null) {
-            updatedPhotos.add(driveUrl);
-          } else {
-            updatedPhotos.add(photoPath);
+            debugPrint('GoogleDriveService: Uploaded photo memory to Drive -> $driveUrl');
           }
+          updatedPhotos.add(photoPath);
         } else {
           updatedPhotos.add(photoPath);
         }
