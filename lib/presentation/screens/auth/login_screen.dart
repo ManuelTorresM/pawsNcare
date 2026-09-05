@@ -276,21 +276,22 @@ class _LoginScreenState extends State<LoginScreen> {
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 14,
                                 ),
-                                side: const BorderSide(
-                                  color: AppTheme.outlineVariant,
+                                side: BorderSide(
+                                  color: theme.colorScheme.outlineVariant,
                                 ),
+                                backgroundColor: theme.colorScheme.surface,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                               child: isThisLoading
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       height: 20,
                                       width: 20,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
                                         valueColor: AlwaysStoppedAnimation(
-                                          AppTheme.primary,
+                                          theme.colorScheme.primary,
                                         ),
                                       ),
                                     )
@@ -304,19 +305,21 @@ class _LoginScreenState extends State<LoginScreen> {
                                           width: 20,
                                           errorBuilder:
                                               (context, error, stackTrace) =>
-                                                  const Icon(
+                                                  Icon(
                                                     Icons.g_mobiledata,
-                                                    color: AppTheme.primary,
+                                                    color: theme
+                                                        .colorScheme
+                                                        .primary,
                                                     size: 24,
                                                   ),
                                         ),
                                         const SizedBox(width: 12),
-                                        const Text(
+                                        Text(
                                           'Log In with Google',
                                           style: TextStyle(
                                             fontFamily: 'Montserrat',
                                             fontWeight: FontWeight.bold,
-                                            color: AppTheme.onSurface,
+                                            color: theme.colorScheme.onSurface,
                                           ),
                                         ),
                                       ],

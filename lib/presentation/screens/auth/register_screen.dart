@@ -504,23 +504,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg.png',
                       height: 20,
                       width: 20,
-                      errorBuilder: (context, error, stackTrace) => const Icon(
+                      errorBuilder: (context, error, stackTrace) => Icon(
                         Icons.g_mobiledata,
-                        color: AppTheme.primary,
+                        color: theme.colorScheme.primary,
                         size: 24,
                       ),
                     ),
-                    label: const Text(
+                    label: Text(
                       'Create with Google',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
-                        color: AppTheme.onSurface,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: const BorderSide(color: AppTheme.outlineVariant),
+                      side: BorderSide(color: theme.colorScheme.outlineVariant),
+                      backgroundColor: theme.colorScheme.surface,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
