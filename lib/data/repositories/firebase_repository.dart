@@ -91,6 +91,10 @@ class FirebaseRepository implements BaseRepository {
   @override
   Future<bool> loginWithGoogle() async {
     try {
+      try {
+        await GoogleSignIn().signOut();
+      } catch (_) {}
+
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) return false;
 
@@ -111,17 +115,20 @@ class FirebaseRepository implements BaseRepository {
             .get();
         if (!userDoc.exists) {
           await _auth.signOut();
-          await GoogleSignIn().signOut();
+          try {
+            await GoogleSignIn().signOut();
+          } catch (_) {}
           throw Exception(
             'No registered account found for this Google email. Please sign up first!',
           );
         }
       }
       return true;
-    } catch (_) {
-      throw Exception(
-        'No registered account found for this Google email. Please sign up first!',
-      );
+    } catch (e) {
+      if (e.toString().contains('No registered account found')) {
+        rethrow;
+      }
+      return false;
     }
   }
 
@@ -156,6 +163,10 @@ class FirebaseRepository implements BaseRepository {
   @override
   Future<bool> registerWithGoogle() async {
     try {
+      try {
+        await GoogleSignIn().signOut();
+      } catch (_) {}
+
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) return false;
 
@@ -197,6 +208,9 @@ class FirebaseRepository implements BaseRepository {
   @override
   Future<void> logout() async {
     await _auth.signOut();
+    try {
+      await GoogleSignIn().signOut();
+    } catch (_) {}
   }
 
   @override

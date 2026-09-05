@@ -128,9 +128,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         final name = await repo.getCurrentUserName();
         emit(Authenticated(email: email ?? '', name: name ?? ''));
       } else {
-        emit(const AuthFailure(
-          "No registered account found for this Google email. Please sign up first!",
-        ));
+        emit(Unauthenticated());
       }
     } catch (e) {
       emit(AuthFailure(e.toString()));
