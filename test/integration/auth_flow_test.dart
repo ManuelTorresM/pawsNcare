@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:pawsncare/data/repositories/demo_repository.dart';
 import 'package:pawsncare/data/repositories/repository_selector.dart';
 import 'package:pawsncare/logic/auth/auth_bloc.dart';
 import 'package:pawsncare/logic/pet/pet_bloc.dart';
@@ -14,11 +13,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Authentication E2E Flow Integration Test', () {
-    late DemoRepository demoRepo;
     late RepositorySelector repositorySelector;
 
     setUp(() {
-      demoRepo = DemoRepository();
       repositorySelector = RepositorySelector();
     });
 

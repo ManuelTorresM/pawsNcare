@@ -154,6 +154,7 @@ class _DiaryTabState extends State<DiaryTab> {
     String severity =
         initialEntry?.severity ??
         (category == 'medical_event' ? 'CONCERNING' : 'NORMAL');
+    bool isActive = initialEntry?.isActive ?? true;
     String? validationError;
 
     showDialog(
@@ -208,51 +209,66 @@ class _DiaryTabState extends State<DiaryTab> {
                   return;
                 }
 
+                final entryToSave = DiaryEntry(
+                  id: initialEntry?.id ??
+                      DateTime.now().millisecondsSinceEpoch.toString(),
+                  petId: petId,
+                  title: title,
+                  category: category,
+                  note: note,
+                  timestamp: initialEntry?.timestamp ?? DateTime.now(),
+                  severity: severity,
+                  isActive: isActive,
+                );
+
                 if (initialEntry != null) {
-                  final updatedEntry = DiaryEntry(
-                    id: initialEntry.id,
-                    petId: petId,
-                    title: title,
-                    category: category,
-                    note: note,
-                    timestamp: initialEntry.timestamp,
-                    severity: severity,
-                  );
                   context.read<DiaryBloc>().add(
                     UpdateDiaryEntryEvent(
-                      updatedEntry,
+                      entryToSave,
                       currentPetId: _selectedPetId,
                     ),
                   );
                 } else {
-                  final entry = DiaryEntry(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    petId: petId,
-                    title: title,
-                    category: category,
-                    note: note,
-                    timestamp: DateTime.now(),
-                    severity: severity,
-                  );
-                  context.read<DiaryBloc>().add(AddDiaryEntryEvent(entry));
+                  context.read<DiaryBloc>().add(AddDiaryEntryEvent(entryToSave));
                 }
 
-                // Automatically update Pet status if log severity is CONCERNING or EMERGENCY
-                final entrySeverity = severity.toUpperCase();
-                if (entrySeverity == 'CONCERNING' ||
-                    entrySeverity == 'EMERGENCY') {
-                  final petState = context.read<PetBloc>().state;
-                  if (petState is PetLoaded) {
-                    final matchingPets = petState.pets
-                        .where((p) => p.id == petId)
-                        .toList();
-                    if (matchingPets.isNotEmpty) {
-                      final pet = matchingPets.first;
-                      if (pet.status != entrySeverity) {
-                        context.read<PetBloc>().add(
-                          UpdatePet(pet.copyWith(status: entrySeverity)),
-                        );
-                      }
+                // Automatically update Pet status based on ALL active entries for petId
+                final diaryState = context.read<DiaryBloc>().state;
+                final List<DiaryEntry> allEntries = [];
+                if (diaryState is DiaryLoaded) {
+                  allEntries.addAll(diaryState.entries);
+                }
+                final index =
+                    allEntries.indexWhere((e) => e.id == entryToSave.id);
+                if (index != -1) {
+                  allEntries[index] = entryToSave;
+                } else {
+                  allEntries.add(entryToSave);
+                }
+
+                final activePetEntries = allEntries
+                    .where((e) => e.petId == petId && e.isActive)
+                    .toList();
+
+                String calculatedPetStatus = 'HEALTHY';
+                if (activePetEntries
+                    .any((e) => e.severity.toUpperCase() == 'EMERGENCY')) {
+                  calculatedPetStatus = 'EMERGENCY';
+                } else if (activePetEntries
+                    .any((e) => e.severity.toUpperCase() == 'CONCERNING')) {
+                  calculatedPetStatus = 'CONCERNING';
+                }
+
+                final petState = context.read<PetBloc>().state;
+                if (petState is PetLoaded) {
+                  final matchingPets =
+                      petState.pets.where((p) => p.id == petId).toList();
+                  if (matchingPets.isNotEmpty) {
+                    final pet = matchingPets.first;
+                    if (pet.status != calculatedPetStatus) {
+                      context.read<PetBloc>().add(
+                        UpdatePet(pet.copyWith(status: calculatedPetStatus)),
+                      );
                     }
                   }
                 }
@@ -508,6 +524,110 @@ class _DiaryTabState extends State<DiaryTab> {
                     }
                   },
                 ),
+
+                // Special Section for Medical Event: Deactivation Info & Toggle
+                if (category == 'medical_event') ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppTheme.statusAdministeredDarkBg.withValues(alpha: 0.4)
+                          : AppTheme.statusAdministeredBg.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isDark
+                            ? AppTheme.statusAdministeredDark.withValues(alpha: 0.3)
+                            : AppTheme.statusAdministered.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline_rounded,
+                              size: 18,
+                              color: isDark
+                                  ? AppTheme.statusAdministeredDark
+                                  : AppTheme.statusAdministered,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'If your pet is healthy again, deactivate this log.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: textPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  !isActive
+                                      ? Icons.check_circle_rounded
+                                      : Icons.priority_high_rounded,
+                                  size: 16,
+                                  color: !isActive
+                                      ? AppTheme.statusAdministered
+                                      : (severity == 'EMERGENCY'
+                                          ? const Color(0xFFE74C3C)
+                                          : AppTheme.statusConcerning),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  !isActive
+                                      ? 'Deactivated (Healthy)'
+                                      : 'Active Incident Log',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: !isActive
+                                        ? AppTheme.statusAdministered
+                                        : (severity == 'EMERGENCY'
+                                            ? const Color(0xFFE74C3C)
+                                            : AppTheme.statusConcerning),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                Text(
+                                  !isActive ? 'Deactivated' : 'Deactivate',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: textSecondary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Switch.adaptive(
+                                  value: !isActive,
+                                  onChanged: (deactivated) {
+                                    setDialogState(() {
+                                      isActive = !deactivated;
+                                    });
+                                  },
+                                  activeTrackColor: AppTheme.statusAdministered,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             );
           },
@@ -980,6 +1100,41 @@ class _DiaryTabState extends State<DiaryTab> {
               context.read<DiaryBloc>().add(
                 DeleteDiaryEntryEvent(entry.id, currentPetId: _selectedPetId),
               );
+
+              // Recalculate pet status after deletion
+              final diaryState = context.read<DiaryBloc>().state;
+              final List<DiaryEntry> remainingEntries = [];
+              if (diaryState is DiaryLoaded) {
+                remainingEntries
+                    .addAll(diaryState.entries.where((e) => e.id != entry.id));
+              }
+              final activePetEntries = remainingEntries
+                  .where((e) => e.petId == entry.petId && e.isActive)
+                  .toList();
+
+              String calculatedPetStatus = 'HEALTHY';
+              if (activePetEntries
+                  .any((e) => e.severity.toUpperCase() == 'EMERGENCY')) {
+                calculatedPetStatus = 'EMERGENCY';
+              } else if (activePetEntries
+                  .any((e) => e.severity.toUpperCase() == 'CONCERNING')) {
+                calculatedPetStatus = 'CONCERNING';
+              }
+
+              final petState = context.read<PetBloc>().state;
+              if (petState is PetLoaded) {
+                final matchingPets =
+                    petState.pets.where((p) => p.id == entry.petId).toList();
+                if (matchingPets.isNotEmpty) {
+                  final pet = matchingPets.first;
+                  if (pet.status != calculatedPetStatus) {
+                    context.read<PetBloc>().add(
+                      UpdatePet(pet.copyWith(status: calculatedPetStatus)),
+                    );
+                  }
+                }
+              }
+
               Navigator.pop(ctx);
             },
             child: const Text('Delete'),
@@ -1131,36 +1286,75 @@ class _DiaryTabState extends State<DiaryTab> {
           ),
           const SizedBox(height: 12),
 
-          // Bottom Category tag
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2E4E30) : AppTheme.primaryFixed,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  icon,
-                  size: 14,
+          // Bottom Category tag & Status icon ("!" for active, "check" for healthy)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
                   color: isDark
-                      ? AppTheme.primaryFixedDim
-                      : AppTheme.onPrimaryFixedVariant,
+                      ? const Color(0xFF2E4E30)
+                      : AppTheme.primaryFixed,
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? AppTheme.primaryFixedDim
-                        : AppTheme.onPrimaryFixedVariant,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 14,
+                      color: isDark
+                          ? AppTheme.primaryFixedDim
+                          : AppTheme.onPrimaryFixedVariant,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: isDark
+                            ? AppTheme.primaryFixedDim
+                            : AppTheme.onPrimaryFixedVariant,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              if (severity.toUpperCase() == 'CONCERNING' ||
+                  severity.toUpperCase() == 'EMERGENCY')
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      entry.isActive
+                          ? Icons.priority_high_rounded
+                          : Icons.check_circle_rounded,
+                      size: 18,
+                      color: entry.isActive
+                          ? (severity.toUpperCase() == 'EMERGENCY'
+                              ? const Color(0xFFE74C3C)
+                              : AppTheme.statusConcerning)
+                          : AppTheme.statusAdministered,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      entry.isActive ? 'Active' : 'Healthy',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: entry.isActive
+                            ? (severity.toUpperCase() == 'EMERGENCY'
+                                ? const Color(0xFFE74C3C)
+                                : AppTheme.statusConcerning)
+                            : AppTheme.statusAdministered,
+                      ),
+                    ),
+                  ],
+                ),
+            ],
           ),
         ],
       ),
