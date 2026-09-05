@@ -196,9 +196,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                       final messenger = ScaffoldMessenger.of(context);
                       try {
                         final picker = ImagePicker();
-                        final file = await picker.pickImage(
-                          source: source,
-                        );
+                        final file = await picker.pickImage(source: source);
                         if (file != null) {
                           setDialogState(() {
                             selectedAvatarUrl = file.path;
@@ -206,9 +204,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                         }
                       } catch (e) {
                         messenger.showSnackBar(
-                          SnackBar(
-                            content: Text('Error selecting image: $e'),
-                          ),
+                          SnackBar(content: Text('Error selecting image: $e')),
                         );
                       }
                     },
@@ -226,9 +222,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(
-                                  alpha: 0.1,
-                                ),
+                                color: Colors.black.withValues(alpha: 0.1),
                                 blurRadius: 8,
                                 offset: const Offset(0, 3),
                               ),
@@ -249,10 +243,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                           decoration: BoxDecoration(
                             color: AppTheme.primary,
                             shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white,
-                              width: 2,
-                            ),
+                            border: Border.all(color: Colors.white, width: 2),
                           ),
                           child: const Icon(
                             Icons.edit,
@@ -269,10 +260,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                 // Pet Name
                 const Text(
                   'Pet Name',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 const SizedBox(height: 6),
                 TextField(
@@ -292,10 +280,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                 // Breed
                 const Text(
                   'Breed',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 const SizedBox(height: 6),
                 TextField(
@@ -315,10 +300,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                 // Gender
                 const Text(
                   'Gender',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -347,10 +329,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                 // Neutered / Spayed
                 const Text(
                   'Neutered / Spayed',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -379,10 +358,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                 // Date of Birth
                 const Text(
                   'Date of Birth',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 const SizedBox(height: 6),
                 GestureDetector(
@@ -588,17 +564,13 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                       children: [
                         Expanded(child: buildConditionButton('Diabetes')),
                         const SizedBox(width: 8),
-                        Expanded(
-                          child: buildConditionButton('Arthritis'),
-                        ),
+                        Expanded(child: buildConditionButton('Arthritis')),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(
-                          child: buildConditionButton('Heart Murmur'),
-                        ),
+                        Expanded(child: buildConditionButton('Heart Murmur')),
                         const SizedBox(width: 8),
                         Expanded(child: buildConditionButton('Epilepsy')),
                       ],
@@ -689,9 +661,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primary,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
                         ),
                         child: const Text('Add'),
                       ),
@@ -710,11 +680,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                 // Section 2: Allergies
                 const Row(
                   children: [
-                    Icon(
-                      Icons.eco_outlined,
-                      color: AppTheme.primary,
-                      size: 20,
-                    ),
+                    Icon(Icons.eco_outlined, color: AppTheme.primary, size: 20),
                     SizedBox(width: 8),
                     Text(
                       'Allergies',
@@ -763,9 +729,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                     final filtered = allergyLibrary
                         .where(
                           (a) =>
-                              a.toLowerCase().contains(
-                                query.toLowerCase(),
-                              ) &&
+                              a.toLowerCase().contains(query.toLowerCase()) &&
                               !selectedAllergies.contains(a),
                         )
                         .toList();
@@ -784,9 +748,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                     decoration: BoxDecoration(
                       color: AppTheme.surfaceContainerLowest,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppTheme.surfaceContainer,
-                      ),
+                      border: Border.all(color: AppTheme.surfaceContainer),
                     ),
                     child: SingleChildScrollView(
                       child: Column(
@@ -799,9 +761,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                             ),
                             onTap: () {
                               setDialogState(() {
-                                if (!selectedAllergies.contains(
-                                  allergy,
-                                )) {
+                                if (!selectedAllergies.contains(allergy)) {
                                   selectedAllergies.add(allergy);
                                 }
                                 allergySearchCtrl.clear();
@@ -975,11 +935,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                       Icons.run_circle_outlined,
                       'High',
                     ),
-                    buildActivityCard(
-                      'Very High',
-                      Icons.bolt,
-                      'Very High',
-                    ),
+                    buildActivityCard('Very High', Icons.bolt, 'Very High'),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -1027,8 +983,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                         ),
                         const SizedBox(height: 6),
                         DropdownButtonFormField<String>(
-                          initialValue:
-                              foodTypeItems.contains(selectedFoodType)
+                          initialValue: foodTypeItems.contains(selectedFoodType)
                               ? selectedFoodType
                               : 'Dry Kibble',
                           decoration: const InputDecoration(
@@ -1048,9 +1003,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                               .toList(),
                           onChanged: (val) {
                             if (val != null) {
-                              setDialogState(
-                                () => selectedFoodType = val,
-                              );
+                              setDialogState(() => selectedFoodType = val);
                             }
                           },
                         ),
@@ -1076,9 +1029,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                             hintText:
                                 'e.g. 1/2 cup twice a day, morning and evening.',
                             hintStyle: TextStyle(
-                              color: AppTheme.secondary.withValues(
-                                alpha: 0.5,
-                              ),
+                              color: AppTheme.secondary.withValues(alpha: 0.5),
                               fontSize: 12,
                             ),
                             contentPadding: const EdgeInsets.symmetric(
