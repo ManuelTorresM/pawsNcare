@@ -41,6 +41,22 @@ class LocalMediaService {
     return await sourceFile.copy(targetPath);
   }
 
+  /// Transforms Google Drive web view URLs into direct binary JPEG image thumbnail URLs
+  /// so Android ImageDecoder receives valid byte streams without HTML redirects.
+  static String formatDirectImageUrl(String url) {
+    final clean = url.trim();
+    if (clean.contains('drive.google.com') && clean.contains('id=')) {
+      final uri = Uri.tryParse(clean);
+      if (uri != null && uri.queryParameters.containsKey('id')) {
+        final id = uri.queryParameters['id'];
+        if (id != null && id.isNotEmpty) {
+          return 'https://drive.google.com/thumbnail?id=$id&sz=w1000';
+        }
+      }
+    }
+    return clean;
+  }
+
   /// Safely resolve an ImageProvider for any path string (asset, URL, or local file).
   /// If a local file path does not exist on the current device, returns the fallback asset.
   static ImageProvider resolveImageProvider(
@@ -58,7 +74,7 @@ class LocalMediaService {
     }
 
     if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
-      return NetworkImage(cleanPath);
+      return NetworkImage(formatDirectImageUrl(cleanPath));
     }
 
     final file = File(cleanPath);
@@ -100,7 +116,7 @@ class LocalMediaService {
 
     if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
       return Image.network(
-        cleanPath,
+        formatDirectImageUrl(cleanPath),
         width: width,
         height: height,
         fit: fit,
