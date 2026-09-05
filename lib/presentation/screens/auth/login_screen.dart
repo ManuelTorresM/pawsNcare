@@ -66,14 +66,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       height: 150,
                       fit: BoxFit.contain,
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Nurturing pet health together.',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.onSurfaceVariant,
-                      ),
-                    ),
                     const SizedBox(height: 48),
 
                     // Email Input
@@ -130,8 +122,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
+                      style: TextStyle(
+                        color: AppTheme.onSurface.withValues(alpha: 0.65),
+                      ),
                       decoration: InputDecoration(
                         hintText: '••••••••',
+                        hintStyle: TextStyle(
+                          color: AppTheme.onSurfaceVariant.withValues(
+                            alpha: 0.35,
+                          ),
+                        ),
                         prefixIcon: const Icon(
                           Icons.lock,
                           color: AppTheme.secondary,
@@ -461,11 +461,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: iconColor.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 32,
-                ),
+                child: Icon(icon, color: iconColor, size: 32),
               ),
               const SizedBox(height: 16),
               Text(
@@ -508,9 +504,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   try {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text(
-                          'Sending verification email...',
-                        ),
+                        content: Text('Sending verification email...'),
                       ),
                     );
                   } catch (_) {}

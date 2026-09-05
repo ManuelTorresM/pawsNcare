@@ -263,8 +263,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
+                    style: TextStyle(
+                      color: AppTheme.onSurface.withValues(alpha: 0.65),
+                    ),
                     decoration: InputDecoration(
                       hintText: '••••••••',
+                      hintStyle: TextStyle(
+                        color: AppTheme.onSurfaceVariant.withValues(
+                          alpha: 0.35,
+                        ),
+                      ),
                       prefixIcon: const Icon(
                         Icons.lock,
                         color: AppTheme.secondary,
@@ -291,8 +299,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextFormField(
                     controller: _confirmPasswordController,
                     obscureText: _obscureConfirmPassword,
+                    style: TextStyle(
+                      color: AppTheme.onSurface.withValues(alpha: 0.65),
+                    ),
                     decoration: InputDecoration(
                       hintText: '••••••••',
+                      hintStyle: TextStyle(
+                        color: AppTheme.onSurfaceVariant.withValues(
+                          alpha: 0.35,
+                        ),
+                      ),
                       prefixIcon: const Icon(
                         Icons.verified_user,
                         color: AppTheme.secondary,
