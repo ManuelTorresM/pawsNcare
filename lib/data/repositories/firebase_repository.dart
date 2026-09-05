@@ -36,7 +36,10 @@ class FirebaseRepository implements BaseRepository {
       final snapshot = await _firestore.collection('users').get();
       for (var doc in snapshot.docs) {
         final data = doc.data();
-        final storedEmail = (data['email'] ?? '').toString().trim().toLowerCase();
+        final storedEmail = (data['email'] ?? '')
+            .toString()
+            .trim()
+            .toLowerCase();
         if (storedEmail == cleanEmail && storedEmail.isNotEmpty) {
           return true;
         }
@@ -63,9 +66,7 @@ class FirebaseRepository implements BaseRepository {
             .get();
         if (!userDoc.exists) {
           await _auth.signOut();
-          throw Exception(
-            "Account doesn't exist. Please sign up first.",
-          );
+          throw Exception("Account doesn't exist. Please sign up first.");
         }
 
         if (!user.emailVerified) {
@@ -171,9 +172,14 @@ class FirebaseRepository implements BaseRepository {
 
   @override
   Future<bool> register(String email, String password, String name) async {
+    final cleanEmail = email.trim().toLowerCase();
+    final exists = await _doesUserAccountExist(cleanEmail);
+    if (exists) {
+      throw Exception('This email already has an account.');
+    }
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
-        email: email,
+        email: cleanEmail,
         password: password,
       );
       if (credential.user != null) {
@@ -186,7 +192,7 @@ class FirebaseRepository implements BaseRepository {
         final userCode = AppUser.generateUserCode(uid);
         await _firestore.collection('users').doc(uid).set({
           'name': name,
-          'email': email,
+          'email': cleanEmail,
           'userCode': userCode,
           'createdAt': FieldValue.serverTimestamp(),
         });
@@ -222,6 +228,17 @@ class FirebaseRepository implements BaseRepository {
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) return false;
 
+      final cleanEmail = googleUser.email.trim().toLowerCase();
+      if (cleanEmail.isNotEmpty) {
+        final exists = await _doesUserAccountExist(cleanEmail);
+        if (exists) {
+          try {
+            await GoogleSignIn().signOut();
+          } catch (_) {}
+          throw Exception('This email already has an account.');
+        }
+      }
+
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
       final fb.OAuthCredential credential = fb.GoogleAuthProvider.credential(
@@ -238,22 +255,28 @@ class FirebaseRepository implements BaseRepository {
             .doc(user.uid)
             .get();
         final userCode = AppUser.generateUserCode(user.uid);
-        if (!userDoc.exists) {
+        if (userDoc.exists) {
+          await _auth.signOut();
+          try {
+            await GoogleSignIn().signOut();
+          } catch (_) {}
+          throw Exception('This email already has an account.');
+        } else {
           await _firestore.collection('users').doc(user.uid).set({
             'name': user.displayName ?? 'Google User',
             'email': user.email ?? '',
             'userCode': userCode,
             'createdAt': FieldValue.serverTimestamp(),
           });
-        } else if (userDoc.data()?['userCode'] == null) {
-          await _firestore.collection('users').doc(user.uid).set({
-            'userCode': userCode,
-          }, SetOptions(merge: true));
         }
       }
       return true;
-    } catch (_) {
-      rethrow;
+    } catch (e) {
+      if (e.toString().contains('already has an account') ||
+          e.toString().contains('email-already-in-use')) {
+        rethrow;
+      }
+      return false;
     }
   }
 
