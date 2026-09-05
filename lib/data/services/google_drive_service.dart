@@ -195,7 +195,20 @@ class GoogleDriveService {
       );
 
       if (uploadedFile.id != null) {
-        return 'https://drive.google.com/uc?id=${uploadedFile.id}';
+        try {
+          await driveApi.permissions.create(
+            drive.Permission()
+              ..type = 'anyone'
+              ..role = 'reader',
+            uploadedFile.id!,
+          );
+          debugPrint(
+            'GoogleDriveService: Granted public reader permission to file ${uploadedFile.id}',
+          );
+        } catch (permErr) {
+          debugPrint('GoogleDriveService permission set note: $permErr');
+        }
+        return 'https://drive.google.com/uc?export=view&id=${uploadedFile.id}';
       }
       return null;
     } catch (e, stack) {
@@ -304,6 +317,7 @@ class GoogleDriveService {
                 '${pet.name}_profile_${profileFile.path.split('/').last.split('\\').last}',
           );
           if (driveUrl != null) {
+            updatedAvatarUrl = driveUrl;
             debugPrint(
               'GoogleDriveService: Uploaded profile picture to Drive -> $driveUrl',
             );
@@ -333,11 +347,13 @@ class GoogleDriveService {
             memoriesFolderId,
           );
           if (driveUrl != null) {
+            updatedPhotos.add(driveUrl);
             debugPrint(
               'GoogleDriveService: Uploaded photo memory to Drive -> $driveUrl',
             );
+          } else {
+            updatedPhotos.add(photoPath);
           }
-          updatedPhotos.add(photoPath);
         } else {
           updatedPhotos.add(photoPath);
         }
