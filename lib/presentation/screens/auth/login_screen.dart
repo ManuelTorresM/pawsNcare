@@ -216,8 +216,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                       }
                                     },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primary,
-                                foregroundColor: Colors.white,
+                                backgroundColor: theme.colorScheme.primary,
+                                foregroundColor: theme.colorScheme.onPrimary,
+                                disabledBackgroundColor:
+                                    theme.colorScheme.primary.withValues(
+                                  alpha: 0.4,
+                                ),
+                                disabledForegroundColor:
+                                    theme.colorScheme.onPrimary.withValues(
+                                  alpha: 0.8,
+                                ),
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 16,
                                 ),
@@ -227,13 +235,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                 elevation: 0,
                               ),
                               child: isThisLoading
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       height: 20,
                                       width: 20,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
                                         valueColor: AlwaysStoppedAnimation(
-                                          Colors.white,
+                                          theme.colorScheme.onPrimary,
                                         ),
                                       ),
                                     )
@@ -244,7 +252,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                         Text(
                                           'Log In',
                                           style: theme.textTheme.labelLarge
-                                              ?.copyWith(color: Colors.white),
+                                              ?.copyWith(
+                                            color: theme.colorScheme.onPrimary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -419,7 +430,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             );
                           },
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppTheme.primary),
+                            side: BorderSide(color: theme.colorScheme.primary),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -428,7 +439,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Text(
                             'Create Account',
                             style: theme.textTheme.labelLarge?.copyWith(
-                              color: AppTheme.primary,
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
