@@ -161,10 +161,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                 subtitle: 'Update vaccination records',
                 primaryButtonText: 'Save Changes',
                 headerAction: IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    color: AppTheme.error,
-                  ),
+                  icon: const Icon(Icons.delete_outline, color: AppTheme.error),
                   tooltip: 'Delete',
                   onPressed: () {
                     Navigator.of(dialogContext).pop();
@@ -202,8 +199,9 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                       nextDoseDate: isAlreadyAdministered
                           ? selectedDate.add(const Duration(days: 365))
                           : selectedDate,
-                      administeredDate:
-                          isAlreadyAdministered ? selectedDate : null,
+                      administeredDate: isAlreadyAdministered
+                          ? selectedDate
+                          : null,
                       lotNumber: lotInfo,
                       isCompleted: isAlreadyAdministered,
                     );
@@ -211,12 +209,8 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                     final updatedMeds = _pet.medications
                         .map((m) => m.id == item.id ? updatedVaccine : m)
                         .toList();
-                    final updatedPet = _pet.copyWith(
-                      medications: updatedMeds,
-                    );
-                    parentContext.read<PetBloc>().add(
-                          UpdatePet(updatedPet),
-                        );
+                    final updatedPet = _pet.copyWith(medications: updatedMeds);
+                    parentContext.read<PetBloc>().add(UpdatePet(updatedPet));
                     Navigator.of(dialogContext).pop();
                   }
                 },
@@ -226,9 +220,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                   DropdownButtonFormField<String>(
                     initialValue: selectedVaccine,
                     items: predefinedVaccines
-                        .map(
-                          (v) => DropdownMenuItem(value: v, child: Text(v)),
-                        )
+                        .map((v) => DropdownMenuItem(value: v, child: Text(v)))
                         .toList(),
                     onChanged: (val) {
                       if (val != null) {
@@ -248,7 +240,9 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                   const SizedBox(height: 12),
 
                   // 2. Manufacturer / Laboratory (Optional)
-                  const FormSectionLabel('MANUFACTURER / LABORATORY (OPTIONAL)'),
+                  const FormSectionLabel(
+                    'MANUFACTURER / LABORATORY (OPTIONAL)',
+                  ),
                   TextField(
                     controller: manufacturerController,
                     decoration: const InputDecoration(
@@ -272,9 +266,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                   DropdownButtonFormField<String>(
                     initialValue: selectedDoseNumber,
                     items: predefinedDoses
-                        .map(
-                          (d) => DropdownMenuItem(value: d, child: Text(d)),
-                        )
+                        .map((d) => DropdownMenuItem(value: d, child: Text(d)))
                         .toList(),
                     onChanged: (val) {
                       if (val != null) {
@@ -356,9 +348,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                               ),
                         lastDate: dateType == 'Administered'
                             ? DateTime.now()
-                            : DateTime.now().add(
-                                const Duration(days: 365 * 3),
-                              ),
+                            : DateTime.now().add(const Duration(days: 365 * 3)),
                       );
                       if (!dialogContext.mounted) return;
                       if (picked != null) {
@@ -417,10 +407,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
               subtitle: 'Update prescription & dosage details',
               primaryButtonText: 'Save Changes',
               headerAction: IconButton(
-                icon: const Icon(
-                  Icons.delete_outline,
-                  color: AppTheme.error,
-                ),
+                icon: const Icon(Icons.delete_outline, color: AppTheme.error),
                 tooltip: 'Delete',
                 onPressed: () {
                   Navigator.of(dialogContext).pop();
@@ -446,12 +433,8 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                   final updatedMeds = _pet.medications
                       .map((m) => m.id == item.id ? updatedMed : m)
                       .toList();
-                  final updatedPet = _pet.copyWith(
-                    medications: updatedMeds,
-                  );
-                  parentContext.read<PetBloc>().add(
-                        UpdatePet(updatedPet),
-                      );
+                  final updatedPet = _pet.copyWith(medications: updatedMeds);
+                  parentContext.read<PetBloc>().add(UpdatePet(updatedPet));
                   Navigator.of(dialogContext).pop();
                 }
               },
@@ -481,10 +464,16 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                       child: DropdownButtonFormField<String>(
                         initialValue: doseUnit,
                         items: const [
-                          DropdownMenuItem(value: 'Tablet', child: Text('Tablet')),
+                          DropdownMenuItem(
+                            value: 'Tablet',
+                            child: Text('Tablet'),
+                          ),
                           DropdownMenuItem(value: 'mg', child: Text('mg')),
                           DropdownMenuItem(value: 'ml', child: Text('ml')),
-                          DropdownMenuItem(value: 'Other', child: Text('Other')),
+                          DropdownMenuItem(
+                            value: 'Other',
+                            child: Text('Other'),
+                          ),
                         ],
                         onChanged: (val) {
                           if (val != null) {
@@ -500,12 +489,24 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                 DropdownButtonFormField<String>(
                   initialValue: frequency,
                   items: const [
-                    DropdownMenuItem(value: 'Every 8h', child: Text('Every 8h')),
-                    DropdownMenuItem(value: 'Every 12h', child: Text('Every 12h')),
-                    DropdownMenuItem(value: 'Every 24h', child: Text('Every 24h')),
+                    DropdownMenuItem(
+                      value: 'Every 8h',
+                      child: Text('Every 8h'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Every 12h',
+                      child: Text('Every 12h'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Every 24h',
+                      child: Text('Every 24h'),
+                    ),
                     DropdownMenuItem(value: 'Weekly', child: Text('Weekly')),
                     DropdownMenuItem(value: 'Monthly', child: Text('Monthly')),
-                    DropdownMenuItem(value: 'One-time', child: Text('One-time')),
+                    DropdownMenuItem(
+                      value: 'One-time',
+                      child: Text('One-time'),
+                    ),
                   ],
                   onChanged: (val) {
                     if (val != null) {
@@ -520,9 +521,12 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                     final picked = await showDatePicker(
                       context: dialogContext,
                       initialDate: startDate,
-                      firstDate:
-                          DateTime.now().subtract(const Duration(days: 365)),
-                      lastDate: DateTime.now().add(const Duration(days: 365 * 3)),
+                      firstDate: DateTime.now().subtract(
+                        const Duration(days: 365),
+                      ),
+                      lastDate: DateTime.now().add(
+                        const Duration(days: 365 * 3),
+                      ),
                     );
                     if (!dialogContext.mounted) return;
                     if (picked != null) {
@@ -565,7 +569,9 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                       initialDate:
                           endDate ?? startDate.add(const Duration(days: 7)),
                       firstDate: startDate,
-                      lastDate: DateTime.now().add(const Duration(days: 365 * 3)),
+                      lastDate: DateTime.now().add(
+                        const Duration(days: 365 * 3),
+                      ),
                     );
                     if (!dialogContext.mounted) return;
                     if (picked != null) {
@@ -623,10 +629,12 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
             final isDark = parentContext.read<ThemeCubit>().state;
-            final textPrimary =
-                isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
-            final textSecondary =
-                isDark ? AppTheme.darkOnSurfaceVariant : AppTheme.secondary;
+            final textPrimary = isDark
+                ? AppTheme.darkOnSurface
+                : AppTheme.onSurface;
+            final textSecondary = isDark
+                ? AppTheme.darkOnSurfaceVariant
+                : AppTheme.secondary;
 
             return BaseFormDialog(
               icon: Icons.medication_outlined,
@@ -709,7 +717,8 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                             : AppTheme.surfaceContainer,
                       ),
                     ),
-                    errorText: validationError != null &&
+                    errorText:
+                        validationError != null &&
                             nameController.text.trim().isEmpty
                         ? 'Medication Name is required'
                         : null,
@@ -808,12 +817,9 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                   doseUnit == 'Tablet'
                       ? 'Format example: 1 or 1/2'
                       : (doseUnit == 'Other'
-                          ? 'Custom doses like puffs, times, etc.'
-                          : 'Format example: 0.5'),
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: textSecondary,
-                  ),
+                            ? 'Custom doses like puffs, times, etc.'
+                            : 'Format example: 0.5'),
+                  style: TextStyle(fontSize: 11, color: textSecondary),
                 ),
                 const SizedBox(height: 14),
 
@@ -853,14 +859,8 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                       value: 'Every 24h',
                       child: Text('Every 24h'),
                     ),
-                    DropdownMenuItem(
-                      value: 'Weekly',
-                      child: Text('Weekly'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'Monthly',
-                      child: Text('Monthly'),
-                    ),
+                    DropdownMenuItem(value: 'Weekly', child: Text('Weekly')),
+                    DropdownMenuItem(value: 'Monthly', child: Text('Monthly')),
                     DropdownMenuItem(
                       value: 'One-time',
                       child: Text('One-time'),
@@ -983,10 +983,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                         const FormSectionLabel('Reminders & Notifications'),
                         Text(
                           'Notify when dose is due',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: textSecondary,
-                          ),
+                          style: TextStyle(fontSize: 11, color: textSecondary),
                         ),
                       ],
                     ),
@@ -1043,10 +1040,12 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
             final isOtherVaccine = selectedVaccine == 'Other';
             final isOtherDose = selectedDoseNumber == 'Other';
             final isDark = parentContext.read<ThemeCubit>().state;
-            final textPrimary =
-                isDark ? AppTheme.darkOnSurface : AppTheme.onSurface;
-            final textSecondary =
-                isDark ? AppTheme.darkOnSurfaceVariant : AppTheme.secondary;
+            final textPrimary = isDark
+                ? AppTheme.darkOnSurface
+                : AppTheme.onSurface;
+            final textSecondary = isDark
+                ? AppTheme.darkOnSurfaceVariant
+                : AppTheme.secondary;
 
             return BaseFormDialog(
               icon: Icons.vaccines_outlined,
@@ -1100,8 +1099,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                   nextDoseDate: isAlreadyAdministered
                       ? selectedDate.add(const Duration(days: 365))
                       : selectedDate,
-                  administeredDate:
-                      isAlreadyAdministered ? selectedDate : null,
+                  administeredDate: isAlreadyAdministered ? selectedDate : null,
                   type: 'vaccine',
                   lotNumber: lotInfo,
                   isCompleted: isAlreadyAdministered,
@@ -1140,9 +1138,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                     ),
                   ),
                   items: predefinedVaccines
-                      .map(
-                        (v) => DropdownMenuItem(value: v, child: Text(v)),
-                      )
+                      .map((v) => DropdownMenuItem(value: v, child: Text(v)))
                       .toList(),
                   onChanged: (val) {
                     if (val != null) {
@@ -1157,10 +1153,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: nameController,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      color: textPrimary,
-                    ),
+                    style: TextStyle(fontFamily: 'Inter', color: textPrimary),
                     decoration: InputDecoration(
                       hintText: 'Enter custom vaccine name...',
                       hintStyle: TextStyle(
@@ -1178,7 +1171,8 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                               : AppTheme.surfaceContainer,
                         ),
                       ),
-                      errorText: validationError != null &&
+                      errorText:
+                          validationError != null &&
                               nameController.text.trim().isEmpty
                           ? 'Vaccine Name is required'
                           : null,
@@ -1278,9 +1272,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                     ),
                   ),
                   items: predefinedDoses
-                      .map(
-                        (d) => DropdownMenuItem(value: d, child: Text(d)),
-                      )
+                      .map((d) => DropdownMenuItem(value: d, child: Text(d)))
                       .toList(),
                   onChanged: (val) {
                     if (val != null) {
@@ -1318,7 +1310,8 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                               : AppTheme.surfaceContainer,
                         ),
                       ),
-                      errorText: validationError != null &&
+                      errorText:
+                          validationError != null &&
                               customDoseController.text.trim().isEmpty
                           ? 'Dose Type / Number is required'
                           : null,
@@ -1416,9 +1409,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                           : DateTime.now(),
                       lastDate: dateType == 'Administered'
                           ? DateTime.now()
-                          : DateTime.now().add(
-                              const Duration(days: 365 * 3),
-                            ),
+                          : DateTime.now().add(const Duration(days: 365 * 3)),
                     );
                     if (!dialogContext.mounted) return;
                     if (picked != null) {
@@ -1619,8 +1610,8 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                     setState(() => _isFabExpanded = false);
                     _showAddMedicationDialog(context);
                   },
-                  backgroundColor: AppTheme.tertiaryContainer,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppTheme.primaryFixed,
+                  foregroundColor: AppTheme.onPrimaryFixedVariant,
                   elevation: 4,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -1635,7 +1626,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                     setState(() => _isFabExpanded = false);
                     _showAddVaccineDialog(context);
                   },
-                  backgroundColor: AppTheme.tertiaryContainer,
+                  backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.white,
                   elevation: 4,
                   shape: RoundedRectangleBorder(
@@ -1651,7 +1642,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                 onPressed: () {
                   setState(() => _isFabExpanded = !_isFabExpanded);
                 },
-                backgroundColor: AppTheme.tertiaryContainer,
+                backgroundColor: AppTheme.tertiary,
                 foregroundColor: Colors.white,
                 elevation: 4,
                 shape: RoundedRectangleBorder(

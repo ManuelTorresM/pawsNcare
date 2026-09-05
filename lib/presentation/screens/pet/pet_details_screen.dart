@@ -8,6 +8,7 @@ import '../../../data/models/pet.dart';
 import '../../../data/models/pet_role.dart';
 import '../../../logic/pet/pet_bloc.dart';
 import '../../../logic/theme/theme_cubit.dart';
+import '../../../core/utils/responsive_layout.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/role_badge.dart';
 import 'medical_history_screen.dart';
@@ -1397,6 +1398,8 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
         ? const Color(0xFF7E2B18)
         : AppTheme.tertiaryFixed.withValues(alpha: 0.3);
 
+    final isWide = ResponsiveLayout.isWide(context);
+
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
@@ -1440,513 +1443,1048 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
         onRefresh: () async {
           context.read<PetBloc>().add(LoadPets());
         },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildPendingInviteBanner(),
-              // Hero Image Area (Asymmetric Layout)
-              SizedBox(
-                height: 180,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Asymmetrical Rotated Image Container
-                    Expanded(
-                      flex: 5,
-                      child: Transform.rotate(
-                        angle: -0.02,
-                        child: Container(
-                          height: 180,
-                          decoration: BoxDecoration(
-                            color: AppTheme.surfaceContainer,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(
-                                  alpha: isDark ? 0.25 : 0.08,
+        child: isWide
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Left Pane: Pending invite, Hero & Age card, Basic Information
+                  Expanded(
+                    flex: 5,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildPendingInviteBanner(),
+                          // Hero Image Area (Asymmetric Layout)
+                          SizedBox(
+                            height: 180,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Asymmetrical Rotated Image Container
+                                Expanded(
+                                  flex: 5,
+                                  child: Transform.rotate(
+                                    angle: -0.02,
+                                    child: Container(
+                                      height: 180,
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.surfaceContainer,
+                                        borderRadius: BorderRadius.circular(24),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: isDark ? 0.25 : 0.08,
+                                            ),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                        border: Border.all(
+                                          color: isDark
+                                              ? AppTheme.darkBorder
+                                              : Colors.white,
+                                          width: 4,
+                                        ),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(20),
+                                        child: _buildPetImageWidget(
+                                          _pet.avatarUrl,
+                                          iconSize: 48,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                                const SizedBox(width: 12),
+                                // Side info card (Age)
+                                Expanded(
+                                  flex: 3,
+                                  child: Column(
+                                    children: [
+                                      // Age Card
+                                      Expanded(
+                                        child: Container(
+                                          width: double.infinity,
+                                          decoration: BoxDecoration(
+                                            color: ageCardBg,
+                                            borderRadius: BorderRadius.circular(24),
+                                            border: Border.all(color: ageCardBorder),
+                                          ),
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                'Age',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: ageCardText,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                '$ageYears',
+                                                style: TextStyle(
+                                                  fontSize: 28,
+                                                  fontFamily: 'Montserrat',
+                                                  fontWeight: FontWeight.bold,
+                                                  color: ageCardText,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                ageYears == 1 ? 'Year' : 'Years',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: ageCardText,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+
+                          // Section 1: Basic Info
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Basic Information',
+                                style: TextStyle(
+                                  fontFamily: 'Montserrat',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: headerColor,
+                                ),
+                              ),
+                              if (_currentUserRole.canEditProfile)
+                                TextButton.icon(
+                                  onPressed: _showEditPetProfileDialog,
+                                  icon: Icon(
+                                    Icons.edit_outlined,
+                                    size: 18,
+                                    color: headerColor,
+                                  ),
+                                  label: Text(
+                                    'Edit',
+                                    style: TextStyle(
+                                      color: headerColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+
+                          // Bento Grid of Basic info
+                          GridView.count(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            childAspectRatio: 1.5,
+                            children: [
+                              _buildBentoItem(
+                                title: 'Birthday',
+                                value: birthStr,
+                                icon: Icons.cake,
+                                cardBg: cardBg,
+                                textPrimary: textPrimary,
+                                textSecondary: textSecondary,
+                                headerColor: headerColor,
+                                borderColor: borderColor,
+                              ),
+                              _buildBentoItem(
+                                title: 'Breed',
+                                value: _pet.breed.isNotEmpty ? _pet.breed : 'Unknown',
+                                icon: Icons.pets,
+                                cardBg: cardBg,
+                                textPrimary: textPrimary,
+                                textSecondary: textSecondary,
+                                headerColor: headerColor,
+                                borderColor: borderColor,
+                              ),
+                              _buildBentoItem(
+                                title: 'Gender',
+                                value: _pet.gender,
+                                icon: _pet.gender.toLowerCase() == 'female'
+                                    ? Icons.female
+                                    : Icons.male,
+                                cardBg: cardBg,
+                                textPrimary: textPrimary,
+                                textSecondary: textSecondary,
+                                headerColor: headerColor,
+                                borderColor: borderColor,
+                              ),
+                              _buildBentoItem(
+                                title: 'Neutered',
+                                value: _pet.neutered,
+                                icon: Icons.verified,
+                                cardBg: cardBg,
+                                textPrimary: textPrimary,
+                                textSecondary: textSecondary,
+                                headerColor: headerColor,
+                                borderColor: borderColor,
                               ),
                             ],
-                            border: Border.all(
-                              color: isDark
-                                  ? AppTheme.darkBorder
-                                  : Colors.white,
-                              width: 4,
-                            ),
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: _buildPetImageWidget(
-                              _pet.avatarUrl,
-                              iconSize: 48,
-                            ),
-                          ),
-                        ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    // Side info card (Age)
-                    Expanded(
-                      flex: 3,
+                  ),
+                  Container(
+                    width: 1,
+                    color: (isDark
+                            ? const Color(0xFF383634)
+                            : AppTheme.surfaceContainer)
+                        .withValues(alpha: 0.5),
+                  ),
+                  // Right Pane: Health Profile and Lifestyle & Routine
+                  Expanded(
+                    flex: 6,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Age Card
-                          Expanded(
-                            child: Container(
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                color: ageCardBg,
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(color: ageCardBorder),
+                          // Section 2: Health Profile
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Health Profile',
+                                style: TextStyle(
+                                  fontFamily: 'Montserrat',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: headerColor,
+                                ),
                               ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'Age',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: ageCardText,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                              if (_currentUserRole.canLogMedical)
+                                TextButton.icon(
+                                  onPressed: _showEditHealthProfileDialog,
+                                  icon: Icon(
+                                    Icons.edit_outlined,
+                                    size: 18,
+                                    color: headerColor,
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '$ageYears',
+                                  label: Text(
+                                    'Edit',
                                     style: TextStyle(
-                                      fontSize: 28,
-                                      fontFamily: 'Montserrat',
+                                      color: headerColor,
                                       fontWeight: FontWeight.bold,
-                                      color: ageCardText,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    ageYears == 1 ? 'Year' : 'Years',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: ageCardText,
-                                      fontWeight: FontWeight.w600,
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: cardBg,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: borderColor),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(
+                                    alpha: isDark ? 0.2 : 0.01,
+                                  ),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Medical Conditions',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: textSecondary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                _pet.medicalConditions.isEmpty ||
+                                        (_pet.medicalConditions.length == 1 &&
+                                            _pet.medicalConditions.first.toLowerCase() ==
+                                                'none')
+                                    ? Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isDark
+                                              ? AppTheme.darkBorder
+                                              : AppTheme.surfaceContainer,
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          'None',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: textPrimary,
+                                          ),
+                                        ),
+                                      )
+                                    : Wrap(
+                                        spacing: 6,
+                                        runSpacing: 6,
+                                        children: _pet.medicalConditions
+                                            .where((c) => c.toLowerCase() != 'none')
+                                            .map(
+                                              (c) => Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 12,
+                                                  vertical: 6,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: AppTheme.primary.withValues(
+                                                    alpha: isDark ? 0.25 : 0.1,
+                                                  ),
+                                                  borderRadius: BorderRadius.circular(20),
+                                                ),
+                                                child: Text(
+                                                  c[0].toUpperCase() + c.substring(1),
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: headerColor,
+                                                  ),
+                                                ),
+                                              ),
+                                            )
+                                            .toList(),
+                                      ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Allergies',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: textSecondary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                _pet.allergies.isEmpty
+                                    ? Text(
+                                        'None',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: textPrimary,
+                                        ),
+                                      )
+                                    : Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: _pet.allergies
+                                            .map((a) => _buildAllergyChip(a, isDark))
+                                            .toList(),
+                                      ),
+                                const SizedBox(height: 16),
+                                // Vaccination button
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            MedicalHistoryScreen(pet: _pet),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isDark
+                                        ? AppTheme.primaryContainer
+                                        : AppTheme.primaryFixed,
+                                    foregroundColor: isDark
+                                        ? AppTheme.onPrimaryContainer
+                                        : AppTheme.onPrimaryFixedVariant,
+                                    elevation: 0,
+                                    minimumSize: const Size.fromHeight(50),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                ],
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(Icons.vaccines),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Vaccination History',
+                                            style: TextStyle(fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
+                                      ),
+                                      Icon(Icons.chevron_right),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+
+                          // Section 3: Lifestyle & Routine
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Lifestyle & Routine',
+                                style: TextStyle(
+                                  fontFamily: 'Montserrat',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: headerColor,
+                                ),
                               ),
+                              if (_currentUserRole.canEditProfile)
+                                TextButton.icon(
+                                  onPressed: _showEditLifestyleDialog,
+                                  icon: Icon(
+                                    Icons.edit_outlined,
+                                    size: 18,
+                                    color: headerColor,
+                                  ),
+                                  label: Text(
+                                    'Edit',
+                                    style: TextStyle(
+                                      color: headerColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: cardBg,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: borderColor),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(
+                                    alpha: isDark ? 0.2 : 0.01,
+                                  ),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                _buildRoutineItem(
+                                  title: 'Activity Level',
+                                  value: _pet.activityLevel.isNotEmpty
+                                      ? _pet.activityLevel
+                                      : 'Moderate',
+                                  icon: Icons.directions_run,
+                                  textSecondary: textSecondary,
+                                  headerColor: headerColor,
+                                ),
+                                Divider(
+                                  height: 24,
+                                  color: isDark
+                                      ? AppTheme.darkBorder
+                                      : AppTheme.surfaceContainer,
+                                ),
+                                _buildRoutineItem(
+                                  title: 'Diet',
+                                  value: _pet.dietEnabled
+                                      ? "${_pet.foodType.isNotEmpty ? _pet.foodType : 'Mixed'}${_pet.feedingNotes.isNotEmpty ? ' - ${_pet.feedingNotes}' : ''}"
+                                      : 'Not Specified',
+                                  icon: Icons.restaurant,
+                                  textSecondary: textSecondary,
+                                  headerColor: headerColor,
+                                ),
+                                Divider(
+                                  height: 24,
+                                  color: isDark
+                                      ? AppTheme.darkBorder
+                                      : AppTheme.surfaceContainer,
+                                ),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Behavior Tags',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: textSecondary,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          _pet.behaviorTags.isEmpty
+                                              ? Text(
+                                                  'None',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: textPrimary,
+                                                  ),
+                                                )
+                                              : Wrap(
+                                                  spacing: 8,
+                                                  runSpacing: 8,
+                                                  children: _pet.behaviorTags
+                                                      .map(
+                                                        (t) =>
+                                                            _buildBehaviorChip(t, isDark),
+                                                      )
+                                                      .toList(),
+                                                ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              // Section 1: Basic Info
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Basic Information',
-                    style: TextStyle(
-                      fontFamily: 'Montserrat',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: headerColor,
-                    ),
-                  ),
-                  if (_currentUserRole.canEditProfile)
-                    TextButton.icon(
-                      onPressed: _showEditPetProfileDialog,
-                      icon: Icon(
-                        Icons.edit_outlined,
-                        size: 18,
-                        color: headerColor,
-                      ),
-                      label: Text(
-                        'Edit',
-                        style: TextStyle(
-                          color: headerColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // Bento Grid of Basic info
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.5,
-                children: [
-                  _buildBentoItem(
-                    title: 'Birthday',
-                    value: birthStr,
-                    icon: Icons.cake,
-                    cardBg: cardBg,
-                    textPrimary: textPrimary,
-                    textSecondary: textSecondary,
-                    headerColor: headerColor,
-                    borderColor: borderColor,
-                  ),
-                  _buildBentoItem(
-                    title: 'Breed',
-                    value: _pet.breed.isNotEmpty ? _pet.breed : 'Unknown',
-                    icon: Icons.pets,
-                    cardBg: cardBg,
-                    textPrimary: textPrimary,
-                    textSecondary: textSecondary,
-                    headerColor: headerColor,
-                    borderColor: borderColor,
-                  ),
-                  _buildBentoItem(
-                    title: 'Gender',
-                    value: _pet.gender,
-                    icon: _pet.gender.toLowerCase() == 'female'
-                        ? Icons.female
-                        : Icons.male,
-                    cardBg: cardBg,
-                    textPrimary: textPrimary,
-                    textSecondary: textSecondary,
-                    headerColor: headerColor,
-                    borderColor: borderColor,
-                  ),
-                  _buildBentoItem(
-                    title: 'Neutered',
-                    value: _pet.neutered,
-                    icon: Icons.verified,
-                    cardBg: cardBg,
-                    textPrimary: textPrimary,
-                    textSecondary: textSecondary,
-                    headerColor: headerColor,
-                    borderColor: borderColor,
                   ),
                 ],
-              ),
-              const SizedBox(height: 28),
-
-              // Section 2: Health Profile
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Health Profile',
-                    style: TextStyle(
-                      fontFamily: 'Montserrat',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: headerColor,
-                    ),
-                  ),
-                  if (_currentUserRole.canLogMedical)
-                    TextButton.icon(
-                      onPressed: _showEditHealthProfileDialog,
-                      icon: Icon(
-                        Icons.edit_outlined,
-                        size: 18,
-                        color: headerColor,
-                      ),
-                      label: Text(
-                        'Edit',
-                        style: TextStyle(
-                          color: headerColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: cardBg,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: borderColor),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: isDark ? 0.2 : 0.01,
-                      ),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
+              )
+            : SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Medical Conditions',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    _pet.medicalConditions.isEmpty ||
-                            (_pet.medicalConditions.length == 1 &&
-                                _pet.medicalConditions.first.toLowerCase() ==
-                                    'none')
-                        ? Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? AppTheme.darkBorder
-                                  : AppTheme.surfaceContainer,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              'None',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: textPrimary,
+                    _buildPendingInviteBanner(),
+                    // Hero Image Area (Asymmetric Layout)
+                    SizedBox(
+                      height: 180,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Asymmetrical Rotated Image Container
+                          Expanded(
+                            flex: 5,
+                            child: Transform.rotate(
+                              angle: -0.02,
+                              child: Container(
+                                height: 180,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.surfaceContainer,
+                                  borderRadius: BorderRadius.circular(24),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: isDark ? 0.25 : 0.08,
+                                      ),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                  border: Border.all(
+                                    color: isDark
+                                        ? AppTheme.darkBorder
+                                        : Colors.white,
+                                    width: 4,
+                                  ),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: _buildPetImageWidget(
+                                    _pet.avatarUrl,
+                                    iconSize: 48,
+                                  ),
+                                ),
                               ),
                             ),
-                          )
-                        : Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: _pet.medicalConditions
-                                .where((c) => c.toLowerCase() != 'none')
-                                .map(
-                                  (c) => Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Side info card (Age)
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              children: [
+                                // Age Card
+                                Expanded(
+                                  child: Container(
+                                    width: double.infinity,
                                     decoration: BoxDecoration(
-                                      color: AppTheme.primary.withValues(
-                                        alpha: isDark ? 0.25 : 0.1,
-                                      ),
-                                      borderRadius: BorderRadius.circular(20),
+                                      color: ageCardBg,
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(color: ageCardBorder),
                                     ),
-                                    child: Text(
-                                      c[0].toUpperCase() + c.substring(1),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: headerColor,
-                                      ),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          'Age',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: ageCardText,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '$ageYears',
+                                          style: TextStyle(
+                                            fontSize: 28,
+                                            fontFamily: 'Montserrat',
+                                            fontWeight: FontWeight.bold,
+                                            color: ageCardText,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          ageYears == 1 ? 'Year' : 'Years',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: ageCardText,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
+                    // Section 1: Basic Info
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Basic Information',
+                          style: TextStyle(
+                            fontFamily: 'Montserrat',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: headerColor,
+                          ),
+                        ),
+                        if (_currentUserRole.canEditProfile)
+                          TextButton.icon(
+                            onPressed: _showEditPetProfileDialog,
+                            icon: Icon(
+                              Icons.edit_outlined,
+                              size: 18,
+                              color: headerColor,
+                            ),
+                            label: Text(
+                              'Edit',
+                              style: TextStyle(
+                                color: headerColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Bento Grid of Basic info
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 1.5,
+                      children: [
+                        _buildBentoItem(
+                          title: 'Birthday',
+                          value: birthStr,
+                          icon: Icons.cake,
+                          cardBg: cardBg,
+                          textPrimary: textPrimary,
+                          textSecondary: textSecondary,
+                          headerColor: headerColor,
+                          borderColor: borderColor,
+                        ),
+                        _buildBentoItem(
+                          title: 'Breed',
+                          value: _pet.breed.isNotEmpty ? _pet.breed : 'Unknown',
+                          icon: Icons.pets,
+                          cardBg: cardBg,
+                          textPrimary: textPrimary,
+                          textSecondary: textSecondary,
+                          headerColor: headerColor,
+                          borderColor: borderColor,
+                        ),
+                        _buildBentoItem(
+                          title: 'Gender',
+                          value: _pet.gender,
+                          icon: _pet.gender.toLowerCase() == 'female'
+                              ? Icons.female
+                              : Icons.male,
+                          cardBg: cardBg,
+                          textPrimary: textPrimary,
+                          textSecondary: textSecondary,
+                          headerColor: headerColor,
+                          borderColor: borderColor,
+                        ),
+                        _buildBentoItem(
+                          title: 'Neutered',
+                          value: _pet.neutered,
+                          icon: Icons.verified,
+                          cardBg: cardBg,
+                          textPrimary: textPrimary,
+                          textSecondary: textSecondary,
+                          headerColor: headerColor,
+                          borderColor: borderColor,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 28),
+
+                    // Section 2: Health Profile
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Health Profile',
+                          style: TextStyle(
+                            fontFamily: 'Montserrat',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: headerColor,
+                          ),
+                        ),
+                        if (_currentUserRole.canLogMedical)
+                          TextButton.icon(
+                            onPressed: _showEditHealthProfileDialog,
+                            icon: Icon(
+                              Icons.edit_outlined,
+                              size: 18,
+                              color: headerColor,
+                            ),
+                            label: Text(
+                              'Edit',
+                              style: TextStyle(
+                                color: headerColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: borderColor),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: isDark ? 0.2 : 0.01,
+                            ),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Medical Conditions',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          _pet.medicalConditions.isEmpty ||
+                                  (_pet.medicalConditions.length == 1 &&
+                                      _pet.medicalConditions.first.toLowerCase() ==
+                                          'none')
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? AppTheme.darkBorder
+                                        : AppTheme.surfaceContainer,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    'None',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: textPrimary,
                                     ),
                                   ),
                                 )
-                                .toList(),
-                          ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Allergies',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    _pet.allergies.isEmpty
-                        ? Text(
-                            'None',
+                              : Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: _pet.medicalConditions
+                                      .where((c) => c.toLowerCase() != 'none')
+                                      .map(
+                                        (c) => Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.primary.withValues(
+                                              alpha: isDark ? 0.25 : 0.1,
+                                            ),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: Text(
+                                            c[0].toUpperCase() + c.substring(1),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: headerColor,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Allergies',
                             style: TextStyle(
                               fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: textPrimary,
+                              color: textSecondary,
+                              fontWeight: FontWeight.w500,
                             ),
-                          )
-                        : Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: _pet.allergies
-                                .map((a) => _buildAllergyChip(a, isDark))
-                                .toList(),
                           ),
-                    const SizedBox(height: 16),
-                    // Vaccination button
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                MedicalHistoryScreen(pet: _pet),
+                          const SizedBox(height: 6),
+                          _pet.allergies.isEmpty
+                              ? Text(
+                                  'None',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: textPrimary,
+                                  ),
+                                )
+                              : Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: _pet.allergies
+                                      .map((a) => _buildAllergyChip(a, isDark))
+                                      .toList(),
+                                ),
+                          const SizedBox(height: 16),
+                          // Vaccination button
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      MedicalHistoryScreen(pet: _pet),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isDark
+                                  ? AppTheme.primaryContainer
+                                  : AppTheme.primaryFixed,
+                              foregroundColor: isDark
+                                  ? AppTheme.onPrimaryContainer
+                                  : AppTheme.onPrimaryFixedVariant,
+                              elevation: 0,
+                              minimumSize: const Size.fromHeight(50),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.vaccines),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Vaccination History',
+                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                                Icon(Icons.chevron_right),
+                              ],
+                            ),
                           ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isDark
-                            ? AppTheme.primaryContainer
-                            : AppTheme.primaryFixed,
-                        foregroundColor: isDark
-                            ? AppTheme.onPrimaryContainer
-                            : AppTheme.onPrimaryFixedVariant,
-                        elevation: 0,
-                        minimumSize: const Size.fromHeight(50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        ],
                       ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    ),
+                    const SizedBox(height: 28),
+
+                    // Section 3: Lifestyle & Routine
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Lifestyle & Routine',
+                          style: TextStyle(
+                            fontFamily: 'Montserrat',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: headerColor,
+                          ),
+                        ),
+                        if (_currentUserRole.canEditProfile)
+                          TextButton.icon(
+                            onPressed: _showEditLifestyleDialog,
+                            icon: Icon(
+                              Icons.edit_outlined,
+                              size: 18,
+                              color: headerColor,
+                            ),
+                            label: Text(
+                              'Edit',
+                              style: TextStyle(
+                                color: headerColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: borderColor),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: isDark ? 0.2 : 0.01,
+                            ),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
                         children: [
+                          _buildRoutineItem(
+                            title: 'Activity Level',
+                            value: _pet.activityLevel.isNotEmpty
+                                ? _pet.activityLevel
+                                : 'Moderate',
+                            icon: Icons.directions_run,
+                            textSecondary: textSecondary,
+                            headerColor: headerColor,
+                          ),
+                          Divider(
+                            height: 24,
+                            color: isDark
+                                ? AppTheme.darkBorder
+                                : AppTheme.surfaceContainer,
+                          ),
+                          _buildRoutineItem(
+                            title: 'Diet',
+                            value: _pet.dietEnabled
+                                ? "${_pet.foodType.isNotEmpty ? _pet.foodType : 'Mixed'}${_pet.feedingNotes.isNotEmpty ? ' - ${_pet.feedingNotes}' : ''}"
+                                : 'Not Specified',
+                            icon: Icons.restaurant,
+                            textSecondary: textSecondary,
+                            headerColor: headerColor,
+                          ),
+                          Divider(
+                            height: 24,
+                            color: isDark
+                                ? AppTheme.darkBorder
+                                : AppTheme.surfaceContainer,
+                          ),
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.vaccines),
-                              SizedBox(width: 8),
-                              Text(
-                                'Vaccination History',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Behavior Tags',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: textSecondary,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    _pet.behaviorTags.isEmpty
+                                        ? Text(
+                                            'None',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: textPrimary,
+                                            ),
+                                          )
+                                        : Wrap(
+                                            spacing: 8,
+                                            runSpacing: 8,
+                                            children: _pet.behaviorTags
+                                                .map(
+                                                  (t) =>
+                                                      _buildBehaviorChip(t, isDark),
+                                                )
+                                                .toList(),
+                                          ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
-                          Icon(Icons.chevron_right),
                         ],
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 28),
-
-              // Section 3: Lifestyle & Routine
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Lifestyle & Routine',
-                    style: TextStyle(
-                      fontFamily: 'Montserrat',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: headerColor,
-                    ),
-                  ),
-                  if (_currentUserRole.canEditProfile)
-                    TextButton.icon(
-                      onPressed: _showEditLifestyleDialog,
-                      icon: Icon(
-                        Icons.edit_outlined,
-                        size: 18,
-                        color: headerColor,
-                      ),
-                      label: Text(
-                        'Edit',
-                        style: TextStyle(
-                          color: headerColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: cardBg,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: borderColor),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: isDark ? 0.2 : 0.01,
-                      ),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    _buildRoutineItem(
-                      title: 'Activity Level',
-                      value: _pet.activityLevel.isNotEmpty
-                          ? _pet.activityLevel
-                          : 'Moderate',
-                      icon: Icons.directions_run,
-                      textSecondary: textSecondary,
-                      headerColor: headerColor,
-                    ),
-                    Divider(
-                      height: 24,
-                      color: isDark
-                          ? AppTheme.darkBorder
-                          : AppTheme.surfaceContainer,
-                    ),
-                    _buildRoutineItem(
-                      title: 'Diet',
-                      value: _pet.dietEnabled
-                          ? "${_pet.foodType.isNotEmpty ? _pet.foodType : 'Mixed'}${_pet.feedingNotes.isNotEmpty ? ' - ${_pet.feedingNotes}' : ''}"
-                          : 'Not Specified',
-                      icon: Icons.restaurant,
-                      textSecondary: textSecondary,
-                      headerColor: headerColor,
-                    ),
-                    Divider(
-                      height: 24,
-                      color: isDark
-                          ? AppTheme.darkBorder
-                          : AppTheme.surfaceContainer,
-                    ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Behavior Tags',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: textSecondary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              _pet.behaviorTags.isEmpty
-                                  ? Text(
-                                      'None',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: textPrimary,
-                                      ),
-                                    )
-                                  : Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: _pet.behaviorTags
-                                          .map(
-                                            (t) =>
-                                                _buildBehaviorChip(t, isDark),
-                                          )
-                                          .toList(),
-                                    ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
