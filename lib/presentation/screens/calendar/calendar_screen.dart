@@ -1026,10 +1026,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
         : "${_formatDate(_selectedDate)}'s Schedule";
     final isWide = ResponsiveLayout.isWide(context);
     final isTabletDevice = ResponsiveLayout.isTabletDevice(context);
+    final isLandscape = ResponsiveLayout.isLandscape(context);
+    final isTabletVertical = isTabletDevice && !isLandscape;
 
     final monthCalendarBox = Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: EdgeInsets.all(isTabletDevice ? 22 : 16),
+      padding: EdgeInsets.all(isTabletVertical ? 22 : 16),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(24),
@@ -1051,7 +1053,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 icon: Icon(
                   Icons.chevron_left,
                   color: textSecondary,
-                  size: isTabletDevice ? 32 : 24,
+                  size: isTabletVertical ? 32 : 24,
                 ),
                 onPressed: () {
                   setState(() {
@@ -1067,7 +1069,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 style: TextStyle(
                   fontFamily: 'Montserrat',
                   fontWeight: FontWeight.bold,
-                  fontSize: isTabletDevice ? 22 : 16,
+                  fontSize: isTabletVertical ? 22 : 16,
                   color: headerColor,
                 ),
               ),
@@ -1075,7 +1077,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 icon: Icon(
                   Icons.chevron_right,
                   color: textSecondary,
-                  size: isTabletDevice ? 32 : 24,
+                  size: isTabletVertical ? 32 : 24,
                 ),
                 onPressed: () {
                   setState(() {
@@ -1095,14 +1097,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: daysOfWeek.map((day) {
               return SizedBox(
-                width: isTabletDevice ? 44 : 32,
+                width: isTabletVertical ? 44 : 32,
                 child: Text(
                   day,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'Montserrat',
                     fontWeight: FontWeight.bold,
-                    fontSize: isTabletDevice ? 16 : 11,
+                    fontSize: isTabletVertical ? 16 : 11,
                     color: textSecondary,
                   ),
                 ),
@@ -1117,9 +1119,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 7,
-              mainAxisSpacing: isTabletDevice ? 10 : 6,
-              crossAxisSpacing: isTabletDevice ? 10 : 6,
-              childAspectRatio: isTabletDevice ? 1.25 : 1.1,
+              mainAxisSpacing: isTabletVertical ? 10 : 6,
+              crossAxisSpacing: isTabletVertical ? 10 : 6,
+              childAspectRatio: isTabletVertical ? 1.25 : 1.1,
             ),
             itemCount: totalSlots,
             itemBuilder: (context, index) {
@@ -1172,7 +1174,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.bold,
-                          fontSize: isTabletDevice ? 20 : 12,
+                          fontSize: isTabletVertical ? 20 : 12,
                           color: isSelected
                               ? Colors.white
                               : (isToday ? headerColor : textPrimary),
@@ -1181,8 +1183,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       if (hasEvents) ...[
                         const SizedBox(height: 2),
                         Container(
-                          width: isTabletDevice ? 6 : 4,
-                          height: isTabletDevice ? 6 : 4,
+                          width: isTabletVertical ? 6 : 4,
+                          height: isTabletVertical ? 6 : 4,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: isSelected
