@@ -61,17 +61,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Brand Header
-                    const Icon(Icons.pets, size: 64, color: AppTheme.primary),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Paws & Care',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        color: AppTheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Image.asset(
+                      'assets/icon/logo_title.png',
+                      height: 150,
+                      fit: BoxFit.contain,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 16),
                     Text(
                       'Nurturing pet health together.',
                       textAlign: TextAlign.center,
