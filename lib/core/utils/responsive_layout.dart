@@ -22,6 +22,8 @@ class ResponsiveLayout {
     return isTabletDevice(context) && isLandscape(context);
   }
 
+  static bool isWide(BuildContext context) => isTabletLayout(context);
+
   static bool isMobile(BuildContext context) => !isTabletLayout(context);
 
   static bool isDesktop(BuildContext context) =>
