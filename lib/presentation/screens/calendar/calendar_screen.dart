@@ -264,22 +264,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
                 if (selectedPetTarget == 'All') {
                   for (final pet in petState.pets) {
-                    final updatedMeds = List<Medication>.from(
-                      pet.medications,
-                    )..add(newEvent);
+                    final updatedMeds = List<Medication>.from(pet.medications)
+                      ..add(newEvent);
                     petBloc.add(
                       UpdatePet(pet.copyWith(medications: updatedMeds)),
                     );
                   }
-                  GlobalNotificationService()
-                      .scheduleCustomEventNotification(
-                        title: eventTitle,
-                        body: '$eventNote (For All Pets)',
-                        eventDateTime: eventDateTime,
-                        reminderOffset: reminderOffset,
-                        petName: 'All Pets',
-                        category: NotificationCategory.system,
-                      );
+                  GlobalNotificationService().scheduleCustomEventNotification(
+                    title: eventTitle,
+                    body: '$eventNote (For All Pets)',
+                    eventDateTime: eventDateTime,
+                    reminderOffset: reminderOffset,
+                    petName: 'All Pets',
+                    category: NotificationCategory.system,
+                  );
                 } else {
                   final matchedPet = petState.pets.firstWhere(
                     (p) => p.name == selectedPetTarget,
@@ -289,20 +287,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     matchedPet.medications,
                   )..add(newEvent);
                   petBloc.add(
-                    UpdatePet(
-                      matchedPet.copyWith(medications: updatedMeds),
-                    ),
+                    UpdatePet(matchedPet.copyWith(medications: updatedMeds)),
                   );
-                  GlobalNotificationService()
-                      .scheduleCustomEventNotification(
-                        title: eventTitle,
-                        body: '$eventNote for ${matchedPet.name}',
-                        eventDateTime: eventDateTime,
-                        reminderOffset: reminderOffset,
-                        petName: matchedPet.name,
-                        petAvatarUrl: matchedPet.avatarUrl,
-                        category: NotificationCategory.system,
-                      );
+                  GlobalNotificationService().scheduleCustomEventNotification(
+                    title: eventTitle,
+                    body: '$eventNote for ${matchedPet.name}',
+                    eventDateTime: eventDateTime,
+                    reminderOffset: reminderOffset,
+                    petName: matchedPet.name,
+                    petAvatarUrl: matchedPet.avatarUrl,
+                    category: NotificationCategory.system,
+                  );
                 }
 
                 Navigator.of(dialogContext).pop();
@@ -608,10 +603,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     const SnackBar(content: Text('Calendar event deleted.')),
                   );
                 },
-                icon: const Icon(
-                  Icons.delete_outline,
-                  color: AppTheme.error,
-                ),
+                icon: const Icon(Icons.delete_outline, color: AppTheme.error),
                 tooltip: 'Delete Event',
               ),
               onPrimaryPressed: () {
@@ -1288,7 +1280,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
         child: FloatingActionButton.extended(
           heroTag: null,
           onPressed: () => _showAddEventDialog(context, petState),
-          icon: const Icon(Icons.add_circle_outline, color: Colors.white, size: 20),
+          icon: const Icon(
+            Icons.add_circle_outline,
+            color: Colors.white,
+            size: 20,
+          ),
           label: const Text(
             'Add Event',
             style: TextStyle(
@@ -1297,7 +1293,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               color: Colors.white,
             ),
           ),
-          backgroundColor: AppTheme.primary,
+          backgroundColor: AppTheme.tertiaryContainer,
           elevation: 4,
         ),
       ),
@@ -1332,10 +1328,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   ),
                   Container(
                     width: 1,
-                    color: (isDark
-                            ? const Color(0xFF383634)
-                            : AppTheme.surfaceContainer)
-                        .withValues(alpha: 0.5),
+                    color:
+                        (isDark
+                                ? const Color(0xFF383634)
+                                : AppTheme.surfaceContainer)
+                            .withValues(alpha: 0.5),
                   ),
                   // Right Half (flex: 7): Scheduled Events & Timelines
                   Expanded(

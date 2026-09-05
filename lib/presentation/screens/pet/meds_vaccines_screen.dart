@@ -1619,8 +1619,8 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                     setState(() => _isFabExpanded = false);
                     _showAddMedicationDialog(context);
                   },
-                  backgroundColor: AppTheme.primaryFixed,
-                  foregroundColor: AppTheme.onPrimaryFixedVariant,
+                  backgroundColor: AppTheme.tertiaryContainer,
+                  foregroundColor: Colors.white,
                   elevation: 4,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -1635,7 +1635,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                     setState(() => _isFabExpanded = false);
                     _showAddVaccineDialog(context);
                   },
-                  backgroundColor: AppTheme.primary,
+                  backgroundColor: AppTheme.tertiaryContainer,
                   foregroundColor: Colors.white,
                   elevation: 4,
                   shape: RoundedRectangleBorder(
@@ -1651,7 +1651,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                 onPressed: () {
                   setState(() => _isFabExpanded = !_isFabExpanded);
                 },
-                backgroundColor: AppTheme.tertiary,
+                backgroundColor: AppTheme.tertiaryContainer,
                 foregroundColor: Colors.white,
                 elevation: 4,
                 shape: RoundedRectangleBorder(
