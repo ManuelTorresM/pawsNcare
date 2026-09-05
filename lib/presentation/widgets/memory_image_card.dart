@@ -47,11 +47,7 @@ class MemoryImageCard extends StatelessWidget {
             height: height,
             color: AppTheme.surfaceContainer,
             child: const Center(
-              child: Icon(
-                Icons.photo,
-                color: AppTheme.secondary,
-                size: 28,
-              ),
+              child: Icon(Icons.pets, color: AppTheme.secondary, size: 28),
             ),
           ),
         ),
@@ -59,10 +55,7 @@ class MemoryImageCard extends StatelessWidget {
     );
 
     if (onTap != null) {
-      return GestureDetector(
-        onTap: onTap,
-        child: card,
-      );
+      return GestureDetector(onTap: onTap, child: card);
     }
 
     return card;

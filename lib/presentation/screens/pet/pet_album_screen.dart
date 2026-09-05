@@ -970,7 +970,7 @@ class _PetAlbumScreenState extends State<PetAlbumScreen> {
                     color: AppTheme.surfaceContainerLow,
                     child: const Center(
                       child: Icon(
-                        Icons.photo,
+                        Icons.pets,
                         color: AppTheme.secondary,
                         size: 32,
                       ),

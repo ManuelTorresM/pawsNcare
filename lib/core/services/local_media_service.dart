@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
 
 class LocalMediaService {
   static const String folderName = 'pawsncare';
@@ -42,7 +43,61 @@ class LocalMediaService {
         customFileName ??
         'media_${DateTime.now().millisecondsSinceEpoch}_${sourceFile.path.split('/').last.split('\\').last}';
     final targetPath = '${pawsDir.path}/$fileName';
+    if (sourceFile.path == targetPath) {
+      return sourceFile;
+    }
     return await sourceFile.copy(targetPath);
+  }
+
+  /// Synchronize an image file or network URL to the local device's pawsncare directory.
+  /// - If it's a local file, copies it into the local pawsncare directory.
+  /// - If it's a remote URL (HTTP/Drive), downloads it into the local pawsncare directory.
+  /// Returns the local File if saved/downloaded successfully, or null otherwise.
+  static Future<File?> syncToLocalDirectory(String pathOrUrl) async {
+    if (pathOrUrl.trim().isEmpty || pathOrUrl.startsWith('assets/')) {
+      return null;
+    }
+
+    final clean = pathOrUrl.trim();
+
+    try {
+      final pawsDir = await getPawsNCareDirectory();
+
+      // 1. Local File Case
+      if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+        final sourceFile = File(clean);
+        if (await sourceFile.exists()) {
+          return await saveToPawsNCareDirectory(sourceFile);
+        }
+        return null;
+      }
+
+      // 2. Remote URL Case (HTTP / Google Drive)
+      final directUrl = formatDirectImageUrl(clean);
+      final response = await http.get(Uri.parse(directUrl)).timeout(
+        const Duration(seconds: 15),
+      );
+
+      if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+        final contentType = response.headers['content-type'] ?? '';
+        if (contentType.contains('text/html')) {
+          debugPrint('syncToLocalDirectory: URL returned HTML, skipping $clean');
+          return null;
+        }
+
+        final fileName =
+            'downloaded_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final localFile = File('${pawsDir.path}/$fileName');
+        await localFile.writeAsBytes(response.bodyBytes);
+        debugPrint(
+          'syncToLocalDirectory: Successfully downloaded $clean -> ${localFile.path}',
+        );
+        return localFile;
+      }
+    } catch (e) {
+      debugPrint('syncToLocalDirectory ERROR for $pathOrUrl: $e');
+    }
+    return null;
   }
 
   /// Transforms Google Drive web view URLs into direct binary JPEG image thumbnail URLs
@@ -90,6 +145,7 @@ class LocalMediaService {
   }
 
   /// Helper widget that renders an Image widget safely with flexible fallback support.
+  /// When no image is defined or valid, renders a blank card with a paw icon.
   static Widget buildSmartImage({
     required String? path,
     double? width,
@@ -108,14 +164,15 @@ class LocalMediaService {
           fit: fit,
         );
       }
+      // Blank card with a paw icon
       return Container(
         width: width,
         height: height,
-        color: const Color(0xFFE0E0E0),
+        color: const Color(0xFFF5F5F5),
         child: Center(
           child: Icon(
-            Icons.image_not_supported_outlined,
-            color: Colors.grey.shade600,
+            Icons.pets,
+            color: Colors.grey.shade400,
             size: (width != null && width < 50) ? 20 : 32,
           ),
         ),

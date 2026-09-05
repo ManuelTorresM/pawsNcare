@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/services/local_media_service.dart';
 import '../models/pet.dart';
 
 class GoogleDriveService {
@@ -273,6 +274,15 @@ class GoogleDriveService {
   static Future<Pet> syncPetToDrive(Pet pet) async {
     try {
       debugPrint('GoogleDriveService: Starting sync for pet "${pet.name}"...');
+
+      // 0. Ensure all local images are saved/updated in local device pawsncare directory
+      if (pet.avatarUrl.isNotEmpty) {
+        await LocalMediaService.syncToLocalDirectory(pet.avatarUrl);
+      }
+      for (final photoPath in pet.photos) {
+        await LocalMediaService.syncToLocalDirectory(photoPath);
+      }
+
       final driveApi = await _getDriveApi();
       if (driveApi == null) {
         debugPrint('GoogleDriveService syncPetToDrive: driveApi is null');
