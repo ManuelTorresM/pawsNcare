@@ -148,7 +148,10 @@ class _DiaryTabState extends State<DiaryTab> {
     );
     String petId = initialEntry?.petId ?? petState.pets.first.id;
     String category = initialEntry?.category ?? 'walk';
-    String severity = initialEntry?.severity ?? ((category == 'medical_event' || category == 'special_event') ? 'CONCERNING' : 'NORMAL');
+    if (category == 'special_event') {
+      category = 'medical_event';
+    }
+    String severity = initialEntry?.severity ?? (category == 'medical_event' ? 'CONCERNING' : 'NORMAL');
     String? validationError;
 
     showDialog(

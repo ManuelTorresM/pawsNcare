@@ -9,7 +9,6 @@ import 'package:pawsncare/logic/diary/diary_bloc.dart';
 import 'package:pawsncare/logic/theme/theme_cubit.dart';
 import 'package:pawsncare/presentation/screens/pet/add_pet_wizard.dart';
 import 'package:pawsncare/presentation/screens/pet/create_pet_step1.dart';
-import 'package:pawsncare/presentation/screens/pet/create_pet_finish_screen.dart';
 import 'package:pawsncare/presentation/screens/pet/pet_details_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -21,18 +20,17 @@ Widget createTestableWidget(Widget child) {
         create: (context) => AuthBloc(repositorySelector: repositorySelector),
       ),
       BlocProvider<PetBloc>(
-        create: (context) => PetBloc(repositorySelector: repositorySelector)..add(LoadPets()),
+        create: (context) =>
+            PetBloc(repositorySelector: repositorySelector)..add(LoadPets()),
       ),
       BlocProvider<DiaryBloc>(
-        create: (context) => DiaryBloc(repositorySelector: repositorySelector)..add(const LoadDiary()),
+        create: (context) =>
+            DiaryBloc(repositorySelector: repositorySelector)
+              ..add(const LoadDiary()),
       ),
-      BlocProvider<ThemeCubit>(
-        create: (context) => ThemeCubit(),
-      ),
+      BlocProvider<ThemeCubit>(create: (context) => ThemeCubit()),
     ],
-    child: MaterialApp(
-      home: child,
-    ),
+    child: MaterialApp(home: child),
   );
 }
 
@@ -44,14 +42,18 @@ void main() {
   });
 
   group('Pet Screens Widget Tests', () {
-    testWidgets('AddPetWizard renders multi-step form wizard', (WidgetTester tester) async {
+    testWidgets('AddPetWizard renders multi-step form wizard', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(createTestableWidget(const AddPetWizard()));
       await tester.pumpAndSettle();
 
       expect(find.byType(AddPetWizard), findsOneWidget);
     });
 
-    testWidgets('CreatePetStep1 renders basic info fields', (WidgetTester tester) async {
+    testWidgets('CreatePetStep1 renders basic info fields', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -85,7 +87,9 @@ void main() {
       expect(find.byType(TextField), findsWidgets);
     });
 
-    testWidgets('PetDetailsScreen renders pet information and action options', (WidgetTester tester) async {
+    testWidgets('PetDetailsScreen renders pet information and action options', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -101,7 +105,9 @@ void main() {
         weight: 28.0,
       );
 
-      await tester.pumpWidget(createTestableWidget(PetDetailsScreen(pet: samplePet)));
+      await tester.pumpWidget(
+        createTestableWidget(PetDetailsScreen(pet: samplePet)),
+      );
       await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.textContaining('Luna'), findsWidgets);
