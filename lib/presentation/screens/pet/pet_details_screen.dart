@@ -66,6 +66,28 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     BoxFit fit = BoxFit.cover,
     double iconSize = 24,
   }) {
+    if (url.isEmpty) {
+      return Container(
+        width: width,
+        height: height,
+        color: AppTheme.surfaceContainer,
+        child: Icon(Icons.pets, size: iconSize, color: AppTheme.secondary),
+      );
+    }
+    if (url.startsWith('assets/')) {
+      return Image.asset(
+        url,
+        width: width,
+        height: height,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) => Container(
+          width: width,
+          height: height,
+          color: AppTheme.surfaceContainer,
+          child: Icon(Icons.pets, size: iconSize, color: AppTheme.secondary),
+        ),
+      );
+    }
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return Image.network(
         url,
