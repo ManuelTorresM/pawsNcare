@@ -1511,11 +1511,16 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                           width: double.infinity,
                                           decoration: BoxDecoration(
                                             color: ageCardBg,
-                                            borderRadius: BorderRadius.circular(24),
-                                            border: Border.all(color: ageCardBorder),
+                                            borderRadius: BorderRadius.circular(
+                                              24,
+                                            ),
+                                            border: Border.all(
+                                              color: ageCardBorder,
+                                            ),
                                           ),
                                           child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
                                             children: [
                                               Text(
                                                 'Age',
@@ -1537,7 +1542,9 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
-                                                ageYears == 1 ? 'Year' : 'Years',
+                                                ageYears == 1
+                                                    ? 'Year'
+                                                    : 'Years',
                                                 style: TextStyle(
                                                   fontSize: 13,
                                                   color: ageCardText,
@@ -1610,7 +1617,9 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                               ),
                               _buildBentoItem(
                                 title: 'Breed',
-                                value: _pet.breed.isNotEmpty ? _pet.breed : 'Unknown',
+                                value: _pet.breed.isNotEmpty
+                                    ? _pet.breed
+                                    : 'Unknown',
                                 icon: Icons.pets,
                                 cardBg: cardBg,
                                 textPrimary: textPrimary,
@@ -1648,10 +1657,11 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                   ),
                   Container(
                     width: 1,
-                    color: (isDark
-                            ? const Color(0xFF383634)
-                            : AppTheme.surfaceContainer)
-                        .withValues(alpha: 0.5),
+                    color:
+                        (isDark
+                                ? const Color(0xFF383634)
+                                : AppTheme.surfaceContainer)
+                            .withValues(alpha: 0.5),
                   ),
                   // Right Pane: Health Profile and Lifestyle & Routine
                   Expanded(
@@ -1725,7 +1735,8 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                 const SizedBox(height: 6),
                                 _pet.medicalConditions.isEmpty ||
                                         (_pet.medicalConditions.length == 1 &&
-                                            _pet.medicalConditions.first.toLowerCase() ==
+                                            _pet.medicalConditions.first
+                                                    .toLowerCase() ==
                                                 'none')
                                     ? Container(
                                         padding: const EdgeInsets.symmetric(
@@ -1736,7 +1747,9 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                           color: isDark
                                               ? AppTheme.darkBorder
                                               : AppTheme.surfaceContainer,
-                                          borderRadius: BorderRadius.circular(20),
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
                                         ),
                                         child: Text(
                                           'None',
@@ -1751,21 +1764,29 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                         spacing: 6,
                                         runSpacing: 6,
                                         children: _pet.medicalConditions
-                                            .where((c) => c.toLowerCase() != 'none')
+                                            .where(
+                                              (c) => c.toLowerCase() != 'none',
+                                            )
                                             .map(
                                               (c) => Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 12,
-                                                  vertical: 6,
-                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 6,
+                                                    ),
                                                 decoration: BoxDecoration(
-                                                  color: AppTheme.primary.withValues(
-                                                    alpha: isDark ? 0.25 : 0.1,
-                                                  ),
-                                                  borderRadius: BorderRadius.circular(20),
+                                                  color: AppTheme.primary
+                                                      .withValues(
+                                                        alpha: isDark
+                                                            ? 0.25
+                                                            : 0.1,
+                                                      ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
                                                 ),
                                                 child: Text(
-                                                  c[0].toUpperCase() + c.substring(1),
+                                                  c[0].toUpperCase() +
+                                                      c.substring(1),
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.bold,
@@ -1799,7 +1820,10 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                         spacing: 8,
                                         runSpacing: 8,
                                         children: _pet.allergies
-                                            .map((a) => _buildAllergyChip(a, isDark))
+                                            .map(
+                                              (a) =>
+                                                  _buildAllergyChip(a, isDark),
+                                            )
                                             .toList(),
                                       ),
                                 const SizedBox(height: 16),
@@ -1827,7 +1851,8 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                     ),
                                   ),
                                   child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Row(
                                         children: [
@@ -1835,7 +1860,9 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                           SizedBox(width: 8),
                                           Text(
                                             'Vaccination History',
-                                            style: TextStyle(fontWeight: FontWeight.bold),
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -1934,7 +1961,8 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                   children: [
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             'Behavior Tags',
@@ -1960,7 +1988,10 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                                   children: _pet.behaviorTags
                                                       .map(
                                                         (t) =>
-                                                            _buildBehaviorChip(t, isDark),
+                                                            _buildBehaviorChip(
+                                                              t,
+                                                              isDark,
+                                                            ),
                                                       )
                                                       .toList(),
                                                 ),
@@ -2043,7 +2074,8 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                       border: Border.all(color: ageCardBorder),
                                     ),
                                     child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         Text(
                                           'Age',
@@ -2235,7 +2267,8 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                           const SizedBox(height: 6),
                           _pet.medicalConditions.isEmpty ||
                                   (_pet.medicalConditions.length == 1 &&
-                                      _pet.medicalConditions.first.toLowerCase() ==
+                                      _pet.medicalConditions.first
+                                              .toLowerCase() ==
                                           'none')
                               ? Container(
                                   padding: const EdgeInsets.symmetric(
@@ -2272,7 +2305,9 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                             color: AppTheme.primary.withValues(
                                               alpha: isDark ? 0.25 : 0.1,
                                             ),
-                                            borderRadius: BorderRadius.circular(20),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
                                           ),
                                           child: Text(
                                             c[0].toUpperCase() + c.substring(1),
@@ -2345,7 +2380,9 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                     SizedBox(width: 8),
                                     Text(
                                       'Vaccination History',
-                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -2469,8 +2506,10 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                             runSpacing: 8,
                                             children: _pet.behaviorTags
                                                 .map(
-                                                  (t) =>
-                                                      _buildBehaviorChip(t, isDark),
+                                                  (t) => _buildBehaviorChip(
+                                                    t,
+                                                    isDark,
+                                                  ),
                                                 )
                                                 .toList(),
                                           ),

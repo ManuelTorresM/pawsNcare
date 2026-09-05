@@ -250,31 +250,40 @@ class _AddPetWizardState extends State<AddPetWizard> {
         final avatars = [
           'assets/avatars/dog.png',
           'assets/avatars/cat.png',
-          'assets/avatars/lil_dog.png',
+          'assets/avatars/bunny.png',
+          'assets/avatars/fish.png',
+          'assets/avatars/hamster.png',
         ];
         return AlertDialog(
           title: const Text('Choose Avatar'),
-          content: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: avatars.map((url) {
-              final ImageProvider imageProvider = url.startsWith('assets/')
-                  ? AssetImage(url)
-                  : (url.startsWith('http')
-                          ? NetworkImage(url)
-                          : FileImage(File(url)))
-                      as ImageProvider;
+          content: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: avatars.map((url) {
+                final ImageProvider imageProvider = url.startsWith('assets/')
+                    ? AssetImage(url)
+                    : (url.startsWith('http')
+                            ? NetworkImage(url)
+                            : FileImage(File(url)))
+                        as ImageProvider;
 
-              return GestureDetector(
-                onTap: () {
-                  setState(() => _selectedAvatar = url);
-                  Navigator.of(context).pop();
-                },
-                child: CircleAvatar(
-                  radius: 32,
-                  backgroundImage: imageProvider,
-                ),
-              );
-            }).toList(),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() => _selectedAvatar = url);
+                      Navigator.of(context).pop();
+                    },
+                    child: CircleAvatar(
+                      radius: 32,
+                      backgroundColor: Colors.transparent,
+                      backgroundImage: imageProvider,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         );
       },
