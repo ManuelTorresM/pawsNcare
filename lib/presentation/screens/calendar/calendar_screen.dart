@@ -1283,20 +1283,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: null,
-        onPressed: () => _showAddEventDialog(context, petState),
-        icon: const Icon(Icons.add_circle_outline, color: Colors.white, size: 20),
-        label: const Text(
-          'Add Event',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 16.0),
+        child: FloatingActionButton.extended(
+          heroTag: null,
+          onPressed: () => _showAddEventDialog(context, petState),
+          icon: const Icon(Icons.add_circle_outline, color: Colors.white, size: 20),
+          label: const Text(
+            'Add Event',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
+          backgroundColor: AppTheme.primary,
+          elevation: 4,
         ),
-        backgroundColor: AppTheme.primary,
-        elevation: 4,
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
