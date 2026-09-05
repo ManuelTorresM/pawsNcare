@@ -462,6 +462,46 @@ class _PetProfileScreenState extends State<PetProfileScreen>
     required Color textSecondary,
     double? height,
   }) {
+    Widget buildRawImage(BoxFit fit) {
+      if (_pet.avatarUrl.startsWith('assets/')) {
+        return Image.asset(
+          _pet.avatarUrl,
+          fit: fit,
+        );
+      } else if (_pet.avatarUrl.startsWith('http')) {
+        return Image.network(
+          _pet.avatarUrl,
+          fit: fit,
+          errorBuilder: (context, error, stackTrace) => Container(
+            color: isDark
+                ? const Color(0xFF383634)
+                : AppTheme.primaryContainer,
+            child: Icon(
+              Icons.pets,
+              size: 64,
+              color: textSecondary,
+            ),
+          ),
+        );
+      } else if (File(_pet.avatarUrl).existsSync()) {
+        return Image.file(
+          File(_pet.avatarUrl),
+          fit: fit,
+        );
+      } else {
+        return Container(
+          color: isDark
+              ? const Color(0xFF383634)
+              : AppTheme.primaryContainer,
+          child: Icon(
+            Icons.pets,
+            size: 64,
+            color: textSecondary,
+          ),
+        );
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Stack(
@@ -470,6 +510,9 @@ class _PetProfileScreenState extends State<PetProfileScreen>
             height: height,
             width: double.infinity,
             decoration: BoxDecoration(
+              color: isDark
+                  ? const Color(0xFF2A2826)
+                  : AppTheme.surfaceContainerLow,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
@@ -483,42 +526,20 @@ class _PetProfileScreenState extends State<PetProfileScreen>
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(24),
-              child: _pet.avatarUrl.startsWith('assets/')
-                  ? Image.asset(
-                      _pet.avatarUrl,
-                      fit: BoxFit.cover,
-                    )
-                  : (_pet.avatarUrl.startsWith('http')
-                      ? Image.network(
-                          _pet.avatarUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              Container(
-                            color: isDark
-                                ? const Color(0xFF383634)
-                                : AppTheme.primaryContainer,
-                            child: Icon(
-                              Icons.pets,
-                              size: 64,
-                              color: textSecondary,
-                            ),
-                          ),
-                        )
-                      : (File(_pet.avatarUrl).existsSync()
-                          ? Image.file(
-                              File(_pet.avatarUrl),
-                              fit: BoxFit.cover,
-                            )
-                          : Container(
-                              color: isDark
-                                  ? const Color(0xFF383634)
-                                  : AppTheme.primaryContainer,
-                              child: Icon(
-                                Icons.pets,
-                                size: 64,
-                                color: textSecondary,
-                              ),
-                            ))),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Subtle background image fill
+                  Opacity(
+                    opacity: 0.35,
+                    child: buildRawImage(BoxFit.cover),
+                  ),
+                  // Foreground complete pet image without cropping
+                  Center(
+                    child: buildRawImage(BoxFit.contain),
+                  ),
+                ],
+              ),
             ),
           ),
           Positioned(
@@ -537,7 +558,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    Colors.black.withValues(alpha: 0.8),
+                    Colors.black.withValues(alpha: 0.85),
                   ],
                 ),
               ),
@@ -560,7 +581,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
                     ),
                     decoration: BoxDecoration(
                       color: AppTheme.primary.withValues(
-                        alpha: 0.8,
+                        alpha: 0.85,
                       ),
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -610,7 +631,7 @@ class _PetProfileScreenState extends State<PetProfileScreen>
         _buildHeroPictureCard(
           isDark: isDark,
           textSecondary: textSecondary,
-          height: 250,
+          height: 280,
         ),
         const SizedBox(height: 20),
 
