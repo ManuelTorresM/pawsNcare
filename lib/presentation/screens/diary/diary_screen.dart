@@ -495,7 +495,7 @@ class _DiaryTabState extends State<DiaryTab> {
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 16.0),
         child: FloatingActionButton(
-          heroTag: 'fab_diary_screen_add',
+          heroTag: null,
           onPressed: () => _showAddEntryDialog(context),
           backgroundColor: AppTheme.tertiaryContainer,
           foregroundColor: Colors.white,

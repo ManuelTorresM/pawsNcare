@@ -1276,7 +1276,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       backgroundColor: Colors.transparent,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'fab_calendar_screen_add',
+        heroTag: null,
         onPressed: () => _showAddEventDialog(context, petState),
         icon: const Icon(Icons.add_circle_outline, color: Colors.white, size: 20),
         label: const Text(

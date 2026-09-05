@@ -1614,7 +1614,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
             children: [
               if (_isFabExpanded) ...[
                 FloatingActionButton.extended(
-                  heroTag: 'fab_medication',
+                  heroTag: null,
                   onPressed: () {
                     setState(() => _isFabExpanded = false);
                     _showAddMedicationDialog(context);
@@ -1630,7 +1630,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                 ),
                 const SizedBox(height: 12),
                 FloatingActionButton.extended(
-                  heroTag: 'fab_vaccine',
+                  heroTag: null,
                   onPressed: () {
                     setState(() => _isFabExpanded = false);
                     _showAddVaccineDialog(context);
@@ -1647,7 +1647,7 @@ class _MedsVaccinesScreenState extends State<MedsVaccinesScreen> {
                 const SizedBox(height: 12),
               ],
               FloatingActionButton(
-                heroTag: 'fab_main',
+                heroTag: null,
                 onPressed: () {
                   setState(() => _isFabExpanded = !_isFabExpanded);
                 },
